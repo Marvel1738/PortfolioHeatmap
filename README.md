@@ -36,12 +36,13 @@ This project is a work-in-progress full-stack application built to professional 
 - Spring Boot with a clean separation of concerns (controllers, services, repositories).
 - Flexible stock data provider setup using a factory pattern (`StockDataServiceFactory`) to switch between FMP and Alpha Vantage.
 
+### 🔐 User Authentication:
+- Spring Security with JWT for user registration, login, and role-based access control.
+- Secure endpoints to ensure users can only access their own portfolios.
+
 ---
 
 ## 🎯 Planned Features
-### 🔐 User Authentication:
-- Implement Spring Security with JWT for user registration, login, and role-based access control.
-- Secure endpoints to ensure users can only access their own portfolios.
 
 ### 🔥 Portfolio Heatmap Visualization:
 - Build an interactive heatmap (similar to Finviz’s S&P 500 heatmap) using React.
@@ -82,11 +83,11 @@ This project is a work-in-progress full-stack application built to professional 
 - **Spring Data JPA**: For database interaction.
 - **Financial Modeling Prep (FMP) API**: Primary stock data provider (250 requests/day, free tier).
 - **Alpha Vantage API**: Fallback stock data provider (5/min, 25/day).
+- **Spring Security**: For user authentication with JWT.
 
 ### 🔜 Planned
 - **React**: Front-end framework for building the UI and heatmap.
 - **D3.js or React Heatmap Library**: For the portfolio heatmap visualization.
-- **Spring Security**: For user authentication with JWT.
 - **AWS**:
   - Elastic Beanstalk: Backend hosting.
   - RDS: MySQL database hosting.
