@@ -1,5 +1,12 @@
 package com.PortfolioHeatmap.services;
 
+/**
+ * Implements the StockDataService interface to fetch stock price data from the Financial Modeling Prep (FMP) API.
+ * This service handles individual and batch stock price requests, deserializing API responses into StockPrice
+ * objects for use in the application.
+ * 
+ * @author [Marvel Bana]
+ */
 import com.PortfolioHeatmap.models.FMPQuoteResponse;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,11 +23,19 @@ import java.util.stream.Collectors;
 
 @Service
 public class FMPStockDataService implements StockDataService {
+    // Logger for tracking requests, responses, and errors in this service.
     private static final Logger log = LoggerFactory.getLogger(FMPStockDataService.class);
+    // RestTemplate for making HTTP requests to the FMP API.
     private final RestTemplate restTemplate;
+    // API key for authenticating requests to the FMP API, loaded from application
+    // properties.
     private final String apiKey;
+    // ObjectMapper for deserializing JSON responses from the API.
     private final ObjectMapper objectMapper;
 
+    // Constructor for dependency injection of RestTemplateBuilder and API key.
+    // Initializes RestTemplate, API key, and ObjectMapper, and logs the API key
+    // initialization.
     public FMPStockDataService(RestTemplateBuilder builder, @Value("${fmp.api.key}") String apiKey) {
         this.restTemplate = builder.build();
         this.apiKey = apiKey;
@@ -28,11 +43,16 @@ public class FMPStockDataService implements StockDataService {
         log.info("Initialized with FMP API Key: {}", apiKey);
     }
 
+    // Fetches the current stock price for a given symbol from the FMP API.
+    // Constructs the API URL, makes the request, deserializes the response, and
+    // maps it to a StockPrice object.
     @Override
     public StockPrice getStockPrice(String symbol) {
+        // Construct the API URL with the symbol and API key.
         String url = "https://financialmodelingprep.com/api/v3/quote/" + symbol + "?apikey=" + apiKey;
         log.info("Requesting URL: {}", url);
 
+        // Make the HTTP request and get the raw JSON response.
         String rawResponse;
         try {
             rawResponse = restTemplate.getForObject(url, String.class);
@@ -42,11 +62,13 @@ public class FMPStockDataService implements StockDataService {
         }
         log.info("Raw API Response: {}", rawResponse);
 
+        // Check if the response is null or empty, and throw an exception if it is.
         if (rawResponse == null || rawResponse.trim().isEmpty()) {
             log.error("Empty response from FMP for symbol: {}", symbol);
             throw new RuntimeException("Empty response from FMP for " + symbol);
         }
 
+        // Deserialize the raw JSON response into an array of FMPQuoteResponse objects.
         FMPQuoteResponse[] response;
         try {
             response = objectMapper.readValue(rawResponse, FMPQuoteResponse[].class);
@@ -57,11 +79,13 @@ public class FMPStockDataService implements StockDataService {
             throw new RuntimeException("Error parsing FMP response for " + symbol, e);
         }
 
+        // Validate the response, throwing an exception if it is null or empty.
         if (response == null || response.length == 0) {
             log.error("Invalid or empty response for symbol: {}. Raw response: {}", symbol, rawResponse);
             throw new RuntimeException("Failed to fetch stock data for " + symbol);
         }
 
+        // Map the first quote in the response to a StockPrice object.
         FMPQuoteResponse quote = response[0];
         StockPrice stockPrice = new StockPrice();
         stockPrice.setSymbol(quote.getSymbol());
@@ -74,18 +98,25 @@ public class FMPStockDataService implements StockDataService {
         return stockPrice;
     }
 
+    // Fetches stock prices for a list of symbols in a single batch request to the
+    // FMP API.
+    // Constructs a comma-separated list of symbols, makes the request, and maps the
+    // response to a list of StockPrice objects.
     @Override
     public List<StockPrice> getBatchStockPrices(List<String> symbols) {
         log.info("Fetching batch prices for symbols: {}", symbols);
+        // Check if the number of symbols exceeds the API limit of 100.
         if (symbols.size() > 100) {
             log.warn("Symbol count exceeds 100: {}", symbols.size());
             throw new IllegalArgumentException("Batch request limited to 100 symbols");
         }
 
+        // Construct the API URL with a comma-separated list of symbols and the API key.
         String symbolList = String.join(",", symbols);
         String url = "https://financialmodelingprep.com/api/v3/quote/" + symbolList + "?apikey=" + apiKey;
         log.info("Requesting URL: {}", url);
 
+        // Make the HTTP request and get the raw JSON response.
         String rawResponse;
         try {
             rawResponse = restTemplate.getForObject(url, String.class);
@@ -95,11 +126,13 @@ public class FMPStockDataService implements StockDataService {
         }
         log.info("Raw API Response: {}", rawResponse);
 
+        // Check if the response is null or empty, and throw an exception if it is.
         if (rawResponse == null || rawResponse.trim().isEmpty()) {
             log.error("Empty response from FMP for symbols: {}", symbolList);
             throw new RuntimeException("Empty response from FMP for " + symbolList);
         }
 
+        // Deserialize the raw JSON response into an array of FMPQuoteResponse objects.
         FMPQuoteResponse[] response;
         try {
             response = objectMapper.readValue(rawResponse, FMPQuoteResponse[].class);
@@ -110,11 +143,14 @@ public class FMPStockDataService implements StockDataService {
             throw new RuntimeException("Error parsing FMP batch response for " + symbolList, e);
         }
 
+        // If the response is null or empty, return an empty list.
         if (response == null || response.length == 0) {
             log.warn("No valid stock quotes found for symbols: {}. Raw response: {}", symbolList, rawResponse);
             return List.of();
         }
 
+        // Map each quote in the response to a StockPrice object and collect into a
+        // list.
         List<StockPrice> stockPrices = Arrays.stream(response)
                 .map(quote -> {
                     StockPrice stockPrice = new StockPrice();
