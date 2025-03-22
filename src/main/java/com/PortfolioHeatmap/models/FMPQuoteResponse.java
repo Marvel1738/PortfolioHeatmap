@@ -11,9 +11,9 @@ public class FMPQuoteResponse {
     private double price;
     @JsonProperty("open")
     private double open;
-    @JsonProperty("high")
+    @JsonProperty("dayHigh") // Changed from "high" to "dayHigh"
     private double high;
-    @JsonProperty("low")
+    @JsonProperty("dayLow") // Changed from "low" to "dayLow"
     private double low;
     @JsonProperty("previousClose")
     private double previousClose;
