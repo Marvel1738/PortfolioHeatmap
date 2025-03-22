@@ -5,7 +5,7 @@ package com.PortfolioHeatmap.controllers;
  * This controller interacts with StockService for stock management, StockDataService for fetching stock prices,
  * and PriceHistoryRepository for updating historical price data.
  * 
- * @author [Your Name]
+ * @author [Marvel Bana]
  */
 import com.PortfolioHeatmap.models.PriceHistory;
 import com.PortfolioHeatmap.models.Stock;

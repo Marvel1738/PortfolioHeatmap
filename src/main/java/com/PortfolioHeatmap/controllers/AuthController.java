@@ -5,10 +5,9 @@ package com.PortfolioHeatmap.controllers;
  * This controller integrates with Spring Security for authentication, UserService for user management,
  * and JwtUtil for generating JWT tokens used in securing API endpoints.
  * 
- * @author [Your Name]
+ * @author [Marvel Bana]
  */
 import com.PortfolioHeatmap.security.JwtUtil;
-import com.PortfolioHeatmap.models.User;
 import com.PortfolioHeatmap.services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
