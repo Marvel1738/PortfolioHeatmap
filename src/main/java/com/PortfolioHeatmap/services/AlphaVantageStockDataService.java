@@ -8,6 +8,7 @@ package com.PortfolioHeatmap.services;
  * @author [Your Name]
  */
 import com.PortfolioHeatmap.models.AlphaVantageQuoteResponse;
+import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.AlphaVantageHistoricalPriceResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
@@ -175,5 +176,9 @@ public class AlphaVantageStockDataService implements StockDataService {
             log.error("Failed to parse field '{}': {}", fieldName, value, e);
             throw e;
         }
+    }
+    @Override
+    public List<FMPStockListResponse> getStockList() {
+        throw new UnsupportedOperationException("Alpha Vantage does not support fetching a stock list");
     }
 }

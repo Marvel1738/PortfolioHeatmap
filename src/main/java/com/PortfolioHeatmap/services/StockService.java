@@ -11,6 +11,8 @@ import com.PortfolioHeatmap.exceptions.StockNotFoundException;
 import com.PortfolioHeatmap.models.Stock;
 import com.PortfolioHeatmap.repositories.StockRepository;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +56,12 @@ public class StockService {
     // Used for both creating new stocks and updating existing ones.
     public Stock saveStock(Stock stock) {
         return stockRepository.save(stock);
+    }
+
+    // Saves a list of stocks to the database.
+    // Used for batch operations to save multiple stocks at once.
+    public void saveAllStocks(List<Stock> stocks) {
+        stockRepository.saveAll(stocks);
     }
 
     // Deletes a stock from the database by its ID (ticker).

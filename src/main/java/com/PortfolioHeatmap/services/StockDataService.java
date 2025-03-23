@@ -11,6 +11,7 @@ import java.util.List;
 import java.time.LocalDate;
 
 import com.PortfolioHeatmap.models.StockPrice;
+import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
 
 public interface StockDataService {
@@ -24,4 +25,7 @@ public interface StockDataService {
     // range.
     // Returns a list of HistoricalPrice objects representing daily prices.
     List<HistoricalPrice> getHistoricalPrices(String symbol, LocalDate from, LocalDate to);
+
+    // Fetches a list of stock symbols available for trading.
+    List<FMPStockListResponse> getStockList();
 }

@@ -8,6 +8,7 @@ package com.PortfolioHeatmap.services;
  * @author [Your Name]
  */
 import com.PortfolioHeatmap.models.FMPQuoteResponse;
+import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.FMPHistoricalPriceResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
@@ -203,5 +204,42 @@ public class FMPStockDataService implements StockDataService {
                 .collect(Collectors.toList());
         log.info("Returning historical prices for {}: {}", symbol, historicalPrices);
         return historicalPrices;
+    }
+
+    
+    @Override
+    public List<FMPStockListResponse> getStockList() {
+        String url = "https://financialmodelingprep.com/api/v3/stock/list?apikey=" + apiKey;
+        log.info("Requesting stock list URL: {}", url);
+
+        String rawResponse;
+        try {
+            rawResponse = restTemplate.getForObject(url, String.class);
+        } catch (Exception e) {
+            log.error("Failed to fetch stock list from FMP: {}", e.getMessage(), e);
+            throw new RuntimeException("Error fetching stock list from FMP", e);
+        }
+        log.info("Raw API Response: {}", rawResponse);
+
+        if (rawResponse == null || rawResponse.trim().isEmpty()) {
+            log.error("Empty response from FMP for stock list");
+            throw new RuntimeException("Empty response from FMP for stock list");
+        }
+
+        List<FMPStockListResponse> response;
+        try {
+            response = Arrays.asList(objectMapper.readValue(rawResponse, FMPStockListResponse[].class));
+            log.info("Deserialized Stock List Response: {}", response);
+        } catch (Exception e) {
+            log.error("Failed to deserialize stock list response: {}. Raw response: {}", e.getMessage(), rawResponse, e);
+            throw new RuntimeException("Error parsing FMP stock list response", e);
+        }
+
+        if (response == null || response.isEmpty()) {
+            log.warn("No stock data found in response. Raw response: {}", rawResponse);
+            return List.of();
+        }
+
+        return response;
     }
 }

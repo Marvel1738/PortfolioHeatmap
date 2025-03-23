@@ -10,6 +10,7 @@ package com.PortfolioHeatmap.controllers;
 import com.PortfolioHeatmap.models.PriceHistory;
 import com.PortfolioHeatmap.models.Stock;
 import com.PortfolioHeatmap.models.StockPrice;
+import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
 import com.PortfolioHeatmap.repositories.PriceHistoryRepository;
 import com.PortfolioHeatmap.services.StockDataService;
@@ -159,29 +160,24 @@ public class StockController {
     // Handles POST /stocks/price-history/populate/{symbol} to populate the
     // price_history table with historical prices.
     // Fetches historical prices for the past year and saves them to the database.
-    @PostMapping("/price-history/populate/{symbol}")
+@PostMapping("/price-history/populate/{symbol}")
     public ResponseEntity<String> populatePriceHistory(@PathVariable String symbol) {
         log.info("Populating price history for symbol: {}", symbol);
         try {
-            // Verify the stock exists in the database
             Stock stock = stockService.getStockById(symbol);
             if (stock == null) {
                 log.error("Stock not found for symbol: {}", symbol);
                 return ResponseEntity.status(404).body("Stock not found for symbol: " + symbol);
             }
 
-            // Define the date range: past year from today
             LocalDate to = LocalDate.now();
             LocalDate from = to.minusYears(1);
-
-            // Fetch historical prices for the past year using the factory-selected service
             List<HistoricalPrice> historicalPrices = stockDataService.getHistoricalPrices(symbol, from, to);
             if (historicalPrices.isEmpty()) {
                 log.warn("No historical prices found for symbol: {}", symbol);
                 return ResponseEntity.ok("No historical prices found for " + symbol);
             }
 
-            // Map each historical price to a PriceHistory entity and save to the database
             List<PriceHistory> priceHistories = historicalPrices.stream()
                     .map(hp -> {
                         PriceHistory priceHistory = new PriceHistory();
@@ -194,11 +190,48 @@ public class StockController {
 
             priceHistoryRepository.saveAll(priceHistories);
             log.info("Saved {} historical price entries for symbol: {}", priceHistories.size(), symbol);
-            return ResponseEntity
-                    .ok("Successfully populated " + priceHistories.size() + " historical price entries for " + symbol);
+            return ResponseEntity.ok("Successfully populated " + priceHistories.size() + " historical price entries for " + symbol);
         } catch (RuntimeException e) {
             log.error("Error populating price history for symbol {}: {}", symbol, e.getMessage(), e);
             return ResponseEntity.status(500).body("Error populating price history: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/populate")
+    public ResponseEntity<String> populateStocks() {
+        log.info("Populating stocks table with major stocks");
+        try {
+            List<FMPStockListResponse> stockList = stockDataService.getStockList();
+            if (stockList.isEmpty()) {
+                log.warn("No stocks found in the stock list response");
+                return ResponseEntity.ok("No stocks found to populate");
+            }
+
+            // Filter for major U.S. exchanges (NASDAQ, NYSE) and type "stock"
+            List<Stock> stocksToSave = stockList.stream()
+                    .filter(stock -> stock.getExchange() != null)
+                    .filter(stock -> stock.getExchange().contains("NASDAQ") || stock.getExchange().contains("NYSE"))
+                    .filter(stock -> "stock".equalsIgnoreCase(stock.getType()))
+                    .map(stockResponse -> {
+                        Stock stock = new Stock();
+                        stock.setTicker(stockResponse.getSymbol());
+                        stock.setCompanyName(stockResponse.getName());
+                        return stock;
+                    })
+                    .collect(Collectors.toList());
+
+            if (stocksToSave.isEmpty()) {
+                log.warn("No stocks matched the filter criteria for population");
+                return ResponseEntity.ok("No stocks matched the filter criteria for population");
+            }
+
+            // Save the filtered stocks to the database
+            stockService.saveAllStocks(stocksToSave);
+            log.info("Saved {} stocks to the stocks table", stocksToSave.size());
+            return ResponseEntity.ok("Successfully populated " + stocksToSave.size() + " stocks");
+        } catch (RuntimeException e) {
+            log.error("Error populating stocks table: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body("Error populating stocks table: " + e.getMessage());
         }
     }
 }
