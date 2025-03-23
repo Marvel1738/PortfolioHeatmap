@@ -161,41 +161,43 @@ public class StockController {
     // price_history table with historical prices.
     // Fetches historical prices for the past year and saves them to the database.
 @PostMapping("/price-history/populate/{symbol}")
-    public ResponseEntity<String> populatePriceHistory(@PathVariable String symbol) {
-        log.info("Populating price history for symbol: {}", symbol);
-        try {
-            Stock stock = stockService.getStockById(symbol);
-            if (stock == null) {
-                log.error("Stock not found for symbol: {}", symbol);
-                return ResponseEntity.status(404).body("Stock not found for symbol: " + symbol);
-            }
-
-            LocalDate to = LocalDate.now();
-            LocalDate from = to.minusYears(1);
-            List<HistoricalPrice> historicalPrices = stockDataService.getHistoricalPrices(symbol, from, to);
-            if (historicalPrices.isEmpty()) {
-                log.warn("No historical prices found for symbol: {}", symbol);
-                return ResponseEntity.ok("No historical prices found for " + symbol);
-            }
-
-            List<PriceHistory> priceHistories = historicalPrices.stream()
-                    .map(hp -> {
-                        PriceHistory priceHistory = new PriceHistory();
-                        priceHistory.setStock(stock);
-                        priceHistory.setDate(hp.getDate());
-                        priceHistory.setClosingPrice(hp.getClosingPrice());
-                        return priceHistory;
-                    })
-                    .collect(Collectors.toList());
-
-            priceHistoryRepository.saveAll(priceHistories);
-            log.info("Saved {} historical price entries for symbol: {}", priceHistories.size(), symbol);
-            return ResponseEntity.ok("Successfully populated " + priceHistories.size() + " historical price entries for " + symbol);
-        } catch (RuntimeException e) {
-            log.error("Error populating price history for symbol {}: {}", symbol, e.getMessage(), e);
-            return ResponseEntity.status(500).body("Error populating price history: " + e.getMessage());
+public ResponseEntity<String> populatePriceHistory(@PathVariable String symbol) {
+    log.info("Populating price history for symbol: {}", symbol);
+    try {
+        Stock stock = stockService.getStockById(symbol);
+        if (stock == null) {
+            log.error("Stock not found for symbol: {}", symbol);
+            return ResponseEntity.status(404).body("Stock not found for symbol: " + symbol);
         }
+
+        LocalDate to = LocalDate.now();
+        LocalDate from = to.minusYears(1);
+        List<HistoricalPrice> historicalPrices = stockDataService.getHistoricalPrices(symbol, from, to);
+        if (historicalPrices.isEmpty()) {
+            log.warn("No historical prices found for symbol: {}", symbol);
+            return ResponseEntity.ok("No historical prices found for " + symbol);
+        }
+
+        List<PriceHistory> priceHistories = historicalPrices.stream()
+                .map(hp -> {
+                    PriceHistory priceHistory = new PriceHistory();
+                    priceHistory.setStock(stock);
+                    priceHistory.setDate(hp.getDate());
+                    priceHistory.setClosingPrice(hp.getClosingPrice());
+                    priceHistory.setPeRatio(hp.getPeRatio()); // Map the new peRatio field
+                    priceHistory.setMarketCap(hp.getMarketCap()); // Map the new marketCap field
+                    return priceHistory;
+                })
+                .collect(Collectors.toList());
+
+        priceHistoryRepository.saveAll(priceHistories);
+        log.info("Saved {} historical price entries for symbol: {}", priceHistories.size(), symbol);
+        return ResponseEntity.ok("Successfully populated " + priceHistories.size() + " historical price entries for " + symbol);
+    } catch (RuntimeException e) {
+        log.error("Error populating price history for symbol {}: {}", symbol, e.getMessage(), e);
+        return ResponseEntity.status(500).body("Error populating price history: " + e.getMessage());
     }
+}
 
     @PostMapping("/populate")
     public ResponseEntity<String> populateStocks() {

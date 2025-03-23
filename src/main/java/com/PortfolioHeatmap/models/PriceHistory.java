@@ -37,4 +37,10 @@ public class PriceHistory {
     // Cannot be null, as the closing price is a required field.
     @Column(nullable = false)
     private Double closingPrice;
+
+    @Column(name = "pe_ratio")
+    private Double peRatio;
+
+    @Column(name = "market_cap")
+    private Double marketCap;
 }

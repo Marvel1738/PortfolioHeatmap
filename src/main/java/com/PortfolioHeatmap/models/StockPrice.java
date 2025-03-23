@@ -22,6 +22,9 @@ public class StockPrice {
     // The previous day's closing price of the stock.
     private double previousClose;
 
+    private Double peRatio;
+    private Double marketCap;
+
     // Constructors
 
     // Default constructor for creating an empty StockPrice object.
@@ -94,5 +97,27 @@ public class StockPrice {
     // Setter for the previous day's closing price.
     public void setPreviousClose(double previousClose) {
         this.previousClose = previousClose;
+    }
+    
+    public Double getPeRatio() {
+        return peRatio;
+    }
+
+    public void setPeRatio(Double peRatio) {
+        this.peRatio = peRatio;
+    }
+
+    public Double getMarketCap() {
+        return marketCap;
+    }
+
+    public void setMarketCap(Double marketCap) {
+        this.marketCap = marketCap;
+    }
+    
+    @Override
+    public String toString() {
+        return "StockPrice[symbol=" + symbol + ", price=" + price + ", peRatio=" + peRatio + ", marketCap=" + marketCap
+                + "]";
     }
 }

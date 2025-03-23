@@ -14,6 +14,9 @@ public class HistoricalPrice {
     // The closing price of the stock on that date.
     private double closingPrice;
 
+    private Double peRatio;
+    private Double marketCap;
+
     // Default constructor for deserialization.
     public HistoricalPrice() {
     }
@@ -23,6 +26,13 @@ public class HistoricalPrice {
     public HistoricalPrice(LocalDate date, double closingPrice) {
         this.date = date;
         this.closingPrice = closingPrice;
+    }
+
+    public HistoricalPrice(LocalDate date, Double closingPrice, Double peRatio, Double marketCap) {
+        this.date = date;
+        this.closingPrice = closingPrice;
+        this.peRatio = peRatio;
+        this.marketCap = marketCap;
     }
 
     // Getter for the date.
@@ -43,6 +53,22 @@ public class HistoricalPrice {
     // Setter for the closing price.
     public void setClosingPrice(double closingPrice) {
         this.closingPrice = closingPrice;
+    }
+
+    public Double getPeRatio() {
+        return peRatio;
+    }
+
+    public void setPeRatio(Double peRatio) {
+        this.peRatio = peRatio;
+    }
+
+    public Double getMarketCap() {
+        return marketCap;
+    }
+
+    public void setMarketCap(Double marketCap) {
+        this.marketCap = marketCap;
     }
 
     // Provides a string representation of the HistoricalPrice object for logging or

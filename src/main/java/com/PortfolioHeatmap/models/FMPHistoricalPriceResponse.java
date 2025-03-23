@@ -54,6 +54,12 @@ public class FMPHistoricalPriceResponse {
         // The date of the historical price entry, mapped to the "date" JSON field.
         @JsonProperty("date")
         private LocalDate date;
+
+        @JsonProperty("pe")
+        private Double pe;
+
+        @JsonProperty("marketCap")
+        private Double marketCap;
         // The closing price on that date, mapped to the "close" JSON field.
         @JsonProperty("close")
         private double close;
@@ -76,6 +82,22 @@ public class FMPHistoricalPriceResponse {
         // Setter for the closing price.
         public void setClose(double close) {
             this.close = close;
+        }
+
+        public Double getPe() {
+            return pe;
+        }
+
+        public void setPe(Double pe) {
+            this.pe = pe;
+        }
+
+        public Double getMarketCap() {
+            return marketCap;
+        }
+
+        public void setMarketCap(Double marketCap) {
+            this.marketCap = marketCap;
         }
 
         // Provides a string representation of the HistoricalEntry object for logging or

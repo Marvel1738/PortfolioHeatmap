@@ -32,6 +32,12 @@ public class FMPQuoteResponse {
     @JsonProperty("previousClose")
     private double previousClose;
 
+    @JsonProperty("pe")
+    private Double pe;
+
+    @JsonProperty("marketCap")
+    private Double marketCap;
+
     // Getters and Setters
 
     // Getter for the stock symbol.
@@ -92,5 +98,27 @@ public class FMPQuoteResponse {
     // Setter for the previous day's closing price.
     public void setPreviousClose(double previousClose) {
         this.previousClose = previousClose;
+    }
+
+    public Double getPe() {
+        return pe;
+    }
+
+    public void setPe(Double pe) {
+        this.pe = pe;
+    }
+
+    public Double getMarketCap() {
+        return marketCap;
+    }
+
+    public void setMarketCap(Double marketCap) {
+        this.marketCap = marketCap;
+    }
+
+    @Override
+    public String toString() {
+        return "FMPQuoteResponse[symbol=" + symbol + ", price=" + price + ", pe=" + pe + ", marketCap=" + marketCap
+                + "]";
     }
 }

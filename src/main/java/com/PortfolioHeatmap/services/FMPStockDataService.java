@@ -12,6 +12,7 @@ import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.FMPHistoricalPriceResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
@@ -91,7 +92,10 @@ public class FMPStockDataService implements StockDataService {
         stockPrice.setHigh(quote.getHigh());
         stockPrice.setLow(quote.getLow());
         stockPrice.setPreviousClose(quote.getPreviousClose());
-        log.info("Parsed Quote: symbol={}, price={}", quote.getSymbol(), quote.getPrice());
+        stockPrice.setPeRatio(quote.getPe());
+        stockPrice.setMarketCap(quote.getMarketCap());
+        log.info("Parsed Quote: symbol={}, price={}, pe={}, marketCap={}",
+                quote.getSymbol(), quote.getPrice(), quote.getPe(), quote.getMarketCap());
         return stockPrice;
     }
 
@@ -153,60 +157,68 @@ public class FMPStockDataService implements StockDataService {
         return stockPrices;
     }
 
-    @Override
-    public List<HistoricalPrice> getHistoricalPrices(String symbol, LocalDate from, LocalDate to) {
-        // Construct the API URL for historical prices with the symbol, date range, and
-        // API key.
-        String url = String.format(
-                "https://financialmodelingprep.com/api/v3/historical-price-full/%s?from=%s&to=%s&apikey=%s",
-                symbol, from, to, apiKey);
-        log.info("Requesting historical prices URL: {}", url);
+@Override
+public List<HistoricalPrice> getHistoricalPrices(String symbol, LocalDate from, LocalDate to) {
+    String url = String.format("https://financialmodelingprep.com/api/v3/historical-price-full/%s?from=%s&to=%s&apikey=%s",
+            symbol, from, to, apiKey);
+    log.info("Requesting historical prices URL: {}", url);
 
-        // Make the HTTP request and get the raw JSON response.
-        String rawResponse;
-        try {
-            rawResponse = restTemplate.getForObject(url, String.class);
-        } catch (Exception e) {
-            log.error("Failed to fetch historical data from FMP for symbol {}: {}", symbol, e.getMessage(), e);
-            throw new RuntimeException("Error fetching historical data from FMP for " + symbol, e);
-        }
-        log.info("Raw API Response: {}", rawResponse);
+    String rawResponse;
+    try {
+        rawResponse = restTemplate.getForObject(url, String.class);
+    } catch (Exception e) {
+        log.error("Failed to fetch historical data from FMP for symbol {}: {}", symbol, e.getMessage(), e);
+        throw new RuntimeException("Error fetching historical data from FMP for " + symbol, e);
+    }
+    log.info("Raw API Response: {}", rawResponse);
 
-        // Check if the response is null or empty, and throw an exception if it is.
-        if (rawResponse == null || rawResponse.trim().isEmpty()) {
-            log.error("Empty response from FMP for symbol: {}", symbol);
-            throw new RuntimeException("Empty response from FMP for " + symbol);
-        }
-
-        // Deserialize the raw JSON response into an FMPHistoricalPriceResponse object.
-        FMPHistoricalPriceResponse response;
-        try {
-            response = objectMapper.readValue(rawResponse, FMPHistoricalPriceResponse.class);
-            log.info("Deserialized Historical Response: {}", response);
-        } catch (Exception e) {
-            log.error("Failed to deserialize historical response for symbol {}: {}. Raw response: {}", symbol,
-                    e.getMessage(),
-                    rawResponse, e);
-            throw new RuntimeException("Error parsing FMP historical response for " + symbol, e);
-        }
-
-        // Validate the response, returning an empty list if it is null or has no
-        // historical data.
-        if (response == null || response.getHistorical() == null || response.getHistorical().isEmpty()) {
-            log.warn("No historical data found for symbol: {}. Raw response: {}", symbol, rawResponse);
-            return List.of();
-        }
-
-        // Map each historical entry to a HistoricalPrice object and collect into a
-        // list.
-        List<HistoricalPrice> historicalPrices = response.getHistorical().stream()
-                .map(entry -> new HistoricalPrice(entry.getDate(), entry.getClose()))
-                .collect(Collectors.toList());
-        log.info("Returning historical prices for {}: {}", symbol, historicalPrices);
-        return historicalPrices;
+    if (rawResponse == null || rawResponse.trim().isEmpty()) {
+        log.error("Empty response from FMP for symbol: {}", symbol);
+        throw new RuntimeException("Empty response from FMP for " + symbol);
     }
 
-    
+    try {
+        JsonNode rootNode = objectMapper.readTree(rawResponse);
+        if (rootNode.has("error")) {
+            String errorMessage = rootNode.get("error").asText();
+            log.error("FMP API returned an error for symbol {}: {}", symbol, errorMessage);
+            throw new RuntimeException("FMP API error: " + errorMessage);
+        }
+    } catch (Exception e) {
+        log.error("Failed to parse raw response as JSON for symbol {}: {}", symbol, e.getMessage(), e);
+        throw new RuntimeException("Error parsing FMP response for " + symbol, e);
+    }
+
+    FMPHistoricalPriceResponse response;
+    try {
+        response = objectMapper.readValue(rawResponse, FMPHistoricalPriceResponse.class);
+        log.info("Deserialized Historical Response: {}", response);
+    } catch (Exception e) {
+        log.error("Failed to deserialize historical response for symbol {}: {}. Raw response: {}", symbol, e.getMessage(),
+                rawResponse, e);
+        throw new RuntimeException("Error parsing FMP historical response for " + symbol, e);
+    }
+
+    if (response == null || response.getHistorical() == null || response.getHistorical().isEmpty()) {
+        log.warn("No historical data found for symbol: {}. Raw response: {}", symbol, rawResponse);
+        return List.of();
+    }
+
+    List<HistoricalPrice> historicalPrices = response.getHistorical().stream()
+            .filter(entry -> entry.getDate() != null && entry.getClose() != 0.0)
+            .map(entry -> new HistoricalPrice(
+                    entry.getDate(),
+                    entry.getClose(),
+                    entry.getPe(),
+                    entry.getMarketCap()
+            ))
+            .filter(hp -> !hp.getDate().isBefore(from) && !hp.getDate().isAfter(to))
+            .collect(Collectors.toList());
+    log.info("Returning historical prices for {}: {}", symbol, historicalPrices);
+    return historicalPrices;
+}
+
+
     @Override
     public List<FMPStockListResponse> getStockList() {
         String url = "https://financialmodelingprep.com/api/v3/stock/list?apikey=" + apiKey;
