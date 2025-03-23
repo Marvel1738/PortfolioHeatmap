@@ -32,9 +32,6 @@ class StockServiceTest {
         Stock stock = new Stock();
         stock.setTicker("AAPL");
         stock.setCompanyName("Apple Inc.");
-        stock.setSector("Technology");
-        stock.setMarketCap(2.5E12);
-        stock.setPeRatio(30.5);
 
         when(stockRepository.findById("AAPL")).thenReturn(Optional.of(stock));
 
@@ -45,9 +42,6 @@ class StockServiceTest {
         assertNotNull(foundStock);
         assertEquals("AAPL", foundStock.getTicker());
         assertEquals("Apple Inc.", foundStock.getCompanyName());
-        assertEquals("Technology", foundStock.getSector());
-        assertEquals(2.5E12, foundStock.getMarketCap());
-        assertEquals(30.5, foundStock.getPeRatio());
     }
 
     @Test
@@ -56,9 +50,6 @@ class StockServiceTest {
         Stock stock = new Stock();
         stock.setTicker("GOOGL");
         stock.setCompanyName("Google Inc.");
-        stock.setSector("Technology");
-        stock.setMarketCap(1.8E12);
-        stock.setPeRatio(28.0);
 
         when(stockRepository.save(stock)).thenReturn(stock);
 
@@ -69,9 +60,6 @@ class StockServiceTest {
         assertNotNull(savedStock);
         assertEquals("GOOGL", savedStock.getTicker());
         assertEquals("Google Inc.", savedStock.getCompanyName());
-        assertEquals("Technology", savedStock.getSector());
-        assertEquals(1.8E12, savedStock.getMarketCap());
-        assertEquals(28.0, savedStock.getPeRatio());
 
         verify(stockRepository, times(1)).save(stock);
     }
