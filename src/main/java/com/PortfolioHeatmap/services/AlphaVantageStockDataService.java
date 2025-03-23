@@ -1,5 +1,6 @@
 package com.PortfolioHeatmap.services;
 
+import com.PortfolioHeatmap.models.AlphaVantageHistoricalPriceResponse;
 /**
  * Implements the StockDataService interface to fetch stock price data from the Alpha Vantage API.
  * This service handles individual and batch stock price requests, deserializing API responses into
@@ -8,6 +9,7 @@ package com.PortfolioHeatmap.services;
  * @author [Marvel Bana]
  */
 import com.PortfolioHeatmap.models.AlphaVantageQuoteResponse;
+import com.PortfolioHeatmap.models.HistoricalPrice;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -145,5 +147,50 @@ public class AlphaVantageStockDataService implements StockDataService {
             log.error("Failed to parse field '{}': {}", fieldName, value, e);
             throw e;
         }
+    }
+
+    // Fetches historical price data for a given symbol from the Alpha Vantage API.
+    // Constructs the API URL, makes the request, deserializes the response, and maps it to a list of HistoricalPrice objects.
+    @Override
+    public List<HistoricalPrice> getHistoricalPrices(String symbol) {
+        // Construct the API URL for historical prices with the symbol and API key.
+        String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&apikey=" + apiKey;
+        log.info("Requesting historical prices URL: {}", url);
+
+        // Make the HTTP request and get the raw JSON response.
+        String rawResponse = restTemplate.getForObject(url, String.class);
+        log.info("Raw API Response: {}", rawResponse);
+
+        // Check if the response is null, and throw an exception if it is.
+        if (rawResponse == null) {
+            log.error("Received null response from Alpha Vantage for symbol: {}", symbol);
+            throw new RuntimeException("No response from Alpha Vantage");
+        }
+
+        // Deserialize the raw JSON response into an AlphaVantageHistoricalPriceResponse object.
+        AlphaVantageHistoricalPriceResponse response;
+        try {
+            response = objectMapper.readValue(rawResponse, AlphaVantageHistoricalPriceResponse.class);
+            log.info("Deserialized Historical Response: {}", response);
+        } catch (Exception e) {
+            log.error("Failed to deserialize historical response: {}", e.getMessage(), e);
+            throw new RuntimeException("Error parsing Alpha Vantage historical response", e);
+        }
+
+        // Validate the response, returning an empty list if it is null or has no time series data.
+        if (response == null || response.getTimeSeries() == null || response.getTimeSeries().isEmpty()) {
+            log.warn("No historical data found for symbol: {}. Raw response: {}", symbol, rawResponse);
+            return List.of();
+        }
+
+        // Map each time series entry to a HistoricalPrice object and collect into a list.
+        List<HistoricalPrice> historicalPrices = response.getTimeSeries().entrySet().stream()
+                .map(entry -> new HistoricalPrice(
+                        entry.getKey(),
+                        parseDouble(entry.getValue().getClose(), "close")
+                ))
+                .collect(Collectors.toList());
+        log.info("Returning historical prices for {}: {}", symbol, historicalPrices);
+        return historicalPrices;
     }
 }

@@ -9,6 +9,7 @@ package com.PortfolioHeatmap.services;
  */
 import java.util.List;
 
+import com.PortfolioHeatmap.models.HistoricalPrice;
 import com.PortfolioHeatmap.models.StockPrice;
 
 public interface StockDataService {
@@ -17,4 +18,8 @@ public interface StockDataService {
 
     // Fetches stock prices for a list of symbols in a batch request.
     List<StockPrice> getBatchStockPrices(List<String> symbols);
+
+    // Fetches historical price data for a given symbol.
+    // Returns a list of HistoricalPrice objects representing daily prices.
+    List<HistoricalPrice> getHistoricalPrices(String symbol);
 }
