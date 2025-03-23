@@ -5,11 +5,12 @@ package com.PortfolioHeatmap.controllers;
  * This controller interacts with StockService for stock management, StockDataService for fetching stock prices,
  * and PriceHistoryRepository for updating historical price data.
  * 
- * @author [Marvel Bana]
+ * @author [Your Name]
  */
 import com.PortfolioHeatmap.models.PriceHistory;
 import com.PortfolioHeatmap.models.Stock;
 import com.PortfolioHeatmap.models.StockPrice;
+import com.PortfolioHeatmap.models.HistoricalPrice;
 import com.PortfolioHeatmap.repositories.PriceHistoryRepository;
 import com.PortfolioHeatmap.services.StockDataService;
 import com.PortfolioHeatmap.services.StockDataServiceFactory;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/stocks")
@@ -124,24 +126,24 @@ public class StockController {
     public ResponseEntity<String> updateStockPrice(@PathVariable Long id) {
         log.info("Updating price for price_history ID: {}", id);
         try {
-            // Find the price history entry by ID, or throw an exception if not found.
+            // Find the price history entry
             PriceHistory priceHistory = priceHistoryRepository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Price history not found for ID: " + id));
 
-            // Get the ticker from the associated Stock entity.
+            // Get the ticker from the associated Stock entity
             String ticker = priceHistory.getStock().getTicker();
 
-            // Verify the stock exists (redundant check due to the relationship, but
-            // included for safety).
+            // Verify the stock exists (this step might be redundant since the relationship
+            // ensures it exists)
             Stock stock = stockService.getStockById(ticker);
             if (stock == null) {
                 throw new RuntimeException("Stock not found for ticker: " + ticker);
             }
 
-            // Fetch the latest price using the factory-selected StockDataService.
+            // Fetch the latest price using the factory-selected service
             StockPrice stockPrice = stockDataService.getStockPrice(ticker);
 
-            // Update the price history with the new closing price and current date.
+            // Update the price history
             priceHistory.setClosingPrice(stockPrice.getPrice());
             priceHistory.setDate(LocalDate.now());
             priceHistoryRepository.save(priceHistory);
@@ -151,6 +153,52 @@ public class StockController {
         } catch (RuntimeException e) {
             log.error("Error updating price for ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(500).body("Error updating price: " + e.getMessage());
+        }
+    }
+
+    // Handles POST /stocks/price-history/populate/{symbol} to populate the
+    // price_history table with historical prices.
+    // Fetches historical prices for the past year and saves them to the database.
+    @PostMapping("/price-history/populate/{symbol}")
+    public ResponseEntity<String> populatePriceHistory(@PathVariable String symbol) {
+        log.info("Populating price history for symbol: {}", symbol);
+        try {
+            // Verify the stock exists in the database
+            Stock stock = stockService.getStockById(symbol);
+            if (stock == null) {
+                log.error("Stock not found for symbol: {}", symbol);
+                return ResponseEntity.status(404).body("Stock not found for symbol: " + symbol);
+            }
+
+            // Define the date range: past year from today
+            LocalDate to = LocalDate.now();
+            LocalDate from = to.minusYears(1);
+
+            // Fetch historical prices for the past year using the factory-selected service
+            List<HistoricalPrice> historicalPrices = stockDataService.getHistoricalPrices(symbol, from, to);
+            if (historicalPrices.isEmpty()) {
+                log.warn("No historical prices found for symbol: {}", symbol);
+                return ResponseEntity.ok("No historical prices found for " + symbol);
+            }
+
+            // Map each historical price to a PriceHistory entity and save to the database
+            List<PriceHistory> priceHistories = historicalPrices.stream()
+                    .map(hp -> {
+                        PriceHistory priceHistory = new PriceHistory();
+                        priceHistory.setStock(stock);
+                        priceHistory.setDate(hp.getDate());
+                        priceHistory.setClosingPrice(hp.getClosingPrice());
+                        return priceHistory;
+                    })
+                    .collect(Collectors.toList());
+
+            priceHistoryRepository.saveAll(priceHistories);
+            log.info("Saved {} historical price entries for symbol: {}", priceHistories.size(), symbol);
+            return ResponseEntity
+                    .ok("Successfully populated " + priceHistories.size() + " historical price entries for " + symbol);
+        } catch (RuntimeException e) {
+            log.error("Error populating price history for symbol {}: {}", symbol, e.getMessage(), e);
+            return ResponseEntity.status(500).body("Error populating price history: " + e.getMessage());
         }
     }
 }

@@ -1,17 +1,18 @@
 package com.PortfolioHeatmap.services;
 
-import com.PortfolioHeatmap.models.AlphaVantageHistoricalPriceResponse;
 /**
  * Implements the StockDataService interface to fetch stock price data from the Alpha Vantage API.
  * This service handles individual and batch stock price requests, deserializing API responses into
  * StockPrice objects for use in the application.
  * 
- * @author [Marvel Bana]
+ * @author [Your Name]
  */
 import com.PortfolioHeatmap.models.AlphaVantageQuoteResponse;
-import com.PortfolioHeatmap.models.HistoricalPrice;
 import com.PortfolioHeatmap.models.StockPrice;
+import com.PortfolioHeatmap.models.AlphaVantageHistoricalPriceResponse;
+import com.PortfolioHeatmap.models.HistoricalPrice;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,36 +37,29 @@ public class AlphaVantageStockDataService implements StockDataService {
     private final ObjectMapper objectMapper;
 
     // Constructor for dependency injection of RestTemplateBuilder and API key.
-    // Initializes RestTemplate, API key, and ObjectMapper, and logs the API key
-    // initialization.
+    // Initializes RestTemplate, API key, and ObjectMapper with JavaTimeModule for
+    // LocalDate support.
     public AlphaVantageStockDataService(RestTemplateBuilder builder, @Value("${alphavantage.api.key}") String apiKey) {
         this.restTemplate = builder.build();
         this.apiKey = apiKey;
         this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
         log.info("Initialized with API Key: {}", apiKey);
     }
 
-    // Fetches the current stock price for a given symbol from the Alpha Vantage
-    // API.
-    // Constructs the API URL, makes the request, deserializes the response, and
-    // maps it to a StockPrice object.
     @Override
     public StockPrice getStockPrice(String symbol) {
-        // Construct the API URL with the symbol and API key.
         String url = "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=" + symbol + "&apikey=" + apiKey;
         log.info("Requesting URL: {}", url);
 
-        // Make the HTTP request and get the raw JSON response.
         String rawResponse = restTemplate.getForObject(url, String.class);
         log.info("Raw API Response: {}", rawResponse);
 
-        // Check if the response is null, and throw an exception if it is.
         if (rawResponse == null) {
             log.error("Received null response from Alpha Vantage for symbol: {}", symbol);
             throw new RuntimeException("No response from Alpha Vantage");
         }
 
-        // Deserialize the raw JSON response into an AlphaVantageQuoteResponse object.
         AlphaVantageQuoteResponse response;
         try {
             response = objectMapper.readValue(rawResponse, AlphaVantageQuoteResponse.class);
@@ -74,17 +69,14 @@ public class AlphaVantageStockDataService implements StockDataService {
             throw new RuntimeException("Error parsing Alpha Vantage response", e);
         }
 
-        // Validate the response and its global quote, throwing an exception if invalid.
         if (response == null || response.getGlobalQuote() == null) {
             log.error("Invalid or empty response for symbol: {}. Raw response: {}", symbol, rawResponse);
             throw new RuntimeException("Failed to fetch stock data for " + symbol);
         }
 
-        // Extract the global quote from the response.
         AlphaVantageQuoteResponse.GlobalQuote quote = response.getGlobalQuote();
         log.info("Parsed Quote: symbol={}, price={}", quote.getSymbol(), quote.getPrice());
 
-        // Map the global quote data to a StockPrice object.
         StockPrice stockPrice = new StockPrice();
         stockPrice.setSymbol(quote.getSymbol());
         stockPrice.setPrice(parseDouble(quote.getPrice(), "price"));
@@ -95,21 +87,14 @@ public class AlphaVantageStockDataService implements StockDataService {
         return stockPrice;
     }
 
-    // Fetches stock prices for a list of symbols by calling getStockPrice for each
-    // symbol.
-    // Limits the batch size to 100 symbols and skips any symbols that fail to
-    // fetch.
     @Override
     public List<StockPrice> getBatchStockPrices(List<String> symbols) {
         log.info("Fetching batch prices for symbols: {}", symbols);
-        // Check if the number of symbols exceeds the API limit of 100.
         if (symbols.size() > 100) {
             log.warn("Symbol count exceeds 100: {}", symbols.size());
             throw new IllegalArgumentException("Batch request limited to 100 symbols");
         }
 
-        // Fetch prices for each symbol, handling failures gracefully by skipping failed
-        // symbols.
         List<StockPrice> stockPrices = symbols.stream()
                 .map(symbol -> {
                     try {
@@ -124,7 +109,6 @@ public class AlphaVantageStockDataService implements StockDataService {
                 .filter(stockPrice -> stockPrice != null) // Remove nulls
                 .collect(Collectors.toList());
 
-        // Log the result of the batch request.
         if (stockPrices.isEmpty()) {
             log.warn("No valid stock prices fetched for symbols: {}", symbols);
         } else {
@@ -133,28 +117,11 @@ public class AlphaVantageStockDataService implements StockDataService {
         return stockPrices;
     }
 
-    // Helper method to parse a string value into a double.
-    // Returns 0.0 if the value is null or empty, and throws an exception if parsing
-    // fails.
-    private double parseDouble(String value, String fieldName) {
-        if (value == null || value.trim().isEmpty()) {
-            log.warn("Field '{}' is null or empty, defaulting to 0.0", fieldName);
-            return 0.0;
-        }
-        try {
-            return Double.parseDouble(value);
-        } catch (NumberFormatException e) {
-            log.error("Failed to parse field '{}': {}", fieldName, value, e);
-            throw e;
-        }
-    }
-
-    // Fetches historical price data for a given symbol from the Alpha Vantage API.
-    // Constructs the API URL, makes the request, deserializes the response, and maps it to a list of HistoricalPrice objects.
     @Override
-    public List<HistoricalPrice> getHistoricalPrices(String symbol) {
+    public List<HistoricalPrice> getHistoricalPrices(String symbol, LocalDate from, LocalDate to) {
         // Construct the API URL for historical prices with the symbol and API key.
-        String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&apikey=" + apiKey;
+        String url = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + symbol + "&apikey="
+                + apiKey;
         log.info("Requesting historical prices URL: {}", url);
 
         // Make the HTTP request and get the raw JSON response.
@@ -167,7 +134,8 @@ public class AlphaVantageStockDataService implements StockDataService {
             throw new RuntimeException("No response from Alpha Vantage");
         }
 
-        // Deserialize the raw JSON response into an AlphaVantageHistoricalPriceResponse object.
+        // Deserialize the raw JSON response into an AlphaVantageHistoricalPriceResponse
+        // object.
         AlphaVantageHistoricalPriceResponse response;
         try {
             response = objectMapper.readValue(rawResponse, AlphaVantageHistoricalPriceResponse.class);
@@ -177,20 +145,35 @@ public class AlphaVantageStockDataService implements StockDataService {
             throw new RuntimeException("Error parsing Alpha Vantage historical response", e);
         }
 
-        // Validate the response, returning an empty list if it is null or has no time series data.
+        // Validate the response, returning an empty list if it is null or has no time
+        // series data.
         if (response == null || response.getTimeSeries() == null || response.getTimeSeries().isEmpty()) {
             log.warn("No historical data found for symbol: {}. Raw response: {}", symbol, rawResponse);
             return List.of();
         }
 
-        // Map each time series entry to a HistoricalPrice object and collect into a list.
+        // Map each time series entry to a HistoricalPrice object, filter by date range,
+        // and collect into a list.
         List<HistoricalPrice> historicalPrices = response.getTimeSeries().entrySet().stream()
+                .filter(entry -> !entry.getKey().isBefore(from) && !entry.getKey().isAfter(to))
                 .map(entry -> new HistoricalPrice(
                         entry.getKey(),
-                        parseDouble(entry.getValue().getClose(), "close")
-                ))
+                        parseDouble(entry.getValue().getClose(), "close")))
                 .collect(Collectors.toList());
         log.info("Returning historical prices for {}: {}", symbol, historicalPrices);
         return historicalPrices;
+    }
+
+    private double parseDouble(String value, String fieldName) {
+        if (value == null || value.trim().isEmpty()) {
+            log.warn("Field '{}' is null or empty, defaulting to 0.0", fieldName);
+            return 0.0;
+        }
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            log.error("Failed to parse field '{}': {}", fieldName, value, e);
+            throw e;
+        }
     }
 }
