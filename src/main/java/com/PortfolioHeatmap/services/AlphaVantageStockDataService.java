@@ -8,6 +8,7 @@ package com.PortfolioHeatmap.services;
  * @author [Your Name]
  */
 import com.PortfolioHeatmap.models.AlphaVantageQuoteResponse;
+import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
 import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.AlphaVantageHistoricalPriceResponse;
@@ -157,9 +158,7 @@ public class AlphaVantageStockDataService implements StockDataService {
         // and collect into a list.
         List<HistoricalPrice> historicalPrices = response.getTimeSeries().entrySet().stream()
                 .filter(entry -> !entry.getKey().isBefore(from) && !entry.getKey().isAfter(to))
-                .map(entry -> new HistoricalPrice(
-                        entry.getKey(),
-                        parseDouble(entry.getValue().getClose(), "close")))
+                .map(entry -> new HistoricalPrice(String .valueOf(entry.getKey()), parseDouble(entry.getValue().getClose(), "close")))
                 .collect(Collectors.toList());
         log.info("Returning historical prices for {}: {}", symbol, historicalPrices);
         return historicalPrices;
@@ -180,5 +179,23 @@ public class AlphaVantageStockDataService implements StockDataService {
     @Override
     public List<FMPStockListResponse> getStockList() {
         throw new UnsupportedOperationException("Alpha Vantage does not support fetching a stock list");
+    }
+
+    @Override
+    public String getRawStockListResponse() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getRawStockListResponse'");
+    }
+
+    @Override
+    public String getRawSP500ConstituentsResponse() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getRawSP500ConstituentsResponse'");
+    }
+
+    @Override
+    public List<FMPSP500ConstituentResponse> getSP500Constituents() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getSP500Constituents'");
     }
 }

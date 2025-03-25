@@ -11,6 +11,7 @@ import java.util.List;
 import java.time.LocalDate;
 
 import com.PortfolioHeatmap.models.StockPrice;
+import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
 import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
 
@@ -28,4 +29,10 @@ public interface StockDataService {
 
     // Fetches a list of stock symbols available for trading.
     List<FMPStockListResponse> getStockList();
+
+    String getRawStockListResponse();
+
+    String getRawSP500ConstituentsResponse();
+
+    List<FMPSP500ConstituentResponse> getSP500Constituents();
 }

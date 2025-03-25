@@ -42,5 +42,5 @@ public class PriceHistory {
     private Double peRatio;
 
     @Column(name = "market_cap")
-    private Double marketCap;
+    private Long marketCap;
 }

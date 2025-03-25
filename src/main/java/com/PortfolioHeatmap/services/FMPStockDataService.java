@@ -8,6 +8,7 @@ package com.PortfolioHeatmap.services;
  * @author [Your Name]
  */
 import com.PortfolioHeatmap.models.FMPQuoteResponse;
+import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
 import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.FMPHistoricalPriceResponse;
@@ -19,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -38,6 +40,9 @@ public class FMPStockDataService implements StockDataService {
     private final String apiKey;
     // ObjectMapper for deserializing JSON responses from the API.
     private final ObjectMapper objectMapper;
+
+    // Variable to store raw S&P 500 constituents response.
+    private String rawSP500ConstituentsResponse;
 
     // Constructor for dependency injection of RestTemplateBuilder and API key.
     // Initializes RestTemplate, API key, and ObjectMapper with JavaTimeModule for
@@ -157,101 +162,115 @@ public class FMPStockDataService implements StockDataService {
         return stockPrices;
     }
 
-@Override
-public List<HistoricalPrice> getHistoricalPrices(String symbol, LocalDate from, LocalDate to) {
-    String url = String.format("https://financialmodelingprep.com/api/v3/historical-price-full/%s?from=%s&to=%s&apikey=%s",
-            symbol, from, to, apiKey);
-    log.info("Requesting historical prices URL: {}", url);
-
-    String rawResponse;
-    try {
-        rawResponse = restTemplate.getForObject(url, String.class);
-    } catch (Exception e) {
-        log.error("Failed to fetch historical data from FMP for symbol {}: {}", symbol, e.getMessage(), e);
-        throw new RuntimeException("Error fetching historical data from FMP for " + symbol, e);
-    }
-    log.info("Raw API Response: {}", rawResponse);
-
-    if (rawResponse == null || rawResponse.trim().isEmpty()) {
-        log.error("Empty response from FMP for symbol: {}", symbol);
-        throw new RuntimeException("Empty response from FMP for " + symbol);
-    }
-
-    try {
-        JsonNode rootNode = objectMapper.readTree(rawResponse);
-        if (rootNode.has("error")) {
-            String errorMessage = rootNode.get("error").asText();
-            log.error("FMP API returned an error for symbol {}: {}", symbol, errorMessage);
-            throw new RuntimeException("FMP API error: " + errorMessage);
-        }
-    } catch (Exception e) {
-        log.error("Failed to parse raw response as JSON for symbol {}: {}", symbol, e.getMessage(), e);
-        throw new RuntimeException("Error parsing FMP response for " + symbol, e);
-    }
-
-    FMPHistoricalPriceResponse response;
-    try {
-        response = objectMapper.readValue(rawResponse, FMPHistoricalPriceResponse.class);
-        log.info("Deserialized Historical Response: {}", response);
-    } catch (Exception e) {
-        log.error("Failed to deserialize historical response for symbol {}: {}. Raw response: {}", symbol, e.getMessage(),
-                rawResponse, e);
-        throw new RuntimeException("Error parsing FMP historical response for " + symbol, e);
-    }
-
-    if (response == null || response.getHistorical() == null || response.getHistorical().isEmpty()) {
-        log.warn("No historical data found for symbol: {}. Raw response: {}", symbol, rawResponse);
-        return List.of();
-    }
-
-    List<HistoricalPrice> historicalPrices = response.getHistorical().stream()
-            .filter(entry -> entry.getDate() != null && entry.getClose() != 0.0)
-            .map(entry -> new HistoricalPrice(
-                    entry.getDate(),
-                    entry.getClose(),
-                    entry.getPe(),
-                    entry.getMarketCap()
-            ))
-            .filter(hp -> !hp.getDate().isBefore(from) && !hp.getDate().isAfter(to))
-            .collect(Collectors.toList());
-    log.info("Returning historical prices for {}: {}", symbol, historicalPrices);
-    return historicalPrices;
-}
-
-
     @Override
-    public List<FMPStockListResponse> getStockList() {
-        String url = "https://financialmodelingprep.com/api/v3/stock/list?apikey=" + apiKey;
-        log.info("Requesting stock list URL: {}", url);
+    public List<HistoricalPrice> getHistoricalPrices(String symbol, LocalDate from, LocalDate to) {
+        String url = String.format(
+                "https://financialmodelingprep.com/api/v3/historical-price-full/%s?from=%s&to=%s&apikey=%s",
+                symbol, from, to, apiKey);
+        log.info("Requesting historical prices URL: {}", url);
 
         String rawResponse;
         try {
             rawResponse = restTemplate.getForObject(url, String.class);
         } catch (Exception e) {
-            log.error("Failed to fetch stock list from FMP: {}", e.getMessage(), e);
-            throw new RuntimeException("Error fetching stock list from FMP", e);
+            log.error("Failed to fetch historical data from FMP for symbol {}: {}", symbol, e.getMessage(), e);
+            throw new RuntimeException("Error fetching historical data from FMP for " + symbol, e);
         }
         log.info("Raw API Response: {}", rawResponse);
 
         if (rawResponse == null || rawResponse.trim().isEmpty()) {
-            log.error("Empty response from FMP for stock list");
-            throw new RuntimeException("Empty response from FMP for stock list");
+            log.error("Empty response from FMP for symbol: {}", symbol);
+            throw new RuntimeException("Empty response from FMP for " + symbol);
         }
 
-        List<FMPStockListResponse> response;
         try {
-            response = Arrays.asList(objectMapper.readValue(rawResponse, FMPStockListResponse[].class));
-            log.info("Deserialized Stock List Response: {}", response);
+            JsonNode rootNode = objectMapper.readTree(rawResponse);
+            if (rootNode.has("error")) {
+                String errorMessage = rootNode.get("error").asText();
+                log.error("FMP API returned an error for symbol {}: {}", symbol, errorMessage);
+                throw new RuntimeException("FMP API error: " + errorMessage);
+            }
         } catch (Exception e) {
-            log.error("Failed to deserialize stock list response: {}. Raw response: {}", e.getMessage(), rawResponse, e);
-            throw new RuntimeException("Error parsing FMP stock list response", e);
+            log.error("Failed to parse raw response as JSON for symbol {}: {}", symbol, e.getMessage(), e);
+            throw new RuntimeException("Error parsing FMP response for " + symbol, e);
         }
 
-        if (response == null || response.isEmpty()) {
-            log.warn("No stock data found in response. Raw response: {}", rawResponse);
+        FMPHistoricalPriceResponse response;
+        try {
+            response = objectMapper.readValue(rawResponse, FMPHistoricalPriceResponse.class);
+            log.info("Deserialized Historical Response: {}", response);
+        } catch (Exception e) {
+            log.error("Failed to deserialize historical response for symbol {}: {}. Raw response: {}", symbol,
+                    e.getMessage(),
+                    rawResponse, e);
+            throw new RuntimeException("Error parsing FMP historical response for " + symbol, e);
+        }
+
+        if (response == null || response.getHistorical() == null || response.getHistorical().isEmpty()) {
+            log.warn("No historical data found for symbol: {}. Raw response: {}", symbol, rawResponse);
             return List.of();
         }
 
-        return response;
+        List<HistoricalPrice> historicalPrices = response.getHistorical()
+                .stream()
+                .filter(entry -> entry.getDate() != null && entry.getClose() != 0.0)
+                .map(entry -> new HistoricalPrice(String.valueOf(entry.getDate()), Double.valueOf(entry.getClose())))
+                .filter(hp -> {
+                    LocalDate entryDate = LocalDate.parse(hp.getDate());
+                    return !entryDate.isBefore(from) && !entryDate.isAfter(to);
+                })
+                .collect(Collectors.toList());
+        log.info("Returning historical prices for {}: {}", symbol, historicalPrices);
+        return historicalPrices;
+    }
+
+    @Override
+    public String getRawStockListResponse() {
+        String url = String.format("https://financialmodelingprep.com/api/v3/stock/list?apikey=%s", apiKey);
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        return response.getBody();
+    }
+
+    @Override
+    public List<FMPSP500ConstituentResponse> getSP500Constituents() {
+        String url = String.format("https://financialmodelingprep.com/api/v3/sp500_constituent?apikey=%s", apiKey);
+        ResponseEntity<FMPSP500ConstituentResponse[]> response = restTemplate.getForEntity(url,
+                FMPSP500ConstituentResponse[].class);
+        FMPSP500ConstituentResponse[] constituents = response.getBody();
+        if (constituents == null) {
+            throw new RuntimeException("No S&P 500 constituents data found");
+        }
+        Arrays.stream(constituents)
+                .limit(5)
+                .forEach(stock -> log.info("Deserialized S&P 500 Stock: {}, Market Cap: {}", stock.getSymbol(),
+                        stock.getMarketCap()));
+        return Arrays.asList(constituents);
+    }
+
+    @Override
+    public String getRawSP500ConstituentsResponse() {
+        String url = String.format("https://financialmodelingprep.com/api/v3/sp500_constituent?apikey=%s", apiKey);
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        rawSP500ConstituentsResponse = response.getBody();
+        if (rawSP500ConstituentsResponse == null) {
+            throw new RuntimeException("No raw S&P 500 constituents response found");
+        }
+        return rawSP500ConstituentsResponse;
+    }
+
+    @Override
+    public List<FMPStockListResponse> getStockList() {
+        String url = String.format("https://financialmodelingprep.com/api/v3/stock/list?apikey=%s", apiKey);
+        ResponseEntity<FMPStockListResponse[]> response = restTemplate.getForEntity(url, FMPStockListResponse[].class);
+        FMPStockListResponse[] stockList = response.getBody();
+        if (stockList == null) {
+            throw new RuntimeException("No stock list data found");
+        }
+        // Log the first 5 entries after deserialization
+        Arrays.stream(stockList)
+                .limit(5)
+                .forEach(stock -> log.info("Deserialized Stock: {}, Market Cap: {}", stock.getSymbol(),
+                        stock.getMarketCap()));
+        return Arrays.asList(stockList);
     }
 }

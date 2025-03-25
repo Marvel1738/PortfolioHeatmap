@@ -10,12 +10,18 @@ package com.PortfolioHeatmap.controllers;
 import com.PortfolioHeatmap.models.PriceHistory;
 import com.PortfolioHeatmap.models.Stock;
 import com.PortfolioHeatmap.models.StockPrice;
+import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
 import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
 import com.PortfolioHeatmap.repositories.PriceHistoryRepository;
 import com.PortfolioHeatmap.services.StockDataService;
 import com.PortfolioHeatmap.services.StockDataServiceFactory;
 import com.PortfolioHeatmap.services.StockService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.jsonwebtoken.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -23,9 +29,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Iterator;
+
+// Removed incorrect import of HTMLDocument.Iterator
 
 @RestController
 @RequestMapping("/stocks")
@@ -160,60 +173,162 @@ public class StockController {
     // Handles POST /stocks/price-history/populate/{symbol} to populate the
     // price_history table with historical prices.
     // Fetches historical prices for the past year and saves them to the database.
-@PostMapping("/price-history/populate/{symbol}")
-public ResponseEntity<String> populatePriceHistory(@PathVariable String symbol) {
-    log.info("Populating price history for symbol: {}", symbol);
-    try {
-        Stock stock = stockService.getStockById(symbol);
-        if (stock == null) {
-            log.error("Stock not found for symbol: {}", symbol);
-            return ResponseEntity.status(404).body("Stock not found for symbol: " + symbol);
-        }
+    private List<PriceHistory> populatePriceHistoryForStock(Stock stock, LocalDate from, LocalDate to) {
+        String symbol = stock.getTicker();
+        log.info("Populating price history for symbol: {}", symbol);
 
-        LocalDate to = LocalDate.now();
-        LocalDate from = to.minusYears(1);
+        // Fetch historical prices
         List<HistoricalPrice> historicalPrices = stockDataService.getHistoricalPrices(symbol, from, to);
         if (historicalPrices.isEmpty()) {
             log.warn("No historical prices found for symbol: {}", symbol);
-            return ResponseEntity.ok("No historical prices found for " + symbol);
+            return List.of();
         }
 
+        // Fetch current market cap and PE ratio using /quote endpoint
+        StockPrice stockPrice = stockDataService.getStockPrice(symbol);
+        Long marketCap = stockPrice.getMarketCap();
+        Double peRatio = stockPrice.getPeRatio();
+        log.info("Fetched current data for {}: marketCap={}, peRatio={}", symbol, marketCap, peRatio);
+
+        // Map historical prices to PriceHistory entities
         List<PriceHistory> priceHistories = historicalPrices.stream()
+                .filter(hp -> {
+                    boolean exists = priceHistoryRepository.existsByStockAndDate(stock, LocalDate.parse(hp.getDate()));
+                    if (exists) {
+                        log.info("Skipping existing price history entry for {} on {}", symbol, hp.getDate());
+                        return false;
+                    }
+                    return true;
+                })
                 .map(hp -> {
                     PriceHistory priceHistory = new PriceHistory();
                     priceHistory.setStock(stock);
-                    priceHistory.setDate(hp.getDate());
-                    priceHistory.setClosingPrice(hp.getClosingPrice());
-                    priceHistory.setPeRatio(hp.getPeRatio()); // Map the new peRatio field
-                    priceHistory.setMarketCap(hp.getMarketCap()); // Map the new marketCap field
+                    priceHistory.setDate(LocalDate.parse(hp.getDate()));
+                    priceHistory.setClosingPrice(hp.getClose()); // Use getClose() as per typical FMP response
+                    priceHistory.setPeRatio(peRatio); // Set the current PE ratio
+                    priceHistory.setMarketCap(marketCap); // Set the current market cap
                     return priceHistory;
                 })
                 .collect(Collectors.toList());
 
-        priceHistoryRepository.saveAll(priceHistories);
-        log.info("Saved {} historical price entries for symbol: {}", priceHistories.size(), symbol);
-        return ResponseEntity.ok("Successfully populated " + priceHistories.size() + " historical price entries for " + symbol);
-    } catch (RuntimeException e) {
-        log.error("Error populating price history for symbol {}: {}", symbol, e.getMessage(), e);
-        return ResponseEntity.status(500).body("Error populating price history: " + e.getMessage());
+        if (!priceHistories.isEmpty()) {
+            priceHistoryRepository.saveAll(priceHistories);
+            log.info("Saved {} historical price entries for symbol: {}", priceHistories.size(), symbol);
+        }
+        return priceHistories;
     }
-}
 
-    @PostMapping("/populate")
-    public ResponseEntity<String> populateStocks() {
-        log.info("Populating stocks table with major stocks");
+    @PostMapping("/price-history/populate/{symbol}")
+    public ResponseEntity<String> populatePriceHistory(@PathVariable String symbol) {
+        log.info("Populating price history for symbol: {}", symbol);
         try {
-            List<FMPStockListResponse> stockList = stockDataService.getStockList();
-            if (stockList.isEmpty()) {
-                log.warn("No stocks found in the stock list response");
-                return ResponseEntity.ok("No stocks found to populate");
+            Stock stock = stockService.getStockById(symbol);
+            if (stock == null) {
+                log.error("Stock not found for symbol: {}", symbol);
+                return ResponseEntity.status(404).body("Stock not found for symbol: " + symbol);
             }
 
-            // Filter for major U.S. exchanges (NASDAQ, NYSE) and type "stock"
-            List<Stock> stocksToSave = stockList.stream()
-                    .filter(stock -> stock.getExchange() != null)
-                    .filter(stock -> stock.getExchange().contains("NASDAQ") || stock.getExchange().contains("NYSE"))
-                    .filter(stock -> "stock".equalsIgnoreCase(stock.getType()))
+            LocalDate to = LocalDate.now();
+            LocalDate from = to.minusYears(1); // 1 year of data
+            List<PriceHistory> priceHistories = populatePriceHistoryForStock(stock, from, to);
+
+            if (priceHistories.isEmpty()) {
+                return ResponseEntity.ok("No new historical prices found for " + symbol);
+            }
+            return ResponseEntity
+                    .ok("Successfully populated " + priceHistories.size() + " historical price entries for " + symbol);
+        } catch (RuntimeException e) {
+            log.error("Error populating price history for symbol {}: {}", symbol, e.getMessage(), e);
+            return ResponseEntity.status(500).body("Error populating price history: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/price-history/populate-all")
+    public ResponseEntity<String> populateAllPriceHistories() {
+        log.info("Populating price history for all stocks");
+        try {
+            List<Stock> allStocks = stockService.getAllStocks(Pageable.unpaged()).getContent();
+            if (allStocks.isEmpty()) {
+                log.warn("No stocks found in the database to populate price history");
+                return ResponseEntity.ok("No stocks found to populate price history");
+            }
+
+            LocalDate to = LocalDate.now();
+            LocalDate from = to.minusYears(1); // 1 year of data
+            int totalEntries = 0;
+            int batchSize = 10;
+            int delayMs = 4000; // 4-second delay between batches (20 requests per batch, 300 requests per
+                                // minute)
+
+            for (int i = 0; i < allStocks.size(); i += batchSize) {
+                List<Stock> batch = allStocks.subList(i, Math.min(i + batchSize, allStocks.size()));
+                log.info("Processing batch of {} stocks (starting at index {})", batch.size(), i);
+
+                for (Stock stock : batch) {
+                    try {
+                        List<PriceHistory> priceHistories = populatePriceHistoryForStock(stock, from, to);
+                        totalEntries += priceHistories.size();
+                    } catch (Exception e) {
+                        log.error("Failed to populate price history for symbol {}: {}", stock.getTicker(),
+                                e.getMessage(), e);
+                    }
+                }
+
+                if (i + batchSize < allStocks.size()) {
+                    log.info("Waiting {}ms before processing the next batch to respect API rate limits", delayMs);
+                    Thread.sleep(delayMs);
+                }
+            }
+
+            log.info("Completed populating price history for all stocks. Total entries added: {}", totalEntries);
+            return ResponseEntity
+                    .ok("Successfully populated price history for all stocks. Total entries added: " + totalEntries);
+        } catch (Exception e) {
+            log.error("Error populating price history for all stocks: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body("Error populating price history for all stocks: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/populate")
+    public ResponseEntity<String> populateStocks() throws java.io.IOException {
+        log.info("Populating stocks table with all S&P 500 stocks");
+        try {
+            // Fetch the S&P 500 constituents from the FMP API
+            List<FMPSP500ConstituentResponse> sp500List = stockDataService.getSP500Constituents();
+            if (sp500List.isEmpty()) {
+                log.warn("No S&P 500 constituents found in the response");
+                return ResponseEntity.ok("No S&P 500 constituents found to populate");
+            }
+
+            // Log the raw response and write to a file
+            String rawResponse = stockDataService.getRawSP500ConstituentsResponse();
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jsonArray = objectMapper.readTree(rawResponse);
+                List<JsonNode> firstFiveNodes = new ArrayList<>();
+                Iterator<JsonNode> elements = jsonArray.elements();
+                int count = 0;
+                while (elements.hasNext() && count < 5) {
+                    firstFiveNodes.add(elements.next());
+                    count++;
+                }
+                String firstFiveEntries = objectMapper.writeValueAsString(firstFiveNodes);
+                log.info("Raw FMP API /sp500_constituent response (first 5 entries): {}", firstFiveEntries);
+            } catch (Exception e) {
+                log.error("Failed to parse raw response for logging: {}", e.getMessage());
+            }
+
+            try {
+                Files.writeString(Paths.get("sp500_constituents_response.json"), rawResponse);
+                log.info("Wrote full raw /sp500_constituent response to sp500_constituents_response.json");
+            } catch (IOException e) {
+                log.error("Failed to write raw response to file: {}", e.getMessage());
+            }
+
+            log.info("Total S&P 500 constituents retrieved from FMP API: {}", sp500List.size());
+
+            // Map all S&P 500 stocks to Stock entities
+            List<Stock> stocksToSave = sp500List.stream()
                     .map(stockResponse -> {
                         Stock stock = new Stock();
                         stock.setTicker(stockResponse.getSymbol());
@@ -223,11 +338,14 @@ public ResponseEntity<String> populatePriceHistory(@PathVariable String symbol) 
                     .collect(Collectors.toList());
 
             if (stocksToSave.isEmpty()) {
-                log.warn("No stocks matched the filter criteria for population");
-                return ResponseEntity.ok("No stocks matched the filter criteria for population");
+                log.warn("No S&P 500 stocks to populate after mapping");
+                return ResponseEntity.ok("No S&P 500 stocks to populate after mapping");
             }
 
-            // Save the filtered stocks to the database
+            log.info("All S&P 500 stocks to be saved:");
+            stocksToSave
+                    .forEach(stock -> log.info("Stock: {}, Company: {}", stock.getTicker(), stock.getCompanyName()));
+
             stockService.saveAllStocks(stocksToSave);
             log.info("Saved {} stocks to the stocks table", stocksToSave.size());
             return ResponseEntity.ok("Successfully populated " + stocksToSave.size() + " stocks");

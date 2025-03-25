@@ -12,7 +12,7 @@ public class StockPrice {
     // The stock symbol (e.g., "AAPL").
     private String symbol;
     // The current price of the stock.
-    private double price;
+    private Double price;
     // The opening price of the stock for the day.
     private double open;
     // The highest price of the stock for the day.
@@ -23,7 +23,7 @@ public class StockPrice {
     private double previousClose;
 
     private Double peRatio;
-    private Double marketCap;
+    private Long marketCap;
 
     // Constructors
 
@@ -107,11 +107,11 @@ public class StockPrice {
         this.peRatio = peRatio;
     }
 
-    public Double getMarketCap() {
+    public Long getMarketCap() {
         return marketCap;
     }
 
-    public void setMarketCap(Double marketCap) {
+    public void setMarketCap(Long marketCap) {
         this.marketCap = marketCap;
     }
     

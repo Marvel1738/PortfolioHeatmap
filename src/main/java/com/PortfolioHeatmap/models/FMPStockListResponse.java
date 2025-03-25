@@ -1,25 +1,20 @@
 package com.PortfolioHeatmap.models;
 
 /**
- * Represents a single entry in the stock list response from the Financial Modeling Prep (FMP) API.
- * Used to deserialize the JSON response from the /stock/list endpoint.
+ * Represents a stock entry from the FMP API's /stock/list endpoint response.
  * 
  * @author [Your Name]
  */
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class FMPStockListResponse {
-    @JsonProperty("symbol")
     private String symbol;
-    @JsonProperty("name")
     private String name;
-    @JsonProperty("exchange")
+    private Double price;
     private String exchange;
-    @JsonProperty("type")
+    private String exchangeShortName;
     private String type;
+    private Long marketCap;
 
+    // Getters and setters
     public String getSymbol() {
         return symbol;
     }
@@ -36,12 +31,28 @@ public class FMPStockListResponse {
         this.name = name;
     }
 
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
+    }
+
     public String getExchange() {
         return exchange;
     }
 
     public void setExchange(String exchange) {
         this.exchange = exchange;
+    }
+
+    public String getExchangeShortName() {
+        return exchangeShortName;
+    }
+
+    public void setExchangeShortName(String exchangeShortName) {
+        this.exchangeShortName = exchangeShortName;
     }
 
     public String getType() {
@@ -52,9 +63,16 @@ public class FMPStockListResponse {
         this.type = type;
     }
 
+    public Long getMarketCap() {
+        return marketCap;
+    }
+
+    public void setMarketCap(Long marketCap) {
+        this.marketCap = marketCap;
+    }
+
     @Override
     public String toString() {
-        return "FMPStockListResponse[symbol=" + symbol + ", name=" + name + ", exchange=" + exchange + ", type=" + type
-                + "]";
+        return "FMPStockListResponse[symbol=" + symbol + ", name=" + name + ", marketCap=" + marketCap + "]";
     }
 }

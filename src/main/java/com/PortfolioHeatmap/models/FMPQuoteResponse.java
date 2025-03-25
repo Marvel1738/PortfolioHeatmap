@@ -36,7 +36,7 @@ public class FMPQuoteResponse {
     private Double pe;
 
     @JsonProperty("marketCap")
-    private Double marketCap;
+    private Long marketCap;
 
     // Getters and Setters
 
@@ -108,11 +108,11 @@ public class FMPQuoteResponse {
         this.pe = pe;
     }
 
-    public Double getMarketCap() {
+    public Long getMarketCap() {
         return marketCap;
     }
 
-    public void setMarketCap(Double marketCap) {
+    public void setMarketCap(Long marketCap) {
         this.marketCap = marketCap;
     }
 
