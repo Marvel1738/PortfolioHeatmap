@@ -5,17 +5,19 @@ A full-stack stock portfolio visualization application with a custom heatmap fea
 ## 📌 Project Overview
 Portfolio Heatmap is a web application designed to help users manage and visualize their stock portfolios through an interactive heatmap, inspired by Finviz’s S&P 500 heatmap. Unlike traditional heatmaps, this app focuses on user-defined portfolios or custom stock lists, with square sizes representing the percentage of the portfolio and colors indicating price performance (e.g., green for gains, red for losses).
 
-This project is a work-in-progress full-stack application built to professional standards, demonstrating skills in backend development (Spring Boot), database management (MySQL), API integration (FMP, Alpha Vantage), and soon, front-end development (React) and cloud deployment (AWS). As a 19-year-old first-year computer science student, I’m using this project to challenge myself, learn advanced concepts, and create a portfolio piece that stands out for job applications and potential future monetization.
+This project is a work-in-progress full-stack application built to professional standards, demonstrating advanced skills in backend development (Spring Boot), database management (MySQL), API integration (FMP, Alpha Vantage), user authentication (Spring Security with JWT), and soon, front-end development (React) and cloud deployment (AWS). As a 19-year-old first-year computer science student, I’m using this project to challenge myself, learn advanced concepts, and create a portfolio piece that stands out for internship applications. The backend is now mostly complete, and I’m currently focusing on learning React to build a high-quality front end that matches the backend’s capabilities.
 
 ---
 
 ## 🚀 Current Features
 ### 📊 Stock Management:
 - CRUD operations for stocks (add, view, delete stocks).
+- Populate stock data using Financial Modeling Prep (FMP) API.
 - **Endpoints:**
   - `GET /stocks`
   - `GET /stocks/{id}`
   - `POST /stocks`
+  - `POST /stocks/populate`
   - `DELETE /stocks/{id}`
 
 ### 📈 Stock Price Retrieval:
@@ -25,20 +27,48 @@ This project is a work-in-progress full-stack application built to professional 
   - `GET /stocks/batch-prices?symbols=AAPL,MSFT,TSLA`
 
 ### ⏳ Historical Price Updates:
-- Update historical prices in the database for visualization.
-- **Endpoint:** `PUT /stocks/{id}/update-price`
+- Update historical prices in the database for visualization and performance calculations.
+- Populate historical price data for all stocks.
+- **Endpoints:**
+  - `PUT /stocks/{id}/update-price`
+  - `POST /stocks/price-history/populate-all`
+
+### 📁 Portfolio Management:
+- Full CRUD operations for portfolios: create, view, and delete portfolios for authenticated users.
+- **Endpoints:**
+  - `POST /portfolios/create?name=PortfolioName`
+  - `GET /portfolios/user`
+  - `GET /portfolios/{portfolioId}`
+  - `DELETE /portfolios/{portfolioId}`
+
+### 📊 Portfolio Holdings Management:
+- Add, update, and delete stock holdings within a portfolio.
+- Mark holdings as sold by adding a selling price and date.
+- **Endpoints:**
+  - `POST /portfolios/{portfolioId}/holdings/add?ticker=AAPL&shares=10&purchasePrice=150.25&purchaseDate=2024-06-15`
+  - `PUT /portfolios/holdings/{holdingId}?shares=10&sellingPrice=225.50&sellingDate=2025-03-25`
+  - `DELETE /portfolios/holdings/{holdingId}`
+
+### 📈 Performance Metrics:
+- Calculate key portfolio metrics: total portfolio value, total open/closed gains/losses, and percentage returns.
+- Per-holding gains/losses and percentage returns for both open and closed positions.
+- Uses historical price data to compute unrealized gains/losses for open positions.
 
 ### 🗄️ Database:
-- MySQL database with tables for stocks, portfolios, users, and historical prices.
-- Normalized schema with foreign key relationships.
+- MySQL database with tables for stocks, portfolios, holdings, users, and historical prices.
+- Normalized schema with foreign key relationships (e.g., `portfolio_holdings` links to `portfolios` and `stocks`).
 
 ### 🏗 Backend Architecture:
 - Spring Boot with a clean separation of concerns (controllers, services, repositories).
 - Flexible stock data provider setup using a factory pattern (`StockDataServiceFactory`) to switch between FMP and Alpha Vantage.
+- Resolved serialization issues (circular references, large responses) using Jackson annotations (`@JsonIdentityInfo`, `@JsonIgnore`).
 
 ### 🔐 User Authentication:
 - Spring Security with JWT for user registration, login, and role-based access control.
 - Secure endpoints to ensure users can only access their own portfolios.
+- **Endpoints:**
+  - `POST /auth/register`
+  - `POST /auth/login`
 
 ---
 
@@ -52,14 +82,10 @@ This project is a work-in-progress full-stack application built to professional 
 
 ### 🌐 React Front End:
 - Develop a dynamic, responsive front end with React.
-- Features: user authentication (login/register), portfolio management (add/view stocks), and heatmap visualization.
+- Features: user authentication (login/register), portfolio management (add/view/delete portfolios and holdings), performance metrics display, and heatmap visualization.
 - Polished UI with a modern design (e.g., Material-UI, Tailwind CSS).
 
-### 📅 Historical Price Population:
-- Populate the `price_history` table with historical data using FMP API (e.g., 1 year of daily closing prices).
-- Add an endpoint to retrieve historical prices for visualization.
-
-### 📆 Daily Price Updates:
+### 📅 Daily Price Updates:
 - Schedule a daily job to update `price_history` with the latest closing prices for all stocks.
 
 ### ☁️ AWS Deployment:
@@ -79,7 +105,7 @@ This project is a work-in-progress full-stack application built to professional 
 ## 🛠️ Tech Stack
 ### 📌 Backend
 - **Spring Boot**: REST API framework.
-- **MySQL**: Relational database for storing stocks, portfolios, users, and historical prices.
+- **MySQL**: Relational database for storing stocks, portfolios, holdings, users, and historical prices.
 - **Spring Data JPA**: For database interaction.
 - **Financial Modeling Prep (FMP) API**: Primary stock data provider (250 requests/day, free tier).
 - **Alpha Vantage API**: Fallback stock data provider (5/min, 25/day).
@@ -130,16 +156,28 @@ The app will start on `http://localhost:8080`.
 
 #### 5️⃣ Test Endpoints:
 Use Postman or curl to test:
+Authenticate:
 ```bash
+POST http://localhost:8080/auth/login
+Body: {"username": "yourusername", "password": "yourpassword"}
+```
+Copy the JWT token from the response.
+
+Test Enpoints (include Authorization: Bearer <token> in headers):
+```bash
+POST http://localhost:8080/portfolios/create?name=MyPortfolio
+GET http://localhost:8080/portfolios/user
+GET http://localhost:8080/portfolios/{portfolioId}
+POST http://localhost:8080/portfolios/{portfolioId}/holdings/add?ticker=AAPL&shares=10&purchasePrice=150.25&purchaseDate=2024-06-15
 GET http://localhost:8080/stocks/price/AAPL
 GET http://localhost:8080/stocks/batch-prices?symbols=AAPL,MSFT,TSLA
-PUT http://localhost:8080/stocks/{id}/update-price
 ```
 
 ---
 
 ## 🎯 Future Goals
 - **Professional Portfolio:** Showcase this project to employers.
+- **React Front End: Build a high-quality React front end within the next few months to match the backend’s capabilities.
 - **Potential Startup:** Monetization through subscriptions or ads.
 - **Learning and Growth:** Advance skills in authentication, React, and AWS deployment.
 
