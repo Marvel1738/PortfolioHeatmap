@@ -58,6 +58,8 @@ This project is a work-in-progress full-stack application built to professional 
 - MySQL database with tables for stocks, portfolios, holdings, users, and historical prices.
 - Normalized schema with foreign key relationships (e.g., `portfolio_holdings` links to `portfolios` and `stocks`).
 
+![EER Diagram](EER_Diagram.png)
+
 ### 🏗 Backend Architecture:
 - Spring Boot with a clean separation of concerns (controllers, services, repositories).
 - Flexible stock data provider setup using a factory pattern (`StockDataServiceFactory`) to switch between FMP and Alpha Vantage.
