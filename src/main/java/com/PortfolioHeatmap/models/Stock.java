@@ -1,42 +1,49 @@
 package com.PortfolioHeatmap.models;
 
-/**
- * Represents a stock in the application, storing details such as ticker, company name, sector,
- * market cap, and P/E ratio. This class is a JPA entity mapped to the "stocks" table in the database
- * and maintains relationships with PriceHistory and Portfolio entities.
- * 
- * @author [Marvel Bana]
- */
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Getter
-@Setter
-@EqualsAndHashCode(of = "ticker") // Generate based on ticker
 @Table(name = "stocks")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "ticker")
 public class Stock {
-    // Primary key for the stock, representing the stock ticker.
-    // Must be unique, not null, and limited to 10 characters.
     @Id
-    @Column(length = 10, nullable = false, unique = true)
+    @Column(name = "ticker")
     private String ticker;
 
-    // The name of the company associated with this stock.
-    // Cannot be null, as this is a required field.
-    @Column(nullable = false)
+    @Column(name = "company_name", nullable = false)
     private String companyName;
 
-    // Set of historical price entries for this stock.
-    // One-to-many relationship with PriceHistory, with cascading operations.
-    @OneToMany(mappedBy = "stock", cascade = CascadeType.ALL)
-    private Set<PriceHistory> priceHistory;
+    @OneToMany(mappedBy = "stock", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<PriceHistory> priceHistories = new ArrayList<>();
 
-    // Set of portfolio entries that include this stock.
-    // One-to-many relationship with Portfolio, managed by the Portfolio entity.
-    @OneToMany(mappedBy = "stock")
-    private Set<Portfolio> portfolios;
+    // Getters and setters
+    public String getTicker() {
+        return ticker;
+    }
+
+    public void setTicker(String ticker) {
+        this.ticker = ticker;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public List<PriceHistory> getPriceHistories() {
+        return priceHistories;
+    }
+
+    public void setPriceHistories(List<PriceHistory> priceHistories) {
+        this.priceHistories = priceHistories;
+    }
 }
