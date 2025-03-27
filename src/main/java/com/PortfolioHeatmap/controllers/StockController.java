@@ -257,7 +257,7 @@ public class StockController {
             LocalDate from = to.minusYears(1); // 1 year of data
             int totalEntries = 0;
             int batchSize = 10;
-            int delayMs = 4000; // 4-second delay between batches (20 requests per batch, 300 requests per
+            int delayMs = 1000; // 1-second delay between batches (20 requests per batch, 300 requests per
                                 // minute)
 
             for (int i = 0; i < allStocks.size(); i += batchSize) {

@@ -33,6 +33,11 @@ This project is a work-in-progress full-stack application built to professional 
   - `PUT /stocks/{id}/update-price`
   - `POST /stocks/price-history/populate-all`
 
+ ### 📅 Daily Price Updates: *(New Feature Added)*
+- Automatically update the `price_history` table with the latest closing prices for all 503 stocks every day at 6:00 PM EST (after market close).
+- Uses batch requests to fetch prices efficiently within FMP’s rate limits (300 requests/min, paid plan).
+- Ensures historical data integrity with duplicate checks to prevent redundant entries.
+
 ### 📁 Portfolio Management:
 - Full CRUD operations for portfolios: create, view, and delete portfolios for authenticated users.
 - **Endpoints:**

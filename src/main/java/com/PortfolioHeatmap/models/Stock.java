@@ -12,7 +12,7 @@ import java.util.List;
 @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "ticker")
 public class Stock {
     @Id
-    @Column(name = "ticker")
+    @Column(name = "ticker", length=10)
     private String ticker;
 
     @Column(name = "company_name", nullable = false)
