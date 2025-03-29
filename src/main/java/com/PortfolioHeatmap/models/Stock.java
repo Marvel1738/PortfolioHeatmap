@@ -1,5 +1,12 @@
 package com.PortfolioHeatmap.models;
 
+/**
+ * Represents a stock entity in the PortfolioHeatmap application.
+ * This class models a stock with its ticker symbol, company name, and associated price history,
+ * and is mapped to the "stocks" table in the database.
+ *
+ * @author Marvel Bana
+ */
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
@@ -12,7 +19,7 @@ import java.util.List;
 @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "ticker")
 public class Stock {
     @Id
-    @Column(name = "ticker", length=10)
+    @Column(name = "ticker", length = 10)
     private String ticker;
 
     @Column(name = "company_name", nullable = false)
@@ -22,7 +29,7 @@ public class Stock {
     @JsonIgnore
     private List<PriceHistory> priceHistories = new ArrayList<>();
 
-    // Getters and setters
+    // Getters and setters for accessing and modifying the fields
     public String getTicker() {
         return ticker;
     }

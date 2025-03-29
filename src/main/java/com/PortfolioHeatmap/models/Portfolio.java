@@ -1,5 +1,12 @@
 package com.PortfolioHeatmap.models;
 
+/**
+ * Represents a portfolio entity in the PortfolioHeatmap application.
+ * This class models a user's investment portfolio, including its holdings,
+ * and is mapped to the "portfolios" table in the database.
+ *
+ * @author Marvel Bana
+ */
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -31,18 +38,20 @@ public class Portfolio {
     @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PortfolioHolding> holdings = new ArrayList<>();
 
+    // Sets createdAt and updatedAt timestamps when a new portfolio is persisted
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
 
+    // Updates the updatedAt timestamp when the portfolio is modified
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 
-    // Getters and setters
+    // Getters and setters for accessing and modifying the fields
     public Long getId() {
         return id;
     }

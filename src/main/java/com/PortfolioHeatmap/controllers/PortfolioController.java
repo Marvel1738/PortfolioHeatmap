@@ -7,7 +7,6 @@ import com.PortfolioHeatmap.services.PortfolioService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -15,6 +14,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Controller class responsible for handling HTTP requests related to portfolio
+ * management.
+ * This class provides endpoints for creating, retrieving, updating, and
+ * deleting portfolios and their holdings.
+ * It interacts with the PortfolioService and PortfolioHoldingService to perform
+ * business logic operations.
+ *
+ * @author Marvel Bana
+ */
 @RestController
 @RequestMapping("/portfolios")
 public class PortfolioController {
@@ -23,11 +32,13 @@ public class PortfolioController {
     private final PortfolioService portfolioService;
     private final PortfolioHoldingService portfolioHoldingService;
 
+    // Constructs a PortfolioController with the required services
     public PortfolioController(PortfolioService portfolioService, PortfolioHoldingService portfolioHoldingService) {
         this.portfolioService = portfolioService;
         this.portfolioHoldingService = portfolioHoldingService;
     }
 
+    // Creates a new portfolio for the current user with the specified name
     @PostMapping("/create")
     public ResponseEntity<Portfolio> createPortfolio(@RequestParam String name) {
         log.info("Creating portfolio with name: {}", name);
@@ -37,10 +48,11 @@ public class PortfolioController {
             return ResponseEntity.ok(portfolio);
         } catch (RuntimeException e) {
             log.error("Error creating portfolio: {}", e.getMessage(), e);
-            return ResponseEntity.status(400).body(null);
+            return ResponseEntity.status(400).body(null); // 400 Bad Request for client errors
         }
     }
 
+    // Retrieves all portfolios belonging to the current user
     @GetMapping("/user")
     public ResponseEntity<List<Portfolio>> getUserPortfolios() {
         log.info("Fetching portfolios for current user");
@@ -50,10 +62,12 @@ public class PortfolioController {
             return ResponseEntity.ok(portfolios);
         } catch (RuntimeException e) {
             log.error("Error fetching portfolios: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(null);
+            return ResponseEntity.status(500).body(null); // 500 Internal Server Error for unexpected issues
         }
     }
 
+    // Retrieves detailed information about a specific portfolio, including open and
+    // closed positions and calculated metrics
     @GetMapping("/{portfolioId}")
     public ResponseEntity<Map<String, Object>> getPortfolioDetails(@PathVariable Long portfolioId) {
         log.info("Fetching portfolio details with id: {}", portfolioId);
@@ -89,6 +103,7 @@ public class PortfolioController {
                 closedPercentageReturns.put(holding.getId(), percentageReturn);
             }
 
+            // Assemble response map with all calculated data
             Map<String, Object> response = new HashMap<>();
             response.put("portfolio", portfolio);
             response.put("openPositions", openPositions);
@@ -104,10 +119,11 @@ public class PortfolioController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Error fetching portfolio details: {}", e.getMessage(), e);
-            return ResponseEntity.status(404).body(null);
+            return ResponseEntity.status(404).body(null); // 404 Not Found if portfolio doesn't exist
         }
     }
 
+    // Deletes a portfolio by its ID
     @DeleteMapping("/{portfolioId}")
     public ResponseEntity<String> deletePortfolio(@PathVariable Long portfolioId) {
         log.info("Deleting portfolio with id: {}", portfolioId);
@@ -120,6 +136,7 @@ public class PortfolioController {
         }
     }
 
+    // Adds a new holding to a specified portfolio
     @PostMapping("/{portfolioId}/holdings/add")
     public ResponseEntity<PortfolioHolding> addHolding(
             @PathVariable Long portfolioId,
@@ -133,16 +150,19 @@ public class PortfolioController {
         try {
             Portfolio portfolio = portfolioService.getPortfolioById(portfolioId);
             LocalDate purchaseLocalDate = LocalDate.parse(purchaseDate);
-            LocalDate sellingLocalDate = sellingDate != null ? LocalDate.parse(sellingDate) : null;
+            LocalDate sellingLocalDate = sellingDate != null ? LocalDate.parse(sellingDate) : null; // Handle optional
+                                                                                                    // selling date
             PortfolioHolding holding = portfolioHoldingService.addHolding(
                     portfolio, ticker, shares, purchasePrice, purchaseLocalDate, sellingPrice, sellingLocalDate);
             return ResponseEntity.ok(holding);
         } catch (RuntimeException e) {
             log.error("Error adding holding: {}", e.getMessage(), e);
-            return ResponseEntity.status(400).body(null);
+            return ResponseEntity.status(400).body(null); // 400 Bad Request for invalid input
         }
     }
 
+    // Updates an existing holding with new share count, selling price, and selling
+    // date
     @PutMapping("/holdings/{holdingId}")
     public ResponseEntity<String> updateHolding(
             @PathVariable Long holdingId,
@@ -151,7 +171,8 @@ public class PortfolioController {
             @RequestParam(required = false) String sellingDate) {
         log.info("Updating holding with id: {}, shares: {}", holdingId, shares);
         try {
-            LocalDate sellingLocalDate = sellingDate != null ? LocalDate.parse(sellingDate) : null;
+            LocalDate sellingLocalDate = sellingDate != null ? LocalDate.parse(sellingDate) : null; // Parse optional
+                                                                                                    // date
             portfolioHoldingService.updateHolding(holdingId, shares, sellingPrice, sellingLocalDate);
             return ResponseEntity.ok("Holding updated successfully");
         } catch (RuntimeException e) {
@@ -160,6 +181,7 @@ public class PortfolioController {
         }
     }
 
+    // Deletes a holding by its ID
     @DeleteMapping("/holdings/{holdingId}")
     public ResponseEntity<String> deleteHolding(@PathVariable Long holdingId) {
         log.info("Deleting holding with id: {}", holdingId);
@@ -172,7 +194,9 @@ public class PortfolioController {
         }
     }
 
+    // Retrieves the ID of the current authenticated user (placeholder
+    // implementation)
     private Long getCurrentUserId() {
-        return 1L; // Replace with actual user ID retrieval
+        return 1L; // Replace with actual user ID retrieval from SecurityContextHolder or similar
     }
 }

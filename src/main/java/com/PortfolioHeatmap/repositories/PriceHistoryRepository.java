@@ -4,7 +4,7 @@ package com.PortfolioHeatmap.repositories;
  * Repository interface for managing PriceHistory entities in the database.
  * Provides methods for basic CRUD operations and custom queries for price history data.
  * 
- * @author [Your Name]
+ * @author [Marvel Bana]
  */
 import com.PortfolioHeatmap.models.PriceHistory;
 import com.PortfolioHeatmap.models.Stock;

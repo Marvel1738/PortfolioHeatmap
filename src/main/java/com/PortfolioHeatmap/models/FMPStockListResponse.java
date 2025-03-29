@@ -3,7 +3,7 @@ package com.PortfolioHeatmap.models;
 /**
  * Represents a stock entry from the FMP API's /stock/list endpoint response.
  * 
- * @author [Your Name]
+ * @author [Marvel Bana]
  */
 public class FMPStockListResponse {
     private String symbol;

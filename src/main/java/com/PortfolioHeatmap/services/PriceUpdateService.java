@@ -1,5 +1,12 @@
 package com.PortfolioHeatmap.services;
 
+/**
+ * Service class for scheduling and performing daily price updates in the PortfolioHeatmap application.
+ * This class fetches current stock prices using FMPStockDataService and updates the price history
+ * for all stocks in the database on a scheduled basis.
+ *
+ * @author Marvel Bana
+ */
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,18 +40,20 @@ public class PriceUpdateService {
     @Autowired
     private FMPStockDataService fmpStockDataService;
 
-    @Scheduled(cron = "0 0 18 * * ?") // Runs daily at 6:00 PM EST (assuming server is in UTC; adjust if needed)
+    // Runs daily at 6:00 PM EST (assuming server is in UTC; adjust if needed) to
+    // update stock prices
+    @Scheduled(cron = "0 0 18 * * ?")
     public void updateDailyPrices() {
         log.info("Starting daily price update for all stocks...");
 
-        // Fetch all stocks
+        // Fetch all stocks from the database
         List<Stock> stocks = stockRepository.findAll();
         if (stocks.isEmpty()) {
             log.warn("No stocks found in the database.");
             return;
         }
 
-        // Split stocks into batches of 100
+        // Split stocks into batches of 100 to respect API limits
         List<List<Stock>> batches = new ArrayList<>();
         for (int i = 0; i < stocks.size(); i += BATCH_SIZE) {
             batches.add(stocks.subList(i, Math.min(i + BATCH_SIZE, stocks.size())));
@@ -60,11 +69,11 @@ public class PriceUpdateService {
                     continue;
                 }
 
-                // Map prices by symbol for easy lookup
+                // Map prices by symbol for efficient lookup
                 Map<String, StockPrice> priceMap = prices.stream()
                         .collect(Collectors.toMap(StockPrice::getSymbol, price -> price));
 
-                // Save prices to price_history
+                // Save prices to price_history table
                 for (Stock stock : batch) {
                     // Skip if an entry already exists for this stock and date
                     if (priceHistoryRepository.existsByStockAndDate(stock, today)) {

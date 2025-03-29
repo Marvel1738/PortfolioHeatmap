@@ -1,10 +1,16 @@
 package com.PortfolioHeatmap.models;
 
+/**
+ * Represents a holding within a portfolio in the PortfolioHeatmap application.
+ * This class models an individual stock position within a portfolio, including purchase and sale details,
+ * and is mapped to the "portfolio_holdings" table in the database.
+ *
+ * @author Marvel Bana
+ */
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
@@ -45,18 +51,20 @@ public class PortfolioHolding {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // Sets createdAt and updatedAt timestamps when a new holding is persisted
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
 
+    // Updates the updatedAt timestamp when the holding is modified
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 
-    // Getters and setters
+    // Getters and setters for accessing and modifying the fields
     public Long getId() {
         return id;
     }

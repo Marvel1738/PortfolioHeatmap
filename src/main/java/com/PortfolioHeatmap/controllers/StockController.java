@@ -5,13 +5,12 @@ package com.PortfolioHeatmap.controllers;
  * This controller interacts with StockService for stock management, StockDataService for fetching stock prices,
  * and PriceHistoryRepository for updating historical price data.
  * 
- * @author [Your Name]
+ * @author Marvel Bana
  */
 import com.PortfolioHeatmap.models.PriceHistory;
 import com.PortfolioHeatmap.models.Stock;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
-import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
 import com.PortfolioHeatmap.repositories.PriceHistoryRepository;
 import com.PortfolioHeatmap.services.StockDataService;
@@ -33,27 +32,24 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Iterator;
 
-// Removed incorrect import of HTMLDocument.Iterator
-
 @RestController
 @RequestMapping("/stocks")
 public class StockController {
-    // Logger for tracking requests, responses, and errors in this controller.
+    // Logger for tracking requests, responses, and errors in this controller
     private static final Logger log = LoggerFactory.getLogger(StockController.class);
     // Dependencies for stock management, stock price retrieval, and price history
-    // updates.
+    // updates
     private final StockService stockService;
     private final StockDataService stockDataService;
     private final PriceHistoryRepository priceHistoryRepository;
 
     // Constructor for dependency injection of StockService,
-    // StockDataServiceFactory, and PriceHistoryRepository.
-    // Uses the factory to get the appropriate StockDataService implementation.
+    // StockDataServiceFactory, and PriceHistoryRepository
+    // Uses the factory to get the appropriate StockDataService implementation
     public StockController(StockService stockService, StockDataServiceFactory factory,
             PriceHistoryRepository priceHistoryRepository) {
         this.stockService = stockService;
@@ -61,16 +57,16 @@ public class StockController {
         this.priceHistoryRepository = priceHistoryRepository;
     }
 
-    // Handles GET /stocks to retrieve a paginated list of all stocks.
-    // Returns a Page of Stock objects based on the provided Pageable parameters.
+    // Handles GET /stocks to retrieve a paginated list of all stocks
+    // Returns a Page of Stock objects based on the provided Pageable parameters
     @GetMapping
     public Page<Stock> getAllStocks(Pageable pageable) {
         return stockService.getAllStocks(pageable);
     }
 
-    // Handles GET /stocks/{id} to retrieve a specific stock by its ID.
+    // Handles GET /stocks/{id} to retrieve a specific stock by its ID
     // Returns the Stock if found, or a 404 Not Found response if the stock doesn't
-    // exist.
+    // exist
     @GetMapping("/{id}")
     public ResponseEntity<Stock> getStockById(@PathVariable String id) {
         Stock stock = stockService.getStockById(id);
@@ -81,15 +77,15 @@ public class StockController {
         }
     }
 
-    // Handles POST /stocks to add a new stock.
-    // Takes a Stock object in the request body and saves it using StockService.
+    // Handles POST /stocks to add a new stock
+    // Takes a Stock object in the request body and saves it using StockService
     @PostMapping
     public Stock addStock(@RequestBody Stock stock) {
         return stockService.saveStock(stock);
     }
 
-    // Handles DELETE /stocks/{id} to delete a stock by its ID.
-    // Returns a 204 No Content response upon successful deletion.
+    // Handles DELETE /stocks/{id} to delete a stock by its ID
+    // Returns a 204 No Content response upon successful deletion
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteStock(@PathVariable String id) {
         stockService.deleteStock(id);
@@ -97,9 +93,9 @@ public class StockController {
     }
 
     // Handles GET /stocks/price/{symbol} to fetch the current price of a stock by
-    // its symbol.
-    // Logs the request and response, and returns the StockPrice if successful, or a
-    // 500 error if an exception occurs.
+    // its symbol
+    // Logs the request and response, returns the StockPrice if successful, or a 500
+    // error if an exception occurs
     @GetMapping("/price/{symbol}")
     public ResponseEntity<StockPrice> getStockPrice(@PathVariable String symbol) {
         log.info("Fetching price for symbol: {}", symbol);
@@ -113,10 +109,9 @@ public class StockController {
         }
     }
 
-    // Handles GET /stocks/batch-prices to fetch current prices for multiple stocks.
-    // Takes a list of symbols as query parameters, logs the request and response,
-    // and returns a list of StockPrice objects or a 500 error if an exception
-    // occurs.
+    // Handles GET /stocks/batch-prices to fetch current prices for multiple stocks
+    // Takes a list of symbols as query parameters, logs the request and response
+    // Returns a list of StockPrice objects or a 500 error if an exception occurs
     @GetMapping("/batch-prices")
     public ResponseEntity<List<StockPrice>> getBatchStockPrices(@RequestParam List<String> symbols) {
         log.info("Fetching batch prices for symbols: {}", symbols);
@@ -131,11 +126,11 @@ public class StockController {
     }
 
     // Handles PUT /stocks/{id}/update-price to update the price of a stock in the
-    // price history.
+    // price history
     // Fetches the latest price for the stock and updates the corresponding
-    // PriceHistory entry.
-    // Logs the request and response, and returns a success message or a 500 error
-    // if an exception occurs.
+    // PriceHistory entry
+    // Logs the request and response, returns a success message or a 500 error if an
+    // exception occurs
     @PutMapping("/{id}/update-price")
     public ResponseEntity<String> updateStockPrice(@PathVariable Long id) {
         log.info("Updating price for price_history ID: {}", id);
@@ -171,8 +166,8 @@ public class StockController {
     }
 
     // Handles POST /stocks/price-history/populate/{symbol} to populate the
-    // price_history table with historical prices.
-    // Fetches historical prices for the past year and saves them to the database.
+    // price_history table with historical prices
+    // Fetches historical prices for the past year and saves them to the database
     private List<PriceHistory> populatePriceHistoryForStock(Stock stock, LocalDate from, LocalDate to) {
         String symbol = stock.getTicker();
         log.info("Populating price history for symbol: {}", symbol);
@@ -218,6 +213,7 @@ public class StockController {
         return priceHistories;
     }
 
+    // Endpoint to trigger price history population for a specific stock
     @PostMapping("/price-history/populate/{symbol}")
     public ResponseEntity<String> populatePriceHistory(@PathVariable String symbol) {
         log.info("Populating price history for symbol: {}", symbol);
@@ -243,6 +239,7 @@ public class StockController {
         }
     }
 
+    // Endpoint to populate price history for all stocks in batches
     @PostMapping("/price-history/populate-all")
     public ResponseEntity<String> populateAllPriceHistories() {
         log.info("Populating price history for all stocks");
@@ -289,6 +286,7 @@ public class StockController {
         }
     }
 
+    // Endpoint to populate the stocks table with S&P 500 constituents from FMP API
     @PostMapping("/populate")
     public ResponseEntity<String> populateStocks() throws java.io.IOException {
         log.info("Populating stocks table with all S&P 500 stocks");

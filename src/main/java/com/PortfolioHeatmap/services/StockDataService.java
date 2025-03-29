@@ -5,7 +5,7 @@ package com.PortfolioHeatmap.services;
  * Implementations of this interface (e.g., FMPStockDataService, AlphaVantageStockDataService)
  * provide methods to retrieve stock prices for individual symbols or in batches.
  * 
- * @author [Your Name]
+ * @author [Marvel Bana]
  */
 import java.util.List;
 import java.time.LocalDate;

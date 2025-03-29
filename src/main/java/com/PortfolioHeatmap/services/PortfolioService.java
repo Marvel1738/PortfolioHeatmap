@@ -1,5 +1,12 @@
 package com.PortfolioHeatmap.services;
 
+/**
+ * Service class for managing portfolios in the PortfolioHeatmap application.
+ * This class provides methods to create, retrieve, and delete portfolios,
+ * interacting with the PortfolioRepository for database operations.
+ *
+ * @author Marvel Bana
+ */
 import com.PortfolioHeatmap.models.Portfolio;
 import com.PortfolioHeatmap.repositories.PortfolioRepository;
 import org.slf4j.Logger;
@@ -16,10 +23,12 @@ public class PortfolioService {
 
     private final PortfolioRepository portfolioRepository;
 
+    // Constructor for dependency injection of PortfolioRepository
     public PortfolioService(PortfolioRepository portfolioRepository) {
         this.portfolioRepository = portfolioRepository;
     }
 
+    // Creates a new portfolio for a user with the specified name
     @Transactional
     public Portfolio createPortfolio(Long userId, String name) {
         log.info("Creating portfolio for userId: {}, name: {}", userId, name);
@@ -37,12 +46,14 @@ public class PortfolioService {
         return savedPortfolio;
     }
 
+    // Retrieves all portfolios for a given user ID
     @Transactional(readOnly = true)
     public List<Portfolio> getPortfoliosByUserId(Long userId) {
         log.info("Fetching portfolios for userId: {}", userId);
         return portfolioRepository.findByUserId(userId);
     }
 
+    // Retrieves a portfolio by its ID, throwing an exception if not found
     @Transactional(readOnly = true)
     public Portfolio getPortfolioById(Long portfolioId) {
         log.info("Fetching portfolio with id: {}", portfolioId);
@@ -50,6 +61,7 @@ public class PortfolioService {
                 .orElseThrow(() -> new RuntimeException("Portfolio not found with id: " + portfolioId));
     }
 
+    // Deletes a portfolio by its ID, throwing an exception if not found
     @Transactional
     public void deletePortfolio(Long portfolioId) {
         log.info("Deleting portfolio with id: {}", portfolioId);

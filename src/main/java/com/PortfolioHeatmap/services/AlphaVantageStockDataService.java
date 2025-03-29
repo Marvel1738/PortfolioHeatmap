@@ -5,7 +5,7 @@ package com.PortfolioHeatmap.services;
  * This service handles individual and batch stock price requests, deserializing API responses into
  * StockPrice objects for use in the application.
  * 
- * @author [Your Name]
+ * @author [Marvel Bana]
  */
 import com.PortfolioHeatmap.models.AlphaVantageQuoteResponse;
 import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;

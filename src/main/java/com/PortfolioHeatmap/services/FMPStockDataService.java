@@ -5,7 +5,7 @@ package com.PortfolioHeatmap.services;
  * This service handles individual and batch stock price requests, deserializing API responses into StockPrice
  * objects for use in the application.
  * 
- * @author [Your Name]
+ * @author Marvel Bana
  */
 import com.PortfolioHeatmap.models.FMPQuoteResponse;
 import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
@@ -31,22 +31,22 @@ import java.util.stream.Collectors;
 
 @Service
 public class FMPStockDataService implements StockDataService {
-    // Logger for tracking requests, responses, and errors in this service.
+    // Logger for tracking requests, responses, and errors in this service
     private static final Logger log = LoggerFactory.getLogger(FMPStockDataService.class);
-    // RestTemplate for making HTTP requests to the FMP API.
+    // RestTemplate for making HTTP requests to the FMP API
     private final RestTemplate restTemplate;
     // API key for authenticating requests to the FMP API, loaded from application
-    // properties.
+    // properties
     private final String apiKey;
-    // ObjectMapper for deserializing JSON responses from the API.
+    // ObjectMapper for deserializing JSON responses from the API
     private final ObjectMapper objectMapper;
 
-    // Variable to store raw S&P 500 constituents response.
+    // Variable to store raw S&P 500 constituents response
     private String rawSP500ConstituentsResponse;
 
-    // Constructor for dependency injection of RestTemplateBuilder and API key.
+    // Constructor for dependency injection of RestTemplateBuilder and API key
     // Initializes RestTemplate, API key, and ObjectMapper with JavaTimeModule for
-    // LocalDate support.
+    // LocalDate support
     public FMPStockDataService(RestTemplateBuilder builder, @Value("${fmp.api.key}") String apiKey) {
         this.restTemplate = builder.build();
         this.apiKey = apiKey;
@@ -55,6 +55,7 @@ public class FMPStockDataService implements StockDataService {
         log.info("Initialized with FMP API Key: {}", apiKey);
     }
 
+    // Fetches the current stock price for a given symbol from the FMP API
     @Override
     public StockPrice getStockPrice(String symbol) {
         String url = "https://financialmodelingprep.com/api/v3/quote/" + symbol + "?apikey=" + apiKey;
@@ -104,6 +105,7 @@ public class FMPStockDataService implements StockDataService {
         return stockPrice;
     }
 
+    // Fetches current stock prices for multiple symbols in a batch request
     @Override
     public List<StockPrice> getBatchStockPrices(List<String> symbols) {
         log.info("Fetching batch prices for symbols: {}", symbols);
@@ -162,6 +164,7 @@ public class FMPStockDataService implements StockDataService {
         return stockPrices;
     }
 
+    // Fetches historical stock prices for a given symbol over a date range
     @Override
     public List<HistoricalPrice> getHistoricalPrices(String symbol, LocalDate from, LocalDate to) {
         String url = String.format(
@@ -224,6 +227,7 @@ public class FMPStockDataService implements StockDataService {
         return historicalPrices;
     }
 
+    // Fetches the raw stock list response from the FMP API
     @Override
     public String getRawStockListResponse() {
         String url = String.format("https://financialmodelingprep.com/api/v3/stock/list?apikey=%s", apiKey);
@@ -231,6 +235,7 @@ public class FMPStockDataService implements StockDataService {
         return response.getBody();
     }
 
+    // Fetches the list of S&P 500 constituents from the FMP API
     @Override
     public List<FMPSP500ConstituentResponse> getSP500Constituents() {
         String url = String.format("https://financialmodelingprep.com/api/v3/sp500_constituent?apikey=%s", apiKey);
@@ -247,6 +252,7 @@ public class FMPStockDataService implements StockDataService {
         return Arrays.asList(constituents);
     }
 
+    // Fetches and stores the raw S&P 500 constituents response from the FMP API
     @Override
     public String getRawSP500ConstituentsResponse() {
         String url = String.format("https://financialmodelingprep.com/api/v3/sp500_constituent?apikey=%s", apiKey);
@@ -258,6 +264,7 @@ public class FMPStockDataService implements StockDataService {
         return rawSP500ConstituentsResponse;
     }
 
+    // Fetches the full stock list from the FMP API
     @Override
     public List<FMPStockListResponse> getStockList() {
         String url = String.format("https://financialmodelingprep.com/api/v3/stock/list?apikey=%s", apiKey);

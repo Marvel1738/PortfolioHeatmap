@@ -4,7 +4,7 @@ package com.PortfolioHeatmap.models;
  * Represents the response structure for a historical price request from the Financial Modeling Prep (FMP) API.
  * This class deserializes the JSON response into a list of historical price entries for a specific symbol.
  * 
- * @author [Your Name]
+ * @author [Marvel Bana]
  */
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

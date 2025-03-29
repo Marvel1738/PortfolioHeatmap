@@ -1,13 +1,5 @@
 package com.PortfolioHeatmap.models;
 
-/**
- * Represents a single historical price entry for a stock, containing the date and closing price.
- * This class is used to deserialize historical price data from external APIs like FMP or Alpha Vantage.
- * 
- * @author [Your Name]
- */
-import java.time.LocalDate;
-
 public class HistoricalPrice {
     private String date;
     private Double close;

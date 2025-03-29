@@ -1,5 +1,14 @@
 package com.PortfolioHeatmap.models;
 
+/**
+ * Represents a response object for S&P 500 constituent data from the Financial
+ * Modeling Prep (FMP) API.
+ * This class encapsulates details about a stock within the S&P 500 index,
+ * including its symbol, name,
+ * sector, sub-sector, headquarters, and market capitalization.
+ *
+ * @author Marvel Bana
+ */
 public class FMPSP500ConstituentResponse {
     private String symbol;
     private String name;
@@ -8,7 +17,7 @@ public class FMPSP500ConstituentResponse {
     private String headQuarter;
     private Long marketCap;
 
-    // Getters and setters
+    // Getters and setters for accessing and modifying the fields
     public String getSymbol() {
         return symbol;
     }
@@ -57,6 +66,7 @@ public class FMPSP500ConstituentResponse {
         this.marketCap = marketCap;
     }
 
+    // Overrides toString to provide a concise string representation of the object
     @Override
     public String toString() {
         return "FMPSP500ConstituentResponse[symbol=" + symbol + ", name=" + name + ", marketCap=" + marketCap + "]";

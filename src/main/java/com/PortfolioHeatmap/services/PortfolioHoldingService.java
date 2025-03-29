@@ -1,19 +1,25 @@
 package com.PortfolioHeatmap.services;
 
+/**
+ * Service class for managing portfolio holdings in the PortfolioHeatmap application.
+ * This class provides methods to add, update, delete, and retrieve portfolio holdings,
+ * as well as calculate financial metrics such as gain/loss, percentage return, and current value.
+ *
+ * @author Marvel Bana
+ */
 import com.PortfolioHeatmap.models.Portfolio;
 import com.PortfolioHeatmap.models.PortfolioHolding;
 import com.PortfolioHeatmap.models.PriceHistory;
 import com.PortfolioHeatmap.models.Stock;
 import com.PortfolioHeatmap.repositories.PortfolioHoldingRepository;
 
-// Removed incorrect Optional import
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional; // Ensure the correct Optional is imported
+import java.util.Optional;
 
 @Service
 public class PortfolioHoldingService {
@@ -23,6 +29,7 @@ public class PortfolioHoldingService {
     private final StockService stockService;
     private final PriceHistoryService priceHistoryService;
 
+    // Constructor for dependency injection of required repositories and services
     public PortfolioHoldingService(PortfolioHoldingRepository portfolioHoldingRepository,
             StockService stockService,
             PriceHistoryService priceHistoryService) {
@@ -31,6 +38,7 @@ public class PortfolioHoldingService {
         this.priceHistoryService = priceHistoryService;
     }
 
+    // Adds a new holding to a portfolio with the specified details
     public PortfolioHolding addHolding(Portfolio portfolio, String ticker, Double shares,
             Double purchasePrice, LocalDate purchaseDate,
             Double sellingPrice, LocalDate sellingDate) {
@@ -57,6 +65,8 @@ public class PortfolioHoldingService {
         return portfolioHoldingRepository.save(holding);
     }
 
+    // Updates an existing holding with new share count, selling price, and selling
+    // date
     public void updateHolding(Long holdingId, Double shares, Double sellingPrice, LocalDate sellingDate) {
         log.info("Updating holding with id: {}, shares: {}, sellingPrice: {}, sellingDate: {}", holdingId, shares,
                 sellingPrice, sellingDate);
@@ -68,6 +78,7 @@ public class PortfolioHoldingService {
         portfolioHoldingRepository.save(holding);
     }
 
+    // Deletes a holding by its ID
     public void deleteHolding(Long holdingId) {
         log.info("Deleting holding with id: {}", holdingId);
         if (!portfolioHoldingRepository.existsById(holdingId)) {
@@ -76,16 +87,20 @@ public class PortfolioHoldingService {
         portfolioHoldingRepository.deleteById(holdingId);
     }
 
+    // Retrieves all open positions (holdings with no selling date) for a portfolio
     public List<PortfolioHolding> getOpenPositions(Long portfolioId) {
         log.info("Fetching open positions for portfolioId: {}", portfolioId);
         return portfolioHoldingRepository.findByPortfolioIdAndSellingDateIsNull(portfolioId);
     }
 
+    // Retrieves all closed positions (holdings with a selling date) for a portfolio
     public List<PortfolioHolding> getClosedPositions(Long portfolioId) {
         log.info("Fetching closed positions for portfolioId: {}", portfolioId);
         return portfolioHoldingRepository.findByPortfolioIdAndSellingDateIsNotNull(portfolioId);
     }
 
+    // Calculates the gain or loss for a holding based on its status (open or
+    // closed)
     public Double calculateGainLoss(PortfolioHolding holding) {
         if (holding.getSellingDate() != null) {
             // Closed position: Gain/loss = (selling price - purchase price) * shares
@@ -101,6 +116,8 @@ public class PortfolioHoldingService {
         }
     }
 
+    // Calculates the percentage return for a holding based on gain/loss and
+    // purchase value
     public Double calculatePercentageReturn(PortfolioHolding holding) {
         Double gainLoss = calculateGainLoss(holding);
         Double purchaseValue = holding.getPurchasePrice() * holding.getShares();
@@ -110,6 +127,8 @@ public class PortfolioHoldingService {
         return (gainLoss / purchaseValue) * 100;
     }
 
+    // Calculates the current value of a holding (based on selling price for closed,
+    // current price for open)
     public Double calculateCurrentValue(PortfolioHolding holding) {
         if (holding.getSellingDate() != null) {
             // Closed position: Value at sale
