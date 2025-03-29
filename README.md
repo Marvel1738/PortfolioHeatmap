@@ -92,9 +92,6 @@ This project is a work-in-progress full-stack application built to professional 
 - Features: user authentication (login/register), portfolio management (add/view/delete portfolios and holdings), performance metrics display, and heatmap visualization.
 - Polished UI with a modern design (e.g., Material-UI, Tailwind CSS).
 
-### 📅 Daily Price Updates:
-- Schedule a daily job to update `price_history` with the latest closing prices for all stocks.
-
 ### ☁️ AWS Deployment:
 - Deploy the backend (Spring Boot) to AWS Elastic Beanstalk and the database to RDS.
 - Deploy the React front end to AWS Amplify or S3+CloudFront.
