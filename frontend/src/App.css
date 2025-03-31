@@ -1,6 +1,21 @@
 /* frontend/src/App.css */
 
-/* Optional: Style the App container if needed later */
+/* Style the App container to stack sections vertically */
 .App {
-  text-align: center;
+  display: flex;
+  flex-direction: column; 
+  align-items: center;
+  padding: 20px; 
+}
+
+/* Style each auth section (login and register) */
+.auth-section {
+  margin-bottom: 40px; 
+}
+
+/* Style section headings */
+h2 {
+  font-size: 1.5rem; 
+  color: #333; 
+  margin-bottom: 10px;
 }

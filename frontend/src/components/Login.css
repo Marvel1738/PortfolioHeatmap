@@ -63,3 +63,10 @@ button:hover {
   font-size: 0.9rem;
   margin-top: 10px; 
 }
+
+/* Style success messages */
+.success-message {
+  color: #5cb85c;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
