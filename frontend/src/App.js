@@ -47,8 +47,8 @@ function App() {
         }
       });
 
-      // Extract the JWT token from the response data (assumes response is { "token": "..." })
-      const token = response.data.token;
+      // Extract the JWT token from the response data directly 
+      const token = response.data;
       // Store the token in localStorage for use in subsequent authenticated requests
       localStorage.setItem('token', token);
       // Clear any previous error messages since login succeeded
