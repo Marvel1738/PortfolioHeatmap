@@ -1,13 +1,23 @@
+// package declaration
 package com.PortfolioHeatmap.controllers;
 
+// Existing imports
 import com.PortfolioHeatmap.models.Portfolio;
 import com.PortfolioHeatmap.models.PortfolioHolding;
+import com.PortfolioHeatmap.models.User;
 import com.PortfolioHeatmap.services.PortfolioHoldingService;
 import com.PortfolioHeatmap.services.PortfolioService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+// New imports for JWT and user handling
+import com.PortfolioHeatmap.security.JwtUtil;
+import com.PortfolioHeatmap.services.UserService;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -17,10 +27,10 @@ import java.util.Map;
 /**
  * Controller class responsible for handling HTTP requests related to portfolio
  * management.
- * This class provides endpoints for creating, retrieving, updating, and
- * deleting portfolios and their holdings.
- * It interacts with the PortfolioService and PortfolioHoldingService to perform
- * business logic operations.
+ * Provides endpoints for creating, retrieving, updating, and deleting
+ * portfolios and their holdings.
+ * Integrates with PortfolioService, PortfolioHoldingService, JwtUtil, and
+ * UserService for functionality.
  *
  * @author Marvel Bana
  */
@@ -31,11 +41,26 @@ public class PortfolioController {
 
     private final PortfolioService portfolioService;
     private final PortfolioHoldingService portfolioHoldingService;
+    private final JwtUtil jwtUtil; // Added for JWT parsing
+    private final UserService userService; // Added for user lookup
 
-    // Constructs a PortfolioController with the required services
-    public PortfolioController(PortfolioService portfolioService, PortfolioHoldingService portfolioHoldingService) {
+    /**
+     * Constructor for dependency injection of required services and utilities.
+     * 
+     * @param portfolioService        Service for portfolio operations
+     * @param portfolioHoldingService Service for portfolio holding operations
+     * @param jwtUtil                 Utility for JWT token handling
+     * @param userService             Service for user operations
+     */
+    public PortfolioController(
+            PortfolioService portfolioService,
+            PortfolioHoldingService portfolioHoldingService,
+            JwtUtil jwtUtil,
+            UserService userService) {
         this.portfolioService = portfolioService;
         this.portfolioHoldingService = portfolioHoldingService;
+        this.jwtUtil = jwtUtil;
+        this.userService = userService;
     }
 
     // Creates a new portfolio for the current user with the specified name
@@ -62,12 +87,11 @@ public class PortfolioController {
             return ResponseEntity.ok(portfolios);
         } catch (RuntimeException e) {
             log.error("Error fetching portfolios: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(null); // 500 Internal Server Error for unexpected issues
+            return ResponseEntity.status(500).body(null); // 500 Internal Server Error
         }
     }
 
-    // Retrieves detailed information about a specific portfolio, including open and
-    // closed positions and calculated metrics
+    // Retrieves detailed information about a specific portfolio
     @GetMapping("/{portfolioId}")
     public ResponseEntity<Map<String, Object>> getPortfolioDetails(@PathVariable Long portfolioId) {
         log.info("Fetching portfolio details with id: {}", portfolioId);
@@ -103,7 +127,7 @@ public class PortfolioController {
                 closedPercentageReturns.put(holding.getId(), percentageReturn);
             }
 
-            // Assemble response map with all calculated data
+            // Assemble response map
             Map<String, Object> response = new HashMap<>();
             response.put("portfolio", portfolio);
             response.put("openPositions", openPositions);
@@ -119,7 +143,7 @@ public class PortfolioController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Error fetching portfolio details: {}", e.getMessage(), e);
-            return ResponseEntity.status(404).body(null); // 404 Not Found if portfolio doesn't exist
+            return ResponseEntity.status(404).body(null); // 404 Not Found
         }
     }
 
@@ -150,19 +174,17 @@ public class PortfolioController {
         try {
             Portfolio portfolio = portfolioService.getPortfolioById(portfolioId);
             LocalDate purchaseLocalDate = LocalDate.parse(purchaseDate);
-            LocalDate sellingLocalDate = sellingDate != null ? LocalDate.parse(sellingDate) : null; // Handle optional
-                                                                                                    // selling date
+            LocalDate sellingLocalDate = sellingDate != null ? LocalDate.parse(sellingDate) : null;
             PortfolioHolding holding = portfolioHoldingService.addHolding(
                     portfolio, ticker, shares, purchasePrice, purchaseLocalDate, sellingPrice, sellingLocalDate);
             return ResponseEntity.ok(holding);
         } catch (RuntimeException e) {
             log.error("Error adding holding: {}", e.getMessage(), e);
-            return ResponseEntity.status(400).body(null); // 400 Bad Request for invalid input
+            return ResponseEntity.status(400).body(null); // 400 Bad Request
         }
     }
 
-    // Updates an existing holding with new share count, selling price, and selling
-    // date
+    // Updates an existing holding
     @PutMapping("/holdings/{holdingId}")
     public ResponseEntity<String> updateHolding(
             @PathVariable Long holdingId,
@@ -171,8 +193,7 @@ public class PortfolioController {
             @RequestParam(required = false) String sellingDate) {
         log.info("Updating holding with id: {}, shares: {}", holdingId, shares);
         try {
-            LocalDate sellingLocalDate = sellingDate != null ? LocalDate.parse(sellingDate) : null; // Parse optional
-                                                                                                    // date
+            LocalDate sellingLocalDate = sellingDate != null ? LocalDate.parse(sellingDate) : null;
             portfolioHoldingService.updateHolding(holdingId, shares, sellingPrice, sellingLocalDate);
             return ResponseEntity.ok("Holding updated successfully");
         } catch (RuntimeException e) {
@@ -194,9 +215,39 @@ public class PortfolioController {
         }
     }
 
-    // Retrieves the ID of the current authenticated user (placeholder
-    // implementation)
+/**
+     * Retrieves the ID of the current authenticated user from the Authorization header.
+     * Fetches the token directly from the request header, validates it with JwtUtil,
+     * and retrieves the user ID via UserService.
+     * 
+     * @return Long The ID of the current user
+     * @throws RuntimeException if token is missing or invalid
+     */
     private Long getCurrentUserId() {
-        return 1L; // Replace with actual user ID retrieval from SecurityContextHolder or similar
+        // Get the current request attributes
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            log.error("No request attributes available to fetch Authorization header");
+            throw new RuntimeException("Unable to determine current user");
+        }
+
+        // Get the Authorization header from the request
+        String authHeader = attributes.getRequest().getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.error("Authorization header missing or invalid: {}", authHeader);
+            throw new RuntimeException("Invalid or missing Authorization header");
+        }
+
+        // Extract token and validate
+        String token = authHeader.replace("Bearer ", "");
+        String username = jwtUtil.extractUsername(token);
+        if (!jwtUtil.validateToken(token, username)) {
+            log.error("Invalid JWT token for username: {}", username);
+            throw new RuntimeException("Invalid JWT token");
+        }
+
+        // Fetch user and return ID
+        User user = (User) userService.loadUserByUsername(username);
+        return user.getId();
     }
 }
