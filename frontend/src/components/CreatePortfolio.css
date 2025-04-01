@@ -22,3 +22,37 @@ p {
   font-size: 1rem; 
   color: #555; 
 }
+
+/* Style list items to space buttons */
+li {
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 10px; 
+  display: flex; 
+  align-items: center; 
+}
+
+/* Style edit button */
+.edit-button {
+  margin-left: 10px; 
+  padding: 5px 10px; 
+  background-color: #ffc107; 
+  color: #333;
+}
+
+/* Hover effect for edit button */
+.edit-button:hover {
+  background-color: #e0a800;
+}
+
+/* Style remove button */
+.remove-button {
+  margin-left: 10px;
+  padding: 5px 10px; 
+  background-color: #dc3545; 
+}
+
+/* Hover effect for remove button */
+.remove-button:hover {
+  background-color: #c82333; 
+}

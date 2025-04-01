@@ -50,6 +50,10 @@ button {
   border: none; 
   border-radius: 4px; 
   cursor: pointer; 
+  margin-bottom: 20px;
+  display:flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Add hover effect to the button for interactivity */
