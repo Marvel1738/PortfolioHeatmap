@@ -70,3 +70,21 @@ button:hover {
   font-size: 0.9rem;
   margin-top: 10px;
 }
+
+/* Style the register link section */
+.register-link {
+  margin-top: 15px; 
+  font-size: 0.9rem; 
+  color: #555;
+}
+
+/* Style the Link component */
+.register-link a {
+  color: #007bff; 
+  text-decoration: none;
+}
+
+/* Hover effect for the link */
+.register-link a:hover {
+  text-decoration: underline;
+}

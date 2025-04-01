@@ -2,38 +2,41 @@
 
 // Import React library
 import React from 'react';
-// Import the Login component for authentication
+// Import routing components
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// Import page components
 import Login from './components/Login';
-// Import the Register component for account creation
 import Register from './components/Register';
-// Import custom CSS file for minimal App-level styling
+import CreatePortfolio from './components/CreatePortfolio';
+// Import App-level CSS
 import './App.css';
 
 /**
- * App component serves as the root component of the React frontend for Portfolio Heatmap.
- * Temporarily renders both Login and Register components for testing.
- * Will be updated with routing to separate these into distinct paths.
+ * App component serves as the root of the React frontend.
+ * Configures routing for login, registration, and portfolio creation pages.
  * 
- * @returns {JSX.Element} The rendered App UI with Login and Register components
+ * @returns {JSX.Element} The rendered App UI with routing
  */
 function App() {
-  // JSX to render the App component
   return (
-    // Main container div with a CSS class for styling
-    <div className="App">
-      {/* Section for login */}
-      <div className="auth-section">
-        <h2>Login</h2>
-        <Login />
+    // Router enables navigation
+    <Router>
+      {/* Main container div */}
+      <div className="App">
+        {/* Routes map URLs to components */}
+        <Routes>
+          {/* Login page */}
+          <Route path="/login" element={<Login />} />
+          {/* Register page */}
+          <Route path="/register" element={<Register />} />
+          {/* Portfolio creation page */}
+          <Route path="/create-portfolio" element={<CreatePortfolio />} />
+          {/* Default route redirects to login */}
+          <Route path="/" element={<Login />} />
+        </Routes>
       </div>
-      {/* Section for registration */}
-      <div className="auth-section">
-        <h2>Register</h2>
-        <Register />
-      </div>
-    </div>
+    </Router>
   );
 }
 
-// Export the App component as the default export
 export default App;
