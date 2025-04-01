@@ -90,3 +90,11 @@ li {
 .ticker-dropdown li:hover {
   background-color: #f0f0f0;
 }
+
+.portfolio-list {
+  margin-top: 20px;
+}
+
+.submit-portfolio {
+  margin-top: 20px;
+}

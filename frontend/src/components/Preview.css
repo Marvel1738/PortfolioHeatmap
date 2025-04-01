@@ -1,0 +1,17 @@
+.preview {
+  padding: 20px;
+}
+
+.preview ul {
+  list-style: none;
+  padding: 0;
+}
+
+.preview li {
+  margin: 10px 0;
+}
+
+.preview button {
+  margin: 10px 10px 0 0;
+  padding: 5px 10px;
+}
