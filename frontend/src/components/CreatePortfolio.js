@@ -185,8 +185,9 @@ function CreatePortfolio() {
                 type="number"
                 value={shares}
                 onChange={(e) => setShares(e.target.value)}
-                placeholder="e.g., 10"
-                min="1"
+                placeholder="e.g., 10.5"
+                step="0.01" // Allow decimals
+                min="0.01" // Positive values only
               />
             </div>
             <div className="form-group">
