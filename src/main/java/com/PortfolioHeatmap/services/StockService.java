@@ -71,37 +71,44 @@ public class StockService {
     }
 
     /**
-     * Searches stocks by ticker prefix using the latest price history data.
-     * Returns a list of maps with ticker, company name, and market cap, sorted by
-     * market cap descending, limited to 10 results.
+     * Searches stocks by ticker prefix using the latest price history per stock.
+     * Returns ticker, company name, and market cap, sorted by market cap
+     * descending,
+     * limited to 10 results. Uses a subquery to get each stock's latest entry.
      * 
-     * @param prefix The ticker prefix to search (e.g., "A")
+     * @param prefix The ticker prefix to search (e.g., "T")
      * @return List of stock details (ticker, companyName, marketCap)
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> searchStocksByPrefix(String prefix) {
         logger.info("Searching stocks with ticker prefix: {}", prefix);
-        // Native SQL query to join Stock and PriceHistory, get latest market cap
+        // Query to get latest price history per stock with prefix
         String sql = "SELECT s.ticker, s.company_name, ph.market_cap " +
                 "FROM stocks s " +
-                "LEFT JOIN price_history ph ON s.ticker = ph.stock_ticker " +
+                "INNER JOIN price_history ph ON s.ticker = ph.stock_ticker " +
+                "INNER JOIN (" +
+                "    SELECT stock_ticker, MAX(date) as max_date " +
+                "    FROM price_history " +
+                "    WHERE stock_ticker LIKE :prefix " +
+                "    GROUP BY stock_ticker" +
+                ") latest ON ph.stock_ticker = latest.stock_ticker AND ph.date = latest.max_date " +
                 "WHERE s.ticker LIKE :prefix " +
-                "AND (ph.date = (SELECT MAX(date) FROM price_history) OR ph.date IS NULL) " +
                 "ORDER BY ph.market_cap DESC " +
                 "LIMIT 10";
         Query query = entityManager.createNativeQuery(sql);
-        query.setParameter("prefix", prefix + "%"); // Wildcard for prefix match
+        query.setParameter("prefix", prefix + "%");
 
-        // Map query results to a list of stock details
+        // Map results to a list
         @SuppressWarnings("unchecked")
         List<Object[]> results = query.getResultList();
         List<Map<String, Object>> stockList = new ArrayList<>();
         for (Object[] row : results) {
             Map<String, Object> stock = new HashMap<>();
-            stock.put("ticker", row[0]); // ticker from stocks
-            stock.put("companyName", row[1]); // company_name from stocks
-            stock.put("marketCap", row[2]); // market_cap from price_history (nullable)
+            stock.put("ticker", row[0]);
+            stock.put("companyName", row[1]);
+            stock.put("marketCap", row[2]);
             stockList.add(stock);
+            logger.info("Stock: {}, Company: {}, Market Cap: {}", row[0], row[1], row[2]);
         }
         logger.info("Found {} stocks for prefix: {}", stockList.size(), prefix);
         return stockList;
