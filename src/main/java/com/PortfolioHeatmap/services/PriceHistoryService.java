@@ -22,6 +22,7 @@ public class PriceHistoryService {
     private static final Logger log = LoggerFactory.getLogger(PriceHistoryService.class);
 
     private final PriceHistoryRepository priceHistoryRepository;
+    
 
     // Constructor for dependency injection of PriceHistoryRepository
     public PriceHistoryService(PriceHistoryRepository priceHistoryRepository) {

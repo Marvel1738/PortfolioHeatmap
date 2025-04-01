@@ -56,3 +56,37 @@ li {
 .remove-button:hover {
   background-color: #c82333; 
 }
+
+/* Container for ticker input and dropdown */
+.ticker-input-container {
+  position: relative;
+}
+
+/* Dropdown styling */
+.ticker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  z-index: 10;
+}
+
+/* Dropdown items */
+.ticker-dropdown li {
+  padding: 5px 10px;
+  cursor: pointer;
+  display: block; /* Override holdings list flex */
+}
+
+/* Hover effect */
+.ticker-dropdown li:hover {
+  background-color: #f0f0f0;
+}

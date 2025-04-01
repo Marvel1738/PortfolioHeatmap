@@ -1,76 +1,104 @@
 // frontend/src/components/CreatePortfolio.js
 
-// Import React and useState hook for managing component state
-import React, { useState } from 'react';
+// Import React and hooks for state and side effects
+import React, { useState, useEffect } from 'react';
 // Import axios for making HTTP requests to the backend
 import axios from 'axios';
 // Import useNavigate for redirecting after submission
 import { useNavigate } from 'react-router-dom';
+// Import debounce to limit API calls during typing
+import debounce from 'lodash.debounce';
 // Import custom CSS for styling
 import './CreatePortfolio.css';
 
 /**
  * CreatePortfolio component allows users to create their first portfolio.
- * Creates a portfolio via /portfolios/create, manages a list of holdings with add,
- * remove, and update functionality, and submits via /portfolios/{id}/holdings/add.
- * Supports fractional shares and provides a seamless onboarding experience.
+ * Features a searchable stock ticker dropdown sorted by market cap, with add,
+ * remove, and update functionality for holdings before submission.
  * 
  * @returns {JSX.Element} The rendered portfolio creation UI
  */
 function CreatePortfolio() {
-  // State to hold the portfolio name entered by the user, initialized as empty string
+  // State for portfolio name input
   const [portfolioName, setPortfolioName] = useState('');
-  // State for the current stock ticker input, initialized as empty string
+  // State for current ticker input, used for searching and selection
   const [ticker, setTicker] = useState('');
-  // State for the current shares input, stored as string to handle decimals
+  // State for current shares input, stored as string for decimal support
   const [shares, setShares] = useState('');
-  // State for the current purchase price input, stored as string for precision
+  // State for current purchase price input
   const [purchasePrice, setPurchasePrice] = useState('');
-  // State to hold the list of holdings added by the user, initialized as empty array
+  // State for list of holdings to be submitted
   const [holdings, setHoldings] = useState([]);
-  // State to display error messages to the user, initialized as empty string
+  // State for error messages displayed to the user
   const [error, setError] = useState('');
-  // State to store the ID of the created portfolio after /portfolios/create call
+  // State for the created portfolio's ID after /portfolios/create
   const [portfolioId, setPortfolioId] = useState(null);
-  // State to track the index of the holding being edited, null when not editing
+  // State to track the index of the holding being edited, null if not editing
   const [editingIndex, setEditingIndex] = useState(null);
-  // Hook to navigate to other routes (e.g., /heatmap) after submission
+  // State for stock suggestions fetched from the backend
+  const [stockSuggestions, setStockSuggestions] = useState([]);
+  // State to control visibility of the ticker dropdown
+  const [showDropdown, setShowDropdown] = useState(false);
+  // Hook for programmatic navigation
   const navigate = useNavigate();
 
   /**
-   * Handles creating a new portfolio when the user submits the name form.
-   * Sends a POST request to /portfolios/create with the portfolio name and stores
-   * the returned portfolio ID for subsequent holding additions.
-   * 
-   * @param {Event} e - The form submission event triggered by the user
+   * Fetches stock suggestions based on the ticker prefix input.
+   * Debounced to prevent excessive API calls during rapid typing.
+   * Updates stockSuggestions state and shows/hides the dropdown.
+   */
+  const fetchStockSuggestions = debounce(async (prefix) => {
+    // Hide dropdown and clear suggestions if input is empty
+    if (prefix.length === 0) {
+      setStockSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+    try {
+      // Fetch stock suggestions from the backend
+      const response = await axios.get('http://localhost:8080/stocks/search', {
+        params: { prefix },
+      });
+      setStockSuggestions(response.data);
+      setShowDropdown(true); // Show dropdown if results exist
+    } catch (err) {
+      // Log error and reset dropdown on failure
+      console.error('Error fetching stock suggestions:', err);
+      setStockSuggestions([]);
+      setShowDropdown(false);
+    }
+  }, 300); // 300ms debounce to balance responsiveness and performance
+
+  // Effect to trigger stock suggestion fetch when ticker changes
+  useEffect(() => {
+    fetchStockSuggestions(ticker);
+    // Cleanup debounce on unmount or ticker change
+    return () => fetchStockSuggestions.cancel();
+  }, [ticker]);
+
+  /**
+   * Handles creating a new portfolio via POST /portfolios/create.
+   * Stores the returned portfolio ID for subsequent holding additions.
    */
   const handleCreatePortfolio = async (e) => {
-    // Prevent default form submission behavior (page reload)
     e.preventDefault();
-    // Validate that a portfolio name is provided
     if (!portfolioName) {
       setError('Please enter a portfolio name.');
       return;
     }
-
     try {
-      // Retrieve the JWT token from localStorage for authentication
       const token = localStorage.getItem('token');
-      // Send POST request to create the portfolio
       const response = await axios.post(
         'http://localhost:8080/portfolios/create',
-        null, // No request body, using query params
+        null,
         {
-          params: { name: portfolioName }, // Pass portfolio name as query parameter
-          headers: { 'Authorization': `Bearer ${token}` }, // Include JWT in header
+          params: { name: portfolioName },
+          headers: { 'Authorization': `Bearer ${token}` },
         }
       );
-      // Store the portfolio ID from the response
       setPortfolioId(response.data.id);
-      // Clear any previous error messages
       setError('');
     } catch (err) {
-      // Handle errors from the API call (e.g., network issues, duplicate name)
       const errorMessage = err.response && err.response.data
         ? err.response.data
         : err.message;
@@ -79,134 +107,110 @@ function CreatePortfolio() {
   };
 
   /**
-   * Handles adding a new holding or updating an existing one in the holdings list.
-   * Validates inputs, supports fractional shares, and updates state accordingly.
-   * If editing, replaces the holding at editingIndex; otherwise, adds a new one.
-   * 
-   * @param {Event} e - The form submission event for adding or updating a holding
+   * Handles adding or updating a holding in the list.
+   * Validates inputs and either adds a new holding or updates an existing one.
    */
   const handleAddOrUpdateHolding = (e) => {
-    // Prevent default form behavior
     e.preventDefault();
-    // Ensure all required fields are filled
     if (!ticker || !shares || !purchasePrice) {
       setError('Please fill in all holding fields.');
       return;
     }
-    // Convert inputs to numbers for validation and storage
     const sharesNum = Number(shares);
     const priceNum = Number(purchasePrice);
-    // Validate that shares and price are positive numbers
     if (isNaN(sharesNum) || sharesNum <= 0 || isNaN(priceNum) || priceNum <= 0) {
       setError('Shares and purchase price must be positive numbers.');
       return;
     }
 
-    // Create a new holding object with validated data
     const newHolding = {
-      ticker: ticker.toUpperCase(), // Standardize ticker to uppercase
-      shares: sharesNum, // Store as number, supports decimals
-      purchasePrice: priceNum, // Store as number
-      purchaseDate: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD
+      ticker: ticker.toUpperCase(),
+      shares: sharesNum,
+      purchasePrice: priceNum,
+      purchaseDate: new Date().toISOString().split('T')[0],
     };
 
     if (editingIndex !== null) {
-      // If editing, update the existing holding at the specified index
       const updatedHoldings = [...holdings];
       updatedHoldings[editingIndex] = newHolding;
       setHoldings(updatedHoldings);
-      setEditingIndex(null); // Exit edit mode after update
+      setEditingIndex(null);
     } else {
-      // If not editing, add the new holding to the list
       setHoldings([...holdings, newHolding]);
     }
 
-    // Clear form inputs for the next entry
     setTicker('');
     setShares('');
     setPurchasePrice('');
-    // Clear any previous errors
     setError('');
   };
 
   /**
-   * Handles removing a holding from the list by its index.
-   * Filters out the holding and updates the state, only affects pre-submission list.
-   * 
-   * @param {number} index - The index of the holding to remove from the list
+   * Handles removing a holding from the list by index.
+   * Updates the holdings state pre-submission.
    */
   const handleRemoveHolding = (index) => {
-    // Filter out the holding at the specified index
     setHoldings(holdings.filter((_, i) => i !== index));
-    // Clear any error messages
     setError('');
   };
 
   /**
-   * Handles initiating the edit process for a specific holding.
-   * Populates the form with the holding's current values and sets editingIndex.
-   * 
-   * @param {number} index - The index of the holding to edit in the list
+   * Handles editing an existing holding.
+   * Populates the form with the holding’s values and sets editing mode.
    */
   const handleEditHolding = (index) => {
-    // Get the holding to edit
     const holding = holdings[index];
-    // Populate form fields with current values
     setTicker(holding.ticker);
-    setShares(holding.shares.toString()); // Convert to string for input compatibility
+    setShares(holding.shares.toString());
     setPurchasePrice(holding.purchasePrice.toString());
-    // Set the index to indicate editing mode
     setEditingIndex(index);
-    // Clear any error messages
     setError('');
   };
 
   /**
-   * Handles submitting the final list of holdings to the backend.
-   * Sends a POST request to /portfolios/{portfolioId}/holdings/add for each holding,
-   * then redirects to the heatmap page on success.
-   * 
-   * @param {Event} e - The form submission event for final portfolio submission
+   * Handles selecting a ticker from the dropdown.
+   * Sets the ticker input and hides the dropdown.
+   */
+  const handleTickerSelect = (selectedTicker) => {
+    setTicker(selectedTicker);
+    setShowDropdown(false);
+  };
+
+  /**
+   * Handles submitting all holdings to the backend via POST /portfolios/{id}/holdings/add.
+   * Redirects to /heatmap on success.
    */
   const handleSubmit = async (e) => {
-    // Prevent default behavior
     e.preventDefault();
-    // Ensure a portfolio has been created
     if (!portfolioId) {
       setError('Please create a portfolio first.');
       return;
     }
-    // Ensure at least one holding is added
     if (holdings.length === 0) {
       setError('Please add at least one holding.');
       return;
     }
 
     try {
-      // Retrieve JWT token for authentication
       const token = localStorage.getItem('token');
-      // Iterate over holdings and submit each to the backend
       for (const holding of holdings) {
         await axios.post(
           `http://localhost:8080/portfolios/${portfolioId}/holdings/add`,
-          null, // No request body, using query params
+          null,
           {
             params: {
               ticker: holding.ticker,
-              shares: holding.shares, // Pass as number, backend handles Double
+              shares: holding.shares,
               purchasePrice: holding.purchasePrice,
               purchaseDate: holding.purchaseDate,
             },
-            headers: { 'Authorization': `Bearer ${token}` }, // Include JWT
+            headers: { 'Authorization': `Bearer ${token}` },
           }
         );
       }
-      // Clear errors on success
       setError('');
-      // Redirect to heatmap page
       navigate('/heatmap');
     } catch (err) {
-      // Handle errors from API calls (e.g., invalid ticker, server issues)
       const errorMessage = err.response && err.response.data
         ? err.response.data
         : err.message;
@@ -214,13 +218,9 @@ function CreatePortfolio() {
     }
   };
 
-  // JSX to render the portfolio creation UI
   return (
-    // Main container div with CSS class for styling
     <div className="create-portfolio">
-      {/* Heading for the page */}
       <h1>Create Your First Portfolio</h1>
-      {/* Show portfolio name form if portfolio not yet created */}
       {!portfolioId && (
         <form onSubmit={handleCreatePortfolio}>
           <div className="form-group">
@@ -235,18 +235,33 @@ function CreatePortfolio() {
           <button type="submit">Create Portfolio</button>
         </form>
       )}
-      {/* Show holdings form and list if portfolio is created */}
       {portfolioId && (
         <>
           <form onSubmit={handleAddOrUpdateHolding}>
             <div className="form-group">
               <label>Stock Ticker:</label>
-              <input
-                type="text"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value)}
-                placeholder="e.g., AAPL"
-              />
+              <div className="ticker-input-container">
+                <input
+                  type="text"
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                  placeholder="e.g., AAPL"
+                  autoComplete="off" // Disable browser autocomplete
+                />
+                {showDropdown && stockSuggestions.length > 0 && (
+                  <ul className="ticker-dropdown">
+                    {stockSuggestions.map((stock) => (
+                      <li
+                        key={stock.ticker}
+                        onClick={() => handleTickerSelect(stock.ticker)}
+                      >
+                        {stock.ticker} - {stock.companyName} 
+                        {stock.marketCap ? ` (Market Cap: ${stock.marketCap})` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
             <div className="form-group">
               <label>Shares:</label>
@@ -255,8 +270,8 @@ function CreatePortfolio() {
                 value={shares}
                 onChange={(e) => setShares(e.target.value)}
                 placeholder="e.g., 10.5"
-                step="0.01" // Allow fractional shares
-                min="0.01" // Ensure positive values
+                step="0.01"
+                min="0.01"
               />
             </div>
             <div className="form-group">
@@ -270,14 +285,10 @@ function CreatePortfolio() {
                 min="0.01"
               />
             </div>
-            {/* Button text changes based on edit mode */}
-            <div className="addHolding">
-            <button id="addHolding"type="submit">
+            <button type="submit">
               {editingIndex !== null ? 'Update Holding' : 'Add Holding'}
-              </button>
-            </div>
+            </button>
           </form>
-          {/* Display holdings list if there are any */}
           {holdings.length > 0 && (
             <div className="holdings-list">
               <h2>Your Holdings:</h2>
@@ -285,14 +296,12 @@ function CreatePortfolio() {
                 {holdings.map((holding, index) => (
                   <li key={index}>
                     {holding.ticker}: {holding.shares} shares @ ${holding.purchasePrice}
-                    {/* Edit button to modify the holding */}
                     <button
                       className="edit-button"
                       onClick={() => handleEditHolding(index)}
                     >
                       Edit
                     </button>
-                    {/* Remove button to delete the holding */}
                     <button
                       className="remove-button"
                       onClick={() => handleRemoveHolding(index)}
@@ -304,17 +313,14 @@ function CreatePortfolio() {
               </ul>
             </div>
           )}
-          {/* Final submission button */}
           <button className="submit-portfolio" onClick={handleSubmit}>
             Finish Portfolio
           </button>
         </>
       )}
-      {/* Display error message if present */}
       {error && <p className="error-message">{error}</p>}
     </div>
   );
 }
 
-// Export the component as the default export
 export default CreatePortfolio;

@@ -33,6 +33,7 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.Iterator;
 
@@ -122,6 +123,26 @@ public class StockController {
         } catch (RuntimeException e) {
             log.error("Error fetching batch prices: {}", symbols, e.getMessage(), e);
             return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    /**
+     * Handles GET requests to search stocks by ticker prefix.
+     * Returns a list of stocks with ticker, company name, and market cap, sorted by
+     * market cap in descending order, limited to 10 results.
+     * 
+     * @param prefix The ticker prefix to search for (e.g., "A")
+     * @return ResponseEntity containing the list of stock details or error status
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<Map<String, Object>>> searchStocks(@RequestParam String prefix) {
+        log.info("Received stock search request for prefix: {}", prefix);
+        try {
+            List<Map<String, Object>> stocks = stockService.searchStocksByPrefix(prefix);
+            return ResponseEntity.ok(stocks);
+        } catch (Exception e) {
+            log.error("Error searching stocks: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(null); // 500 Internal Server Error
         }
     }
 

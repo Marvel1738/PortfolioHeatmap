@@ -67,7 +67,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Explicitly apply CORS config
                 .csrf(csrf -> csrf.disable()) // Disable CSRF as we're using JWT (stateless)
                 .authorizeHttpRequests(auth -> auth // Configure request authorization
-                        .requestMatchers("/auth/**").permitAll() // Allow unauthenticated access to /auth/** (e.g.,
+                        .requestMatchers("/auth/**", "/stocks/search").permitAll() // Allow unauthenticated access to /auth/** (e.g.,
                                                                  // /auth/login)
                         .anyRequest().authenticated()) // Require authentication for all other requests
                 .sessionManagement(session -> session // Configure session management
