@@ -8,6 +8,7 @@ package com.PortfolioHeatmap.services;
  * @author Marvel Bana
  */
 import com.PortfolioHeatmap.models.PriceHistory;
+import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.repositories.PriceHistoryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,35 +16,94 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PriceHistoryService {
     private static final Logger log = LoggerFactory.getLogger(PriceHistoryService.class);
 
     private final PriceHistoryRepository priceHistoryRepository;
-    
+    private final FMPStockDataService fmpStockDataService;
 
-    // Constructor for dependency injection of PriceHistoryRepository
-    public PriceHistoryService(PriceHistoryRepository priceHistoryRepository) {
+    public PriceHistoryService(PriceHistoryRepository priceHistoryRepository, FMPStockDataService fmpStockDataService) {
         this.priceHistoryRepository = priceHistoryRepository;
+        this.fmpStockDataService = fmpStockDataService;
     }
 
-    // Saves a list of price history entries to the database
-    public void saveAllPriceHistories(List<PriceHistory> priceHistories) {
-        log.info("Saving {} price history entries", priceHistories.size());
-        priceHistoryRepository.saveAll(priceHistories);
+    public Page<PriceHistory> getPriceHistory(String ticker, Pageable pageable) {
+        return priceHistoryRepository.findByStockTickerOrderByDateDesc(ticker, pageable);
     }
 
-    // Retrieves a paginated list of all price history records
-    public Page<PriceHistory> getAllPriceHistories(Pageable pageable) {
-        return priceHistoryRepository.findAll(pageable);
+    public Optional<PriceHistory> findByStockTickerAndDate(String stockTicker, LocalDate date) {
+        return priceHistoryRepository.findByStockTickerAndDate(stockTicker, date);
     }
 
-    // Fetches the most recent price history record for a given stock ticker
-    public PriceHistory getLatestPriceHistory(String ticker) {
-        log.info("Fetching latest price history for ticker: {}", ticker);
-        return priceHistoryRepository.findTopByStockTickerOrderByDateDesc(ticker)
-                .orElse(null);
+    public PriceHistory save(PriceHistory priceHistory) {
+        return priceHistoryRepository.save(priceHistory);
+    }
+
+    public Optional<PriceHistory> findTopByStockTickerOrderByDateDesc(String stockTicker) {
+        return priceHistoryRepository.findTopByStockTickerOrderByDateDesc(stockTicker);
+    }
+
+    public Optional<PriceHistory> findFirstByStockTickerAndDateLessThanOrderByDateDesc(String stockTicker,
+            LocalDate date) {
+        return priceHistoryRepository.findFirstByStockTickerAndDateLessThanOrderByDateDesc(stockTicker, date);
+    }
+
+    public double calculatePercentageChange(String ticker, String timeframe) {
+        // Get today's current price from the API
+        StockPrice currentStockPrice = fmpStockDataService.getStockPrice(ticker);
+        if (currentStockPrice == null) {
+            return 0.0;
+        }
+        double currentPrice = currentStockPrice.getPrice();
+
+        // Calculate the start date based on timeframe
+        LocalDate startDate;
+        switch (timeframe) {
+            case "1d":
+                // For 1-day, find yesterday's closing price
+                Optional<PriceHistory> previousDay = priceHistoryRepository
+                        .findFirstByStockTickerAndDateLessThanOrderByDateDesc(ticker, LocalDate.now());
+                if (previousDay.isEmpty()) {
+                    return 0.0;
+                }
+                double previousClose = previousDay.get().getClosingPrice();
+                return ((currentPrice - previousClose) / previousClose) * 100;
+            case "1w":
+                startDate = LocalDate.now().minusWeeks(1);
+                break;
+            case "1m":
+                startDate = LocalDate.now().minusMonths(1);
+                break;
+            case "3m":
+                startDate = LocalDate.now().minusMonths(3);
+                break;
+            case "6m":
+                startDate = LocalDate.now().minusMonths(6);
+                break;
+            case "ytd":
+                startDate = LocalDate.now().withMonth(1).withDayOfMonth(1);
+                break;
+            case "1y":
+                startDate = LocalDate.now().minusYears(1);
+                break;
+            default:
+                return 0.0;
+        }
+
+        // Get the historical price for the start date
+        Optional<PriceHistory> historicalPrice = priceHistoryRepository
+                .findFirstByStockTickerAndDateLessThanEqualOrderByDateDesc(ticker, startDate);
+        if (historicalPrice.isEmpty()) {
+            return 0.0;
+        }
+
+        // Calculate percentage change using current market price
+        double startPrice = historicalPrice.get().getClosingPrice();
+        return ((currentPrice - startPrice) / startPrice) * 100;
     }
 }

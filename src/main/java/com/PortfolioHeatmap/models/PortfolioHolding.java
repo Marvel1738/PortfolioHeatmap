@@ -45,6 +45,9 @@ public class PortfolioHolding {
     @Column(name = "selling_date")
     private LocalDate sellingDate;
 
+    @Column(name = "current_price")
+    private Double currentPrice;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -127,6 +130,14 @@ public class PortfolioHolding {
 
     public void setSellingDate(LocalDate sellingDate) {
         this.sellingDate = sellingDate;
+    }
+
+    public Double getCurrentPrice() {
+        return currentPrice;
+    }
+
+    public void setCurrentPrice(Double currentPrice) {
+        this.currentPrice = currentPrice;
     }
 
     public LocalDateTime getCreatedAt() {

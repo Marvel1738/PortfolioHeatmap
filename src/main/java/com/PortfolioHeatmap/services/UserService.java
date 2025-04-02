@@ -48,4 +48,12 @@ public class UserService implements UserDetailsService {
         user.setPassword(passwordEncoder.encode(password));
         return userRepository.save(user);
     }
+
+    public User getUserByUsername(String username) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) {
+            throw new RuntimeException("User not found: " + username);
+        }
+        return user;
+    }
 }

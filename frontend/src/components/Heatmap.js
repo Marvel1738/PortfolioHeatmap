@@ -84,7 +84,7 @@ function Heatmap() {
         if (!token) throw new Error('No token found');
 
         console.log('Fetching holdings for portfolio:', selectedPortfolioId);
-        const response = await axios.get(`http://localhost:8080/portfolios/${selectedPortfolioId}`, {
+        const response = await axios.get(`http://localhost:8080/portfolios/${selectedPortfolioId}?timeframe=${timeframe}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -106,16 +106,9 @@ function Heatmap() {
                   { headers: { 'Authorization': `Bearer ${token}` } }
                 );
                 
-                // Get latest price for the stock
-                const priceResponse = await axios.get(
-                  `http://localhost:8080/stocks/price/${holdingResponse.data.stock.ticker}`,
-                  { headers: { 'Authorization': `Bearer ${token}` } }
-                );
-                
                 return {
                   ...holdingResponse.data,
-                  currentPrice: priceResponse.data.price,
-                  percentChange: ((priceResponse.data.price - holdingResponse.data.purchasePrice) / holdingResponse.data.purchasePrice) * 100
+                  percentChange: response.data.timeframePercentageChanges[holdingId] || 0
                 };
               } catch (err) {
                 console.warn('Failed to fetch holding details:', err);
@@ -123,30 +116,38 @@ function Heatmap() {
               }
             }
             
-            // If we already have the holding data, just get the latest price
-            try {
-              const priceResponse = await axios.get(
-                `http://localhost:8080/stocks/price/${holding.stock.ticker}`,
-                { headers: { 'Authorization': `Bearer ${token}` } }
-              );
-              
-              return {
-                ...holding,
-                currentPrice: priceResponse.data.price,
-                percentChange: ((priceResponse.data.price - holding.purchasePrice) / holding.purchasePrice) * 100
-              };
-            } catch (err) {
-              console.warn('Failed to fetch price for holding:', err);
-              return null;
-            }
+            // If we already have the holding data, just use the timeframe change
+            return {
+              ...holding,
+              percentChange: response.data.timeframePercentageChanges[holding.id] || 0
+            };
           })
         );
 
         // Filter out null values and invalid holdings
         const validHoldings = fullHoldingsData.filter(h => {
-          const isValid = h && h.stock && h.stock.ticker && h.shares && h.purchasePrice && h.currentPrice;
+          console.log('Checking holding:', h);
+          console.log('Holding details:', {
+            id: h?.id,
+            ticker: h?.stock?.ticker,
+            shares: h?.shares,
+            purchasePrice: h?.purchasePrice,
+            currentPrice: h?.currentPrice,
+            stock: h?.stock
+          });
+          
+          // More lenient validation - only require essential fields
+          const isValid = h && h.stock && h.stock.ticker && h.shares && h.purchasePrice;
           if (!isValid) {
-            console.warn('Filtered out invalid holding:', h);
+            console.warn('Invalid holding details:', {
+              hasHolding: !!h,
+              hasStock: !!h?.stock,
+              hasTicker: !!h?.stock?.ticker,
+              hasShares: !!h?.shares,
+              hasPurchasePrice: !!h?.purchasePrice,
+              hasCurrentPrice: !!h?.currentPrice,
+              holding: h
+            });
           }
           return isValid;
         });
@@ -159,18 +160,21 @@ function Heatmap() {
           return;
         }
 
+        // Calculate total portfolio value using currentPrice if available, otherwise use purchasePrice
         const totalValue = validHoldings.reduce((sum, h) => {
-          const value = h.shares * h.currentPrice;
-          console.log(`Holding value for ${h.stock.ticker}:`, value);
+          const price = h.currentPrice || h.purchasePrice;
+          const value = h.shares * price;
+          console.log(`Holding value for ${h.stock.ticker}:`, value, `(using price: ${price})`);
           return sum + value;
         }, 0);
         
         console.log('Total portfolio value:', totalValue);
 
         const holdingsWithAllocation = validHoldings.map(holding => {
-          const currentValue = holding.shares * holding.currentPrice;
+          const price = holding.currentPrice || holding.purchasePrice;
+          const currentValue = holding.shares * price;
           const allocation = currentValue / totalValue;
-          console.log(`${holding.stock.ticker} allocation:`, allocation * 100, '%');
+          console.log(`${holding.stock.ticker} allocation:`, allocation * 100, '%', `(value: ${currentValue})`);
           return {
             ...holding,
             currentValue,
@@ -189,7 +193,7 @@ function Heatmap() {
     };
 
     fetchHoldings();
-  }, [selectedPortfolioId]);
+  }, [selectedPortfolioId, timeframe]);
 
   // Get color based on percentage change (Finviz style)
   const getColor = (percentChange) => {

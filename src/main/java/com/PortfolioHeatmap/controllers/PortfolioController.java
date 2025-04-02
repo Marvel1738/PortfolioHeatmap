@@ -9,6 +9,7 @@ import com.PortfolioHeatmap.services.PortfolioHoldingService;
 import com.PortfolioHeatmap.services.PortfolioService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -18,11 +19,14 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.PortfolioHeatmap.security.JwtUtil;
 import com.PortfolioHeatmap.services.UserService;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.PortfolioHeatmap.models.PriceHistory;
+import com.PortfolioHeatmap.services.PriceHistoryService;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Controller class responsible for handling HTTP requests related to portfolio
@@ -36,6 +40,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/portfolios")
+@CrossOrigin(origins = "http://localhost:3000")
 public class PortfolioController {
     private static final Logger log = LoggerFactory.getLogger(PortfolioController.class);
 
@@ -43,6 +48,7 @@ public class PortfolioController {
     private final PortfolioHoldingService portfolioHoldingService;
     private final JwtUtil jwtUtil; // Added for JWT parsing
     private final UserService userService; // Added for user lookup
+    private final PriceHistoryService priceHistoryService;
 
     /**
      * Constructor for dependency injection of required services and utilities.
@@ -51,16 +57,19 @@ public class PortfolioController {
      * @param portfolioHoldingService Service for portfolio holding operations
      * @param jwtUtil                 Utility for JWT token handling
      * @param userService             Service for user operations
+     * @param priceHistoryService     Service for price history operations
      */
     public PortfolioController(
             PortfolioService portfolioService,
             PortfolioHoldingService portfolioHoldingService,
             JwtUtil jwtUtil,
-            UserService userService) {
+            UserService userService,
+            PriceHistoryService priceHistoryService) {
         this.portfolioService = portfolioService;
         this.portfolioHoldingService = portfolioHoldingService;
         this.jwtUtil = jwtUtil;
         this.userService = userService;
+        this.priceHistoryService = priceHistoryService;
     }
 
     // Creates a new portfolio for the current user with the specified name
@@ -92,58 +101,92 @@ public class PortfolioController {
     }
 
     // Retrieves detailed information about a specific portfolio
-    @GetMapping("/{portfolioId}")
-    public ResponseEntity<Map<String, Object>> getPortfolioDetails(@PathVariable Long portfolioId) {
-        log.info("Fetching portfolio details with id: {}", portfolioId);
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getPortfolioDetails(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1d") String timeframe,
+            @RequestHeader("Authorization") String authHeader) {
         try {
-            Portfolio portfolio = portfolioService.getPortfolioById(portfolioId);
-            List<PortfolioHolding> openPositions = portfolioHoldingService.getOpenPositions(portfolioId);
-            List<PortfolioHolding> closedPositions = portfolioHoldingService.getClosedPositions(portfolioId);
+            Long currentUserId = getCurrentUserId(authHeader);
+            log.info("Fetching portfolio details with id: {} and timeframe: {}", id, timeframe);
+
+            Portfolio portfolio = portfolioService.getPortfolioById(id);
+            if (portfolio == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            log.info("Retrieved portfolio with user ID: {}", portfolio.getUserId());
+            log.info("Portfolio ownership check - Current user: {}, Portfolio owner: {}", currentUserId,
+                    portfolio.getUserId());
+
+            if (!portfolio.getUserId().equals(currentUserId)) {
+                log.warn("Access denied - User {} attempted to access portfolio {} owned by user {}",
+                        currentUserId, id, portfolio.getUserId());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("You do not have permission to access this portfolio");
+            }
+
+            List<PortfolioHolding> openPositions = portfolioHoldingService.getOpenPositions(id);
+            List<PortfolioHolding> closedPositions = portfolioHoldingService.getClosedPositions(id);
+
+            log.info("Found {} open positions and {} closed positions", openPositions.size(), closedPositions.size());
 
             // Calculate metrics for open positions
+            Map<Long, Double> timeframePercentageChanges = new HashMap<>();
             double totalPortfolioValue = 0.0;
-            double totalOpenGainLoss = 0.0;
-            Map<Long, Double> openGainsLosses = new HashMap<>();
-            Map<Long, Double> openPercentageReturns = new HashMap<>();
+
             for (PortfolioHolding holding : openPositions) {
-                double currentValue = portfolioHoldingService.calculateCurrentValue(holding);
-                double gainLoss = portfolioHoldingService.calculateGainLoss(holding);
-                double percentageReturn = portfolioHoldingService.calculatePercentageReturn(holding);
-                totalPortfolioValue += currentValue;
-                totalOpenGainLoss += gainLoss;
-                openGainsLosses.put(holding.getId(), gainLoss);
-                openPercentageReturns.put(holding.getId(), percentageReturn);
+                log.info("Open position: {} - {} shares", holding.getStock().getTicker(), holding.getShares());
+
+                // Get current price and calculate current value
+                Optional<PriceHistory> currentPrice = priceHistoryService
+                        .findTopByStockTickerOrderByDateDesc(holding.getStock().getTicker());
+                if (currentPrice != null) {
+                    double currentValue = holding.getShares() * currentPrice.get().getClosingPrice();
+                    double gainLoss = currentValue - (holding.getShares() * holding.getPurchasePrice());
+                    double percentageReturn = (gainLoss / (holding.getShares() * holding.getPurchasePrice())) * 100;
+
+                    // Calculate timeframe change
+                    double timeframeChange = priceHistoryService
+                            .calculatePercentageChange(holding.getStock().getTicker(), timeframe);
+                    timeframePercentageChanges.put(holding.getId(), timeframeChange);
+
+                    log.info("Holding {}: currentValue={}, gainLoss={}, percentageReturn={}, timeframeChange={}",
+                            holding.getStock().getTicker(), currentValue, gainLoss, percentageReturn, timeframeChange);
+
+                    totalPortfolioValue += currentValue;
+                }
             }
 
             // Calculate metrics for closed positions
-            double totalClosedGainLoss = 0.0;
             Map<Long, Double> closedGainsLosses = new HashMap<>();
             Map<Long, Double> closedPercentageReturns = new HashMap<>();
+
             for (PortfolioHolding holding : closedPositions) {
-                double gainLoss = portfolioHoldingService.calculateGainLoss(holding);
-                double percentageReturn = portfolioHoldingService.calculatePercentageReturn(holding);
-                totalClosedGainLoss += gainLoss;
+                double gainLoss = (holding.getSellingPrice() - holding.getPurchasePrice()) * holding.getShares();
+                double percentageReturn = ((holding.getSellingPrice() - holding.getPurchasePrice())
+                        / holding.getPurchasePrice()) * 100;
+
                 closedGainsLosses.put(holding.getId(), gainLoss);
                 closedPercentageReturns.put(holding.getId(), percentageReturn);
             }
 
-            // Assemble response map
             Map<String, Object> response = new HashMap<>();
-            response.put("portfolio", portfolio);
             response.put("openPositions", openPositions);
             response.put("closedPositions", closedPositions);
             response.put("totalPortfolioValue", totalPortfolioValue);
-            response.put("totalOpenGainLoss", totalOpenGainLoss);
-            response.put("totalClosedGainLoss", totalClosedGainLoss);
-            response.put("openGainsLosses", openGainsLosses);
-            response.put("openPercentageReturns", openPercentageReturns);
+            response.put("timeframePercentageChanges", timeframePercentageChanges);
             response.put("closedGainsLosses", closedGainsLosses);
             response.put("closedPercentageReturns", closedPercentageReturns);
+            response.put("timeframe", timeframe);
 
+            log.info("Returning response with {} open positions and {} closed positions",
+                    openPositions.size(), closedPositions.size());
             return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            log.error("Error fetching portfolio details: {}", e.getMessage(), e);
-            return ResponseEntity.status(404).body(null); // 404 Not Found
+        } catch (Exception e) {
+            log.error("Error fetching portfolio details", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching portfolio details: " + e.getMessage());
         }
     }
 
@@ -231,9 +274,11 @@ public class PortfolioController {
         }
     }
 
-/**
-     * Retrieves the ID of the current authenticated user from the Authorization header.
-     * Fetches the token directly from the request header, validates it with JwtUtil,
+    /**
+     * Retrieves the ID of the current authenticated user from the Authorization
+     * header.
+     * Fetches the token directly from the request header, validates it with
+     * JwtUtil,
      * and retrieves the user ID via UserService.
      * 
      * @return Long The ID of the current user
@@ -265,5 +310,11 @@ public class PortfolioController {
         // Fetch user and return ID
         User user = (User) userService.loadUserByUsername(username);
         return user.getId();
+    }
+
+    private Long getCurrentUserId(String authHeader) {
+        String token = authHeader.substring(7); // Remove "Bearer " prefix
+        String username = jwtUtil.extractUsername(token);
+        return userService.getUserByUsername(username).getId();
     }
 }
