@@ -67,6 +67,16 @@ public class PriceHistoryService {
         }
         double currentPrice = currentStockPrice.getPrice();
 
+        // For total gain/loss, we need to get the first price history entry
+        if ("total".equals(timeframe)) {
+            Optional<PriceHistory> firstPrice = priceHistoryRepository.findFirstByStockTickerOrderByDateAsc(ticker);
+            if (firstPrice.isEmpty()) {
+                return 0.0;
+            }
+            double initialPrice = firstPrice.get().getClosingPrice();
+            return ((currentPrice - initialPrice) / initialPrice) * 100;
+        }
+
         // Calculate the start date based on timeframe
         LocalDate startDate;
         switch (timeframe) {

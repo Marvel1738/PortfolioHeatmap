@@ -20,24 +20,27 @@ import java.util.Optional;
 
 @Repository
 public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long> {
-    Page<PriceHistory> findByStockTickerOrderByDateDesc(String stockTicker, Pageable pageable);
+        Page<PriceHistory> findByStockTickerOrderByDateDesc(String stockTicker, Pageable pageable);
 
-    @Query("SELECT ph FROM PriceHistory ph JOIN ph.stock s WHERE s.ticker = :ticker AND ph.date = :date")
-    Optional<PriceHistory> findByStockTickerAndDate(@Param("ticker") String ticker, @Param("date") LocalDate date);
+        @Query("SELECT ph FROM PriceHistory ph JOIN ph.stock s WHERE s.ticker = :ticker AND ph.date = :date")
+        Optional<PriceHistory> findByStockTickerAndDate(@Param("ticker") String ticker, @Param("date") LocalDate date);
 
-    // Check if a price history entry exists for a given stock and date
-    Optional<PriceHistory> findTopByStockTickerOrderByDateDesc(String stockTicker);
+        // Check if a price history entry exists for a given stock and date
+        Optional<PriceHistory> findTopByStockTickerOrderByDateDesc(String stockTicker);
 
-    boolean existsByStockAndDate(Stock stock, LocalDate date);
+        boolean existsByStockAndDate(Stock stock, LocalDate date);
 
-    // Find latest price history for a stock
-    Optional<PriceHistory> findFirstByStockTickerOrderByDateDesc(String stockTicker);
+        // Find latest price history for a stock
+        Optional<PriceHistory> findFirstByStockTickerOrderByDateDesc(String stockTicker);
 
-    // Find price history for a stock on or before a specific date
-    Optional<PriceHistory> findFirstByStockTickerAndDateLessThanEqualOrderByDateDesc(String stockTicker,
-            LocalDate date);
+        // Find price history for a stock on or before a specific date
+        Optional<PriceHistory> findFirstByStockTickerAndDateLessThanEqualOrderByDateDesc(String stockTicker,
+                        LocalDate date);
 
-    // Find the previous trading day's price for a stock
-    Optional<PriceHistory> findFirstByStockTickerAndDateLessThanOrderByDateDesc(String stockTicker,
-            LocalDate date);
+        // Find the previous trading day's price for a stock
+        Optional<PriceHistory> findFirstByStockTickerAndDateLessThanOrderByDateDesc(String stockTicker,
+                        LocalDate date);
+
+        // Find the first price history entry for a stock
+        Optional<PriceHistory> findFirstByStockTickerOrderByDateAsc(String stockTicker);
 }

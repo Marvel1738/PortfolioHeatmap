@@ -25,6 +25,17 @@ function Heatmap() {
   const MIN_RECTANGLE_SIZE = 60;
   const [scale, setScale] = useState(1);
 
+  const timeframeOptions = [
+    { value: '1d', label: '1 Day' },
+    { value: '1w', label: '1 Week' },
+    { value: '1m', label: '1 Month' },
+    { value: '3m', label: '3 Months' },
+    { value: '6m', label: '6 Months' },
+    { value: 'ytd', label: 'YTD' },
+    { value: '1y', label: '1 Year' },
+    { value: 'total', label: 'Total Gain/Loss' }
+  ];
+
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
@@ -255,14 +266,9 @@ function Heatmap() {
         <div className="timeframe-selector">
           <label>Timeframe: </label>
           <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
-            <option value="1d">1 Day</option>
-            <option value="1w">1 Week</option>
-            <option value="1m">1 Month</option>
-            <option value="3m">3 Months</option>
-            <option value="6m">6 Months</option>
-            <option value="ytd">YTD</option>
-            <option value="1y">1 Year</option>
-            <option value="total">Total Gain/Loss</option>
+            {timeframeOptions.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </div>
       </div>
