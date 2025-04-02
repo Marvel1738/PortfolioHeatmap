@@ -215,6 +215,22 @@ public class PortfolioController {
         }
     }
 
+    // Gets details for a specific holding
+    @GetMapping("/holdings/{holdingId}")
+    public ResponseEntity<PortfolioHolding> getHolding(@PathVariable Long holdingId) {
+        log.info("Fetching holding with id: {}", holdingId);
+        try {
+            PortfolioHolding holding = portfolioHoldingService.getHoldingById(holdingId);
+            if (holding == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(holding);
+        } catch (RuntimeException e) {
+            log.error("Error fetching holding: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
 /**
      * Retrieves the ID of the current authenticated user from the Authorization header.
      * Fetches the token directly from the request header, validates it with JwtUtil,

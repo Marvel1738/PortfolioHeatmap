@@ -143,4 +143,10 @@ public class PortfolioHoldingService {
             return latestPrice.getClosingPrice() * holding.getShares();
         }
     }
+
+    public PortfolioHolding getHoldingById(Long holdingId) {
+        log.info("Fetching holding with id: {}", holdingId);
+        return portfolioHoldingRepository.findById(holdingId)
+                .orElseThrow(() -> new RuntimeException("Holding not found with id: " + holdingId));
+    }
 }
