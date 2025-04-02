@@ -23,6 +23,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -56,6 +57,7 @@ public class FMPStockDataService implements StockDataService {
     }
 
     // Fetches the current stock price for a given symbol from the FMP API
+    @Cacheable(value = "stockPrice", key = "#symbol")
     @Override
     public StockPrice getStockPrice(String symbol) {
         String url = "https://financialmodelingprep.com/api/v3/quote/" + symbol + "?apikey=" + apiKey;

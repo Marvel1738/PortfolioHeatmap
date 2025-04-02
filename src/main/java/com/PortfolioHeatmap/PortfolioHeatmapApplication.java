@@ -12,11 +12,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.cache.annotation.EnableCaching;
 
 @EnableScheduling
 @SpringBootApplication
 @ComponentScan(basePackages = "com.PortfolioHeatmap") // Scan everything in this root package
 @EntityScan(basePackages = "com.PortfolioHeatmap.models") // Ensure models are scanned
+@EnableCaching
 public class PortfolioHeatmapApplication {
 
 	// The main method that serves as the entry point for the application.

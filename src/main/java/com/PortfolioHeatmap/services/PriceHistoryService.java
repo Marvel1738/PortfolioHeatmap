@@ -12,6 +12,7 @@ import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.repositories.PriceHistoryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,10 +33,12 @@ public class PriceHistoryService {
         this.fmpStockDataService = fmpStockDataService;
     }
 
+    @Cacheable(value = "priceHistory", key = "#ticker + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<PriceHistory> getPriceHistory(String ticker, Pageable pageable) {
         return priceHistoryRepository.findByStockTickerOrderByDateDesc(ticker, pageable);
     }
 
+    @Cacheable(value = "priceHistoryByDate", key = "#stockTicker + '-' + #date")
     public Optional<PriceHistory> findByStockTickerAndDate(String stockTicker, LocalDate date) {
         return priceHistoryRepository.findByStockTickerAndDate(stockTicker, date);
     }
@@ -44,15 +47,18 @@ public class PriceHistoryService {
         return priceHistoryRepository.save(priceHistory);
     }
 
+    @Cacheable(value = "latestPrice", key = "#stockTicker")
     public Optional<PriceHistory> findTopByStockTickerOrderByDateDesc(String stockTicker) {
         return priceHistoryRepository.findTopByStockTickerOrderByDateDesc(stockTicker);
     }
 
+    @Cacheable(value = "historicalPrice", key = "#stockTicker + '-' + #date")
     public Optional<PriceHistory> findFirstByStockTickerAndDateLessThanOrderByDateDesc(String stockTicker,
             LocalDate date) {
         return priceHistoryRepository.findFirstByStockTickerAndDateLessThanOrderByDateDesc(stockTicker, date);
     }
 
+    @Cacheable(value = "percentageChange", key = "#ticker + '-' + #timeframe")
     public double calculatePercentageChange(String ticker, String timeframe) {
         // Get today's current price from the API
         StockPrice currentStockPrice = fmpStockDataService.getStockPrice(ticker);

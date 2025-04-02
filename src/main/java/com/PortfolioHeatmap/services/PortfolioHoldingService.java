@@ -107,12 +107,13 @@ public class PortfolioHoldingService {
             return (holding.getSellingPrice() - holding.getPurchasePrice()) * holding.getShares();
         } else {
             // Open position: Gain/loss = (current price - purchase price) * shares
-            PriceHistory latestPrice = priceHistoryService.getLatestPriceHistory(holding.getStock().getTicker());
-            if (latestPrice == null) {
+            Optional<PriceHistory> latestPrice = priceHistoryService
+                    .findTopByStockTickerOrderByDateDesc(holding.getStock().getTicker());
+            if (latestPrice.isEmpty()) {
                 log.warn("No price history found for ticker: {}", holding.getStock().getTicker());
                 return 0.0;
             }
-            return (latestPrice.getClosingPrice() - holding.getPurchasePrice()) * holding.getShares();
+            return (latestPrice.get().getClosingPrice() - holding.getPurchasePrice()) * holding.getShares();
         }
     }
 
@@ -135,12 +136,13 @@ public class PortfolioHoldingService {
             return holding.getSellingPrice() * holding.getShares();
         } else {
             // Open position: Current value
-            PriceHistory latestPrice = priceHistoryService.getLatestPriceHistory(holding.getStock().getTicker());
-            if (latestPrice == null) {
+            Optional<PriceHistory> latestPrice = priceHistoryService
+                    .findTopByStockTickerOrderByDateDesc(holding.getStock().getTicker());
+            if (latestPrice.isEmpty()) {
                 log.warn("No price history found for ticker: {}", holding.getStock().getTicker());
                 return 0.0;
             }
-            return latestPrice.getClosingPrice() * holding.getShares();
+            return latestPrice.get().getClosingPrice() * holding.getShares();
         }
     }
 
