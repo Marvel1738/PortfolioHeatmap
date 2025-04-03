@@ -209,15 +209,35 @@ function Heatmap() {
   // Get color based on percentage change (Finviz style)
   const getColor = (percentChange) => {
     const pc = Number(percentChange) || 0;
-    if (pc >= 3) return '#1C7D43';
-    if (pc >= 2) return '#1D8946';
-    if (pc >= 1) return '#209650';
-    if (pc > 0) return '#23A359';
-    if (pc === 0) return '#424242';
-    if (pc >= -1) return '#B82E2E';
-    if (pc >= -2) return '#A82828';
-    if (pc >= -3) return '#982323';
-    return '#881E1E';
+    const baseGray = { r:43, g:49, b:58}; // Using CSS variable --background-primary
+
+    // Cap the percentage change at ±3% for color scaling purposes
+    const cappedPC = Math.min(Math.abs(pc), 3); // Cap at 3% for scaling
+    const factor = cappedPC / 3; // A value from 0 to 1 based on the percentage change
+
+    // Define target colors for green and red
+    const green = { r: 0, g: 153, b: 51 }; // Pure green
+    const red = { r: 204, g: 51, b: 51 }; // Pure red
+
+    // Interpolate between gray and the target color (green or red)
+    let targetColor;
+    if (pc > 0) {
+      targetColor = green;
+    } else if (pc < 0) {
+      targetColor = red;
+    } else {
+      return `rgb(${baseGray.r}, ${baseGray.g}, ${baseGray.b})`; // Neutral gray for 0%
+    }
+
+    // Interpolate the RGB values between gray and the target color
+    const r = Math.round(baseGray.r + (targetColor.r - baseGray.r) * factor);
+    const g = Math.round(baseGray.g + (targetColor.g - baseGray.g) * factor);
+    const b = Math.round(baseGray.b + (targetColor.b - baseGray.b) * factor);
+
+    // Scale opacity from 0.5 (at 0%) to 0.95 (at 3% or higher)
+    const opacity = 0.7 + factor * (0.95 - 0.5);
+
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
   // Create treemap layout
@@ -239,7 +259,7 @@ function Heatmap() {
 
     const layout = d3.treemap()
       .size([BASE_WIDTH, BASE_HEIGHT])
-      .padding(1)
+      .padding(2) // Increased from 1 to 2 for slightly bigger gaps
       .round(true);
 
     layout(root);
@@ -250,80 +270,79 @@ function Heatmap() {
 
   return (
     <div className="heatmap-container">
-      <div className="heatmap-controls">
-        <div className="portfolio-selector">
-          <label>Portfolio: </label>
-          <select 
-            value={selectedPortfolioId || ''} 
-            onChange={(e) => setSelectedPortfolioId(e.target.value)}
-          >
-            {portfolios.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+        <div className="heatmap-controls">
+            <div className="portfolio-selector">
+                <label>Portfolio: </label>
+                <select value={selectedPortfolioId} onChange={(e) => setSelectedPortfolioId(e.target.value)}>
+                    <option value="">Select Portfolio</option>
+                    {portfolios.map(portfolio => (
+                        <option key={portfolio.id} value={portfolio.id}>{portfolio.name}</option>
+                    ))}
+                </select>
+            </div>
+            <div className="timeframe-selector">
+                <label>Timeframe: </label>
+                <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
+                    {timeframeOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                </select>
+            </div>
         </div>
-
-        <div className="timeframe-selector">
-          <label>Timeframe: </label>
-          <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
-            {timeframeOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="heatmap-visualization">
-        <div 
-          className="heatmap-content"
-          style={{
-            position: 'relative',
-            width: `${BASE_WIDTH}px`,
-            height: `${BASE_HEIGHT}px`,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left'
-          }}
-        >
-          {error && <div className="error-message">{error}</div>}
-          {treeMapData.map((d, i) => {
-            const holding = d.data.holding;
-            const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
-            const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
-            const percentChange = holding.percentChange;
-            const fontSize = Math.min(width, height) * 0.12;
-            
-            return (
-              <div
-                key={i}
-                className="heatmap-rect"
-                style={{
-                  left: `${d.x0}px`,
-                  top: `${d.y0}px`,
-                  width: `${width}px`,
-                  height: `${height}px`,
-                  backgroundColor: getColor(percentChange),
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: '5px',
-                  boxSizing: 'border-box',
-                  color: '#ffffff',
-                  fontSize: `${fontSize}px`,
-                  textAlign: 'center',
-                  overflow: 'hidden',
-                  fontFamily: 'Arial, sans-serif'
-                }}
-              >
-                <div className="ticker">{holding.stock.ticker}</div>
-                <div className="change">
-                  {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
+        <div className="heatmap">
+            <div className="heatmap-visualization">
+                <div 
+                    className="heatmap-content"
+                    style={{
+                        position: 'absolute',
+                        width: `${BASE_WIDTH}px`,
+                        height: `${BASE_HEIGHT}px`,
+                        transform: `scale(${scale})`,
+                        transformOrigin: 'top left'
+                    }}
+                >
+                    {error && <div className="error-message">{error}</div>}
+                    {treeMapData.map((d, i) => {
+                        const holding = d.data.holding;
+                        const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
+                        const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
+                        const percentChange = holding.percentChange;
+                        const fontSize = Math.min(width, height) * 0.12;
+                        
+                        return (
+                            <div
+                                key={i}
+                                className="heatmap-rect"
+                                style={{
+                                    left: `${d.x0}px`,
+                                    top: `${d.y0}px`,
+                                    width: `${width}px`,
+                                    height: `${height}px`,
+                                    backgroundColor: getColor(percentChange),
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    padding: '5px',
+                                    boxSizing: 'border-box',
+                                    color: '#ffffff',
+                                    fontSize: `${fontSize}px`,
+                                    textAlign: 'center',
+                                    overflow: 'hidden',
+                                    fontFamily: 'Arial, sans-serif',
+                                    textShadow: '1px 1px 1px rgba(0, 0, 0, 0.5)'
+                                }}
+                            >
+                                <div className="ticker">{holding.stock.ticker}</div>
+                                <div className="change">
+                                    {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
-              </div>
-            );
-          })}
+            </div>
         </div>
-      </div>
     </div>
   );
 }

@@ -1,7 +1,6 @@
-/* frontend/src/components/Login.css */
+/* frontend/src/components/Register.css */
 
-/* Style the main container to center the login form vertically and horizontally */
-.login {
+.register {
   display: flex;
   flex-direction: column; 
   align-items: center; 
@@ -11,14 +10,24 @@
   background-color: rgb(51, 51, 51);
 }
 
-/* Style the heading */
-h1 {
-  font-size: 2rem; 
-  margin-bottom: 20px;
-  color: #333; 
+.register-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-color: rgb(51, 51, 51);
+  color: #ffffff;
+  width: 100%;
+  max-width: 400px;
 }
 
-/* Style each form group (label + input) */
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -26,13 +35,11 @@ h1 {
   margin-bottom: 15px;
 }
 
-/* Style labels for consistency */
 .form-group label {
   color: #ffffff;
   font-size: 1rem;
 }
 
-/* Style input fields */
 .form-group input {
   background-color: rgb(68, 68, 68);
   color: #ffffff;
@@ -48,7 +55,6 @@ h1 {
   border-color: rgb(100, 100, 100);
 }
 
-/* Style the submit button */
 button {
   background-color: rgb(85, 85, 85);
   color: #ffffff;
@@ -62,57 +68,33 @@ button {
   margin: 10px 0;
 }
 
-/* Add hover effect to the button for interactivity */
 button:hover {
   background-color: rgb(100, 100, 100);
 }
 
-/* Style error messages */
 .error-message {
   color: #ff6b6b;
   font-size: 0.9rem;
   margin-top: 10px;
 }
 
-/* Style success messages */
 .success-message {
   color: #51cf66;
   font-size: 0.9rem;
   margin-top: 10px;
 }
 
-/* Style the register link section */
-.register-link {
+.login-link {
   margin-top: 15px;
   font-size: 0.9rem;
   color: #ffffff;
 }
 
-/* Style the Link component */
-.register-link a {
+.login-link a {
   color: #4dabf7;
   text-decoration: none;
 }
 
-/* Hover effect for the link */
-.register-link a:hover {
+.login-link a:hover {
   text-decoration: underline;
-}
-
-.login-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  background-color: rgb(51, 51, 51);
-  color: #ffffff;
-  width: 100%;
-  max-width: 400px;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  width: 100%;
-}
+} 

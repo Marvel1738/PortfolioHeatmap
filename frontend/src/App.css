@@ -1,21 +1,121 @@
 /* frontend/src/App.css */
 
-/* Style the App container to stack sections vertically */
+:root {
+  --background-primary: rgb(35, 41, 50);
+  --background-secondary: rgb(40, 44, 54);
+  --background-tertiary: rgb(52, 55, 65);
+  --background-hover: rgb(90, 95, 100);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.9);
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --border-color: rgb(85, 85, 85);
+  --error-color: #ff4444;
+  --success-color: #4CAF50;
+  --link-color: #4dabf7;
+}
+
+/* Global styles */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  font-family: Arial, sans-serif;
+}
+
 .App {
   display: flex;
   flex-direction: column; 
   align-items: center;
-  padding: 20px; 
+  min-height: 100vh;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  padding: 20px;
 }
 
-/* Style each auth section (login and register) */
+/* Form elements and containers */
+.container, 
+.form-container,
+.login-container,
+.register-container,
+.portfolio-container,
 .auth-section {
-  margin-bottom: 40px; 
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 20px;
+  padding: 20px;
 }
 
-/* Style section headings */
+/* Input fields and selects */
+input, select, button {
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 8px;
+  border-radius: 4px;
+  margin: 5px 0;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--background-hover);
+}
+
+/* Buttons */
+button {
+  background-color: var(--background-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 8px 16px;
+}
+
+button:hover {
+  background-color: var(--background-hover);
+}
+
+/* Tables */
+table {
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+}
+
+th, td {
+  border: 1px solid var(--border-color);
+  padding: 8px;
+  text-align: left;
+}
+
+/* Navigation */
+nav {
+  background-color: var(--background-secondary);
+  padding: 1rem;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+nav a {
+  color: var(--text-primary);
+  text-decoration: none;
+  margin: 0 10px;
+}
+
+nav a:hover {
+  color: var(--text-secondary);
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
 h2 {
-  font-size: 1.5rem; 
-  color: #333; 
-  margin-bottom: 10px;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
 }
