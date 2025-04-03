@@ -22,6 +22,7 @@ function CreatePortfolio() {
   const [error, setError] = useState('');
   const [stockSuggestions, setStockSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
   const navigate = useNavigate();
 
   /**
@@ -76,7 +77,7 @@ function CreatePortfolio() {
   };
 
   /**
-   * Adds a holding to the current portfolio’s local list.
+   * Adds a holding to the current portfolio's local list.
    */
   const handleAddHolding = (e) => {
     e.preventDefault();
@@ -96,7 +97,16 @@ function CreatePortfolio() {
       purchasePrice: priceNum,
       purchaseDate: new Date().toISOString().split('T')[0],
     };
-    setHoldings([...holdings, newHolding]);
+
+    if (editingIndex !== null) {
+      const updatedHoldings = [...holdings];
+      updatedHoldings[editingIndex] = newHolding;
+      setHoldings(updatedHoldings);
+      setEditingIndex(null);
+    } else {
+      setHoldings([...holdings, newHolding]);
+    }
+
     setTicker('');
     setShares('');
     setPurchasePrice('');
@@ -109,6 +119,26 @@ function CreatePortfolio() {
   const handleTickerSelect = (selectedTicker) => {
     setTicker(selectedTicker);
     setShowDropdown(false);
+  };
+
+  const handleEdit = (index) => {
+    const holding = holdings[index];
+    setTicker(holding.ticker);
+    setShares(holding.shares.toString());
+    setPurchasePrice(holding.purchasePrice.toString());
+    setEditingIndex(index);
+  };
+
+  const handleDelete = (index) => {
+    const updatedHoldings = holdings.filter((_, i) => i !== index);
+    setHoldings(updatedHoldings);
+  };
+
+  const handleCancel = () => {
+    setTicker('');
+    setShares('');
+    setPurchasePrice('');
+    setEditingIndex(null);
   };
 
   /**
@@ -229,15 +259,24 @@ function CreatePortfolio() {
             min="0.01"
           />
         </div>
-        <button type="submit">Add Holding</button>
+        <div className="form-actions">
+          <button type="submit">{editingIndex !== null ? 'Update Holding' : 'Add Holding'}</button>
+          {editingIndex !== null && (
+            <button type="button" onClick={handleCancel}>Cancel</button>
+          )}
+        </div>
       </form>
       {holdings.length > 0 && (
         <div className="holdings-list">
           <h2>Current Holdings:</h2>
           <ul>
             {holdings.map((holding, index) => (
-              <li key={index}>
-                {holding.ticker}: {holding.shares} shares @ ${holding.purchasePrice}
+              <li key={index} className="holding-item">
+                <span>{holding.ticker}: {holding.shares} shares @ ${holding.purchasePrice}</span>
+                <div className="holding-actions">
+                  <button className="edit-button" onClick={() => handleEdit(index)}>Edit</button>
+                  <button className="remove-button" onClick={() => handleDelete(index)}>Delete</button>
+                </div>
               </li>
             ))}
           </ul>

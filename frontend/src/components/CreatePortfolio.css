@@ -3,73 +3,195 @@
 /* Style the create portfolio container */
 .create-portfolio {
   display: flex;
-  flex-direction: column; 
-  align-items: center; 
-  justify-content: center; 
-  height: 100vh; 
-  font-family: Arial, sans-serif; 
-  background-color: #f5f5f5; 
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  padding: 20px;
 }
 
 /* Style the heading */
 h1 {
-  font-size: 2rem; 
-  color: #333; 
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: 20px;
 }
 
-/* Style placeholder text */
-p {
-  font-size: 1rem; 
-  color: #555; 
+/* Style form elements */
+form {
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 20px;
 }
 
-/* Style list items to space buttons */
-li {
-  font-size: 1rem;
-  color: #333;
-  margin-bottom: 10px; 
-  display: flex; 
-  align-items: center; 
+.form-group {
+  margin-bottom: 15px;
 }
 
-/* Style edit button */
-.edit-button {
-  margin-left: 10px; 
-  padding: 5px 10px; 
-  background-color: #ffc107; 
-  color: #333;
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-primary);
 }
 
-/* Hover effect for edit button */
-.edit-button:hover {
-  background-color: #e0a800;
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
 }
 
-/* Style remove button */
-.remove-button {
-  margin-left: 10px;
-  padding: 5px 10px; 
-  background-color: #dc3545; 
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
 }
 
-/* Hover effect for remove button */
-.remove-button:hover {
-  background-color: #c82333; 
+/* Style the holdings list */
+.holdings-list {
+  width: 100%;
+  max-width: 600px;
+  margin-top: 30px;
+  /* Explicitly remove any borders or backgrounds that might create a "box" */
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
 }
 
-/* Container for ticker input and dropdown */
+.holdings-list h2 {
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.holdings-list ul {
+  list-style: none;
+  padding: 0;
+  /* Remove any borders or backgrounds */
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+.holding-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  margin: 0;
+  /* Remove all borders and backgrounds to eliminate the "box" */
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+.holding-item span {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.holding-actions {
+  display: flex;
+  gap: 16px;
+}
+
+/* Style buttons */
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background-color: var(--background-tertiary);
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+}
+
+button:hover {
+  background-color: var(--background-hover);
+  transform: translateY(-1px);
+}
+
+/* Style edit and delete buttons */
+button.edit-button,
+button.remove-button {
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  /* Remove all possible sources of a "circle" */
+  outline: none !important;
+  box-shadow: none !important;
+  background: none !important;
+  border-radius: 0 !important;
+  /* Remove pseudo-elements that might create a circle */
+  position: relative;
+}
+
+button.edit-button::before,
+button.edit-button::after,
+button.remove-button::before,
+button.remove-button::after {
+  content: none !important;
+}
+
+button.edit-button {
+  color: #4dabf7;
+}
+
+button.remove-button {
+  color: #ff6b6b;
+}
+
+button.edit-button:hover,
+button.remove-button:hover {
+  /* Remove transform to avoid any visual shift */
+  transform: none !important;
+  /* Remove all possible hover effects that might create a circle */
+  background: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+}
+
+button.edit-button:hover {
+  color: #74c0fc;
+}
+
+button.remove-button:hover {
+  color: #ff8787;
+}
+
+/* Remove focus styles for accessibility while ensuring no circle appears */
+button.edit-button:focus,
+button.remove-button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  background: none !important;
+}
+
+/* Style the ticker dropdown */
 .ticker-input-container {
   position: relative;
 }
 
-/* Dropdown styling */
 .ticker-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  background-color: white;
-  border: 1px solid #ccc;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
@@ -79,94 +201,54 @@ li {
   z-index: 10;
 }
 
-/* Dropdown items */
 .ticker-dropdown li {
-  padding: 5px 10px;
+  padding: 8px;
   cursor: pointer;
-  display: block; /* Override holdings list flex */
+  color: var(--text-primary);
 }
 
-/* Hover effect */
 .ticker-dropdown li:hover {
-  background-color: #f0f0f0;
+  background-color: var(--background-hover);
 }
 
+/* Style error messages */
+.error-message {
+  color: var(--error-color);
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* Style the portfolio list */
 .portfolio-list {
+  width: 100%;
+  max-width: 600px;
   margin-top: 20px;
 }
 
+.portfolio-list h2 {
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.portfolio-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.portfolio-list li {
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Style the submit button */
 .submit-portfolio {
   margin-top: 20px;
-}
-
-.create-portfolio-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    background-color: rgb(51, 51, 51);
-    color: #ffffff;
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.portfolio-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    width: 100%;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.form-group label {
-    color: #ffffff;
-}
-
-.form-group input,
-.form-group select {
-    background-color: rgb(68, 68, 68);
-    color: #ffffff;
-    border: 1px solid rgb(85, 85, 85);
-    padding: 8px;
-    border-radius: 4px;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-    outline: none;
-    border-color: rgb(100, 100, 100);
-}
-
-.holdings-list {
-    width: 100%;
-    margin-top: 20px;
-}
-
-.holdings-list table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-}
-
-.holdings-list th,
-.holdings-list td {
-    border: 1px solid rgb(85, 85, 85);
-    padding: 8px;
-    text-align: left;
-}
-
-.error-message {
-    color: #ff6b6b;
-    margin-top: 10px;
-}
-
-.success-message {
-    color: #51cf66;
-    margin-top: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: var(--background-tertiary);
+  color: var(--text-primary);
 }
