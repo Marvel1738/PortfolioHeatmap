@@ -60,12 +60,25 @@ public class PriceHistoryService {
 
     @Cacheable(value = "percentageChange", key = "#ticker + '-' + #timeframe")
     public double calculatePercentageChange(String ticker, String timeframe) {
-        // Get today's current price from the API
-        StockPrice currentStockPrice = fmpStockDataService.getStockPrice(ticker);
-        if (currentStockPrice == null) {
-            return 0.0;
+        // First try to get today's price from database
+        Optional<PriceHistory> latestPrice = findTopByStockTickerOrderByDateDesc(ticker);
+        double currentPrice;
+        LocalDate currentDate = LocalDate.now();
+
+        // If we have today's price in the database, use it
+        if (latestPrice.isPresent() && latestPrice.get().getDate().equals(currentDate)) {
+            currentPrice = latestPrice.get().getClosingPrice();
+            log.info("Using today's price from database for {}: ${}", ticker, currentPrice);
+        } else {
+            // Otherwise get current price from API
+            StockPrice currentStockPrice = fmpStockDataService.getStockPrice(ticker);
+            if (currentStockPrice == null) {
+                log.warn("Could not get current price for {}", ticker);
+                return 0.0;
+            }
+            currentPrice = currentStockPrice.getPrice();
+            log.info("Using current price from API for {}: ${}", ticker, currentPrice);
         }
-        double currentPrice = currentStockPrice.getPrice();
 
         // For total gain/loss, we need to get the first price history entry
         if ("total".equals(timeframe)) {
@@ -83,29 +96,31 @@ public class PriceHistoryService {
             case "1d":
                 // For 1-day, find yesterday's closing price
                 Optional<PriceHistory> previousDay = priceHistoryRepository
-                        .findFirstByStockTickerAndDateLessThanOrderByDateDesc(ticker, LocalDate.now());
+                        .findFirstByStockTickerAndDateLessThanOrderByDateDesc(ticker, currentDate);
                 if (previousDay.isEmpty()) {
                     return 0.0;
                 }
                 double previousClose = previousDay.get().getClosingPrice();
+                log.info("Calculating 1d change for {}: current=${}, previous=${}", ticker, currentPrice,
+                        previousClose);
                 return ((currentPrice - previousClose) / previousClose) * 100;
             case "1w":
-                startDate = LocalDate.now().minusWeeks(1);
+                startDate = currentDate.minusWeeks(1);
                 break;
             case "1m":
-                startDate = LocalDate.now().minusMonths(1);
+                startDate = currentDate.minusMonths(1);
                 break;
             case "3m":
-                startDate = LocalDate.now().minusMonths(3);
+                startDate = currentDate.minusMonths(3);
                 break;
             case "6m":
-                startDate = LocalDate.now().minusMonths(6);
+                startDate = currentDate.minusMonths(6);
                 break;
             case "ytd":
-                startDate = LocalDate.now().withMonth(1).withDayOfMonth(1);
+                startDate = currentDate.withMonth(1).withDayOfMonth(1);
                 break;
             case "1y":
-                startDate = LocalDate.now().minusYears(1);
+                startDate = currentDate.minusYears(1);
                 break;
             default:
                 return 0.0;
@@ -120,6 +135,7 @@ public class PriceHistoryService {
 
         // Calculate percentage change using current market price
         double startPrice = historicalPrice.get().getClosingPrice();
+        log.info("Calculating {} change for {}: current=${}, start=${}", timeframe, ticker, currentPrice, startPrice);
         return ((currentPrice - startPrice) / startPrice) * 100;
     }
 }
