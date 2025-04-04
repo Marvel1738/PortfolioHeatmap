@@ -19,7 +19,7 @@
   margin-left: 18%; /* Use percentage instead of fixed pixels */
   margin-right: 4%; /* Use percentage instead of fixed pixels */
   padding: 20px;
-  padding-top: 80px; /* Space for header */
+  padding-top: 50px; /* Space for header */
   display: flex;
   flex-direction: column;
   align-items: center;

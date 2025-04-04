@@ -3,6 +3,8 @@
   top: 0;
   left: 0;
   width: 18%;
+  max-width: 200px;
+  min-width: 160px;
   height: 100vh;
   background-color: var(--background-secondary);
   padding: 20px;

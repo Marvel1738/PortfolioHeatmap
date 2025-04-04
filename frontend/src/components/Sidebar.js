@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './Sidebar.css';
+import axios from 'axios';
 
 function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings }) {
   const [editingHolding, setEditingHolding] = useState(null);
@@ -21,11 +22,99 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
     setPrice('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement API call to update shares
-    console.log(`${isBuying ? 'Buying' : 'Selling'} ${shares} shares of ${editingHolding.stock.ticker} at $${price}`);
-    setEditingHolding(null);
+    
+    if (!editingHolding || !shares || !price) {
+      console.error('Missing required fields');
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+      
+      const sharesNum = Number(shares);
+      const priceNum = Number(price);
+      
+      if (isNaN(sharesNum) || sharesNum <= 0 || isNaN(priceNum) || priceNum <= 0) {
+        console.error('Invalid shares or price values');
+        return;
+      }
+      
+      // Make API call to update shares
+      const endpoint = isBuying ? 'add' : 'remove';
+      
+      // For adding shares, we need to check if the stock already exists in the portfolio
+      if (isBuying) {
+        // Check if the stock already exists in the portfolio
+        const existingHolding = holdings.find(h => h.stock.ticker === editingHolding.stock.ticker);
+        
+        if (existingHolding) {
+          // If the stock already exists, update the existing holding
+          await axios.put(
+            `http://localhost:8080/portfolios/holdings/${existingHolding.id}`,
+            null,
+            {
+              params: {
+                shares: existingHolding.shares + sharesNum
+              },
+              headers: { 'Authorization': `Bearer ${token}` }
+            }
+          );
+        } else {
+          // If the stock doesn't exist, add a new holding
+          await axios.post(
+            `http://localhost:8080/portfolios/${selectedPortfolioId}/holdings/add`,
+            null,
+            {
+              params: {
+                ticker: editingHolding.stock.ticker,
+                shares: sharesNum,
+                purchasePrice: priceNum,
+                purchaseDate: new Date().toISOString().split('T')[0]
+              },
+              headers: { 'Authorization': `Bearer ${token}` }
+            }
+          );
+        }
+      } else {
+        // For removing shares, we need to update the existing holding
+        if (editingHolding.shares < sharesNum) {
+          console.error('Cannot remove more shares than currently owned');
+          return;
+        }
+        
+        // Update the existing holding with the new share count
+        await axios.put(
+          `http://localhost:8080/portfolios/holdings/${editingHolding.id}`,
+          null,
+          {
+            params: {
+              shares: editingHolding.shares - sharesNum
+            },
+            headers: { 'Authorization': `Bearer ${token}` }
+          }
+        );
+      }
+      
+      console.log(`Successfully ${isBuying ? 'bought' : 'sold'} ${sharesNum} shares of ${editingHolding.stock.ticker} at $${priceNum}`);
+      
+      // Close the modal and reset state
+      setEditingHolding(null);
+      setShares('');
+      setPrice('');
+      
+      // Trigger a refresh of the holdings
+      if (onPortfolioSelect) {
+        onPortfolioSelect(selectedPortfolioId);
+      }
+    } catch (err) {
+      console.error(`Failed to ${isBuying ? 'buy' : 'sell'} shares:`, err);
+    }
   };
 
   return (
