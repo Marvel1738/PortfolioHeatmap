@@ -18,14 +18,14 @@
 /* Social Media Icons */
 .social-icons {
   display: flex;
-  gap: 25px;
+  gap: 30px;
   flex: 1;
   min-width: 120px; /* Ensure minimum width for social icons */
 }
 
 .social-icon {
   color: #d3d3d3; /* Light grey as default */
-  font-size: 18px;
+  font-size: 20px;
   text-decoration: none;
   transition: color 0.3s ease; /* Smooth transition for hover */
 }
@@ -62,8 +62,8 @@
 }
 
 .logo-img {
-  height: 70%; /* Reduced from 100% to 70% */
-  max-height: 30px; /* Added max-height to limit size */
+  height: 80%; /* Reduced from 100% to 70% */
+  max-height: 35px; /* Added max-height to limit size */
   width: auto; /* Maintain aspect ratio */
   object-fit: contain;
 }
@@ -82,7 +82,7 @@
   color: #d3d3d3; /* Light grey to match social icons */
   text-decoration: none;
   font-family: Arial, sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   padding: 5px 8px; /* Adjusted padding */
   transition: color 0.3s ease;
   display: flex;
