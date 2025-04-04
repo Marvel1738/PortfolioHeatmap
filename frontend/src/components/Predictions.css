@@ -1,0 +1,15 @@
+.predictions-container {
+  padding: 2rem;
+  color: #ffffff;
+  text-align: center;
+}
+
+.predictions-container h1 {
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+.predictions-container p {
+  font-size: 1.1rem;
+  color: #cccccc;
+} 

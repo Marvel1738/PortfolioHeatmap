@@ -1,0 +1,128 @@
+/* Header styling */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5vh; /* 5% of viewport height for a skinny header */
+  background-color: rgb(45, 45, 45); /* Dark grey to match the heatmap aesthetic */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 30px; /* Increased padding from 20px to 30px */
+  z-index: 1000; /* Ensure it stays above other content */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Optional: subtle shadow for depth */
+  box-sizing: border-box; /* Include padding in width calculation */
+}
+
+/* Social Media Icons */
+.social-icons {
+  display: flex;
+  gap: 15px;
+  flex: 1;
+  min-width: 120px; /* Ensure minimum width for social icons */
+}
+
+.social-icon {
+  color: #d3d3d3; /* Light grey as default */
+  font-size: 18px;
+  text-decoration: none;
+  transition: color 0.3s ease; /* Smooth transition for hover */
+}
+
+.social-icon:hover {
+  color: inherit; /* Reset to inherit for specific colors below */
+}
+
+/* Hover colors for each social icon */
+.social-icon:nth-child(1):hover {
+  color: #1DA1F2; /* Twitter blue */
+}
+
+.social-icon:nth-child(2):hover {
+  color: #0077B5; /* LinkedIn blue */
+}
+
+.social-icon:nth-child(3):hover {
+  color: #ffffff; /* GitHub white */
+}
+
+.social-icon:nth-child(4):hover {
+  color: #E4405F; /* Instagram pink */
+}
+
+/* Logo styling */
+.logo {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.logo-img {
+  height: 70%; /* Reduced from 100% to 70% */
+  max-height: 30px; /* Added max-height to limit size */
+  width: auto; /* Maintain aspect ratio */
+  object-fit: contain;
+}
+
+/* Navigation Links */
+.nav-links {
+  display: flex;
+  gap: 20px; /* Increased gap between nav links */
+  flex: 1;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 250px; /* Ensure minimum width for navigation links */
+}
+
+.nav-link {
+  color: #d3d3d3; /* Light grey to match social icons */
+  text-decoration: none;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  padding: 5px 8px; /* Adjusted padding */
+  transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+.nav-link:hover {
+  color: #ffffff; /* White on hover for contrast */
+}
+
+.nav-icon {
+  font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .site-header {
+    flex-direction: column;
+    height: auto;
+    padding: 10px 0;
+  }
+  
+  .social-icons, .nav-links {
+    margin: 5px 0;
+    justify-content: center;
+  }
+  
+  .logo {
+    position: static;
+    transform: none;
+    margin: 5px 0;
+  }
+  
+  .nav-link span {
+    display: none; /* Hide text on mobile, show only icons */
+  }
+  
+  .nav-icon {
+    font-size: 20px; /* Make icons larger on mobile */
+  }
+} 

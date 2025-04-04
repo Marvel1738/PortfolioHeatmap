@@ -1,10 +1,10 @@
 /* frontend/src/App.css */
 
 :root {
-  --background-primary: rgb(35, 41, 50);
-  --background-secondary: rgb(40, 44, 54);
-  --background-tertiary: rgb(52, 55, 65);
-  --background-hover: rgb(90, 95, 100);
+  --background-primary: rgb(51, 51, 51);
+  --background-secondary: rgb(68, 68, 68);
+  --background-tertiary: rgb(85, 85, 85);
+  --background-hover: rgb(100, 100, 100);
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.9);
   --text-muted: rgba(255, 255, 255, 0.7);
@@ -12,6 +12,7 @@
   --error-color: #ff4444;
   --success-color: #4CAF50;
   --link-color: #4dabf7;
+  --header-height: 5vh;
 }
 
 /* Global styles */
@@ -24,13 +25,19 @@ body {
 }
 
 .App {
-  display: flex;
-  flex-direction: column; 
-  align-items: center;
+  text-align: center;
   min-height: 100vh;
   background-color: var(--background-primary);
   color: var(--text-primary);
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  margin-top: var(--header-height);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Form elements and containers */
