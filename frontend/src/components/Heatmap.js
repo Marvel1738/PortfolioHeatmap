@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as d3 from 'd3';
 import './Heatmap.css';
+import Sidebar from './Sidebar';
 
 /**
  * Heatmap component stub for displaying portfolio visualizations.
@@ -294,90 +295,86 @@ function Heatmap() {
     console.log('Clicked holding:', holding);
   };
 
+  const handlePortfolioSelect = (portfolioId) => {
+    setSelectedPortfolioId(portfolioId);
+  };
+
   return (
     <div className="heatmap-container">
+      <Sidebar 
+        portfolios={portfolios}
+        selectedPortfolioId={selectedPortfolioId}
+        onPortfolioSelect={handlePortfolioSelect}
+        holdings={holdings}
+      />
+      <div className="heatmap-main">
         <div className="heatmap-controls">
-            <div className="portfolio-selector">
-                <label>Portfolio: </label>
-                <select value={selectedPortfolioId} onChange={(e) => setSelectedPortfolioId(e.target.value)}>
-                    <option value="">Select Portfolio</option>
-                    {portfolios.map(portfolio => (
-                        <option key={portfolio.id} value={portfolio.id}>{portfolio.name}</option>
-                    ))}
-                </select>
-            </div>
-            <div className="timeframe-selector">
-                <label>Timeframe: </label>
-                <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
-                    {timeframeOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                </select>
-            </div>
+          <div className="timeframe-selector">
+            <label>Timeframe: </label>
+            <select value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
+              {timeframeOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="heatmap">
-            <div className="heatmap-visualization">
-                <div 
-                    className="heatmap-content"
+          <div className="heatmap-visualization">
+            <div 
+              className="heatmap-content"
+              style={{
+                position: 'absolute',
+                width: `${BASE_WIDTH}px`,
+                height: `${BASE_HEIGHT}px`,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left'
+              }}
+            >
+              {error && <div className="error-message">{error}</div>}
+              {treeMapData.map((d, i) => {
+                const holding = d.data.holding;
+                const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
+                const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
+                const percentChange = holding.percentChange;
+                
+                // Calculate font size based on rectangle dimensions - reduced from 0.2 to 0.12
+                const fontSize = Math.min(width, height) * 0.12; // 12% of the smaller dimension
+                
+                return (
+                  <div
+                    key={i}
+                    className="heatmap-rect"
                     style={{
-                        position: 'absolute',
-                        width: `${BASE_WIDTH}px`,
-                        height: `${BASE_HEIGHT}px`,
-                        transform: `scale(${scale})`,
-                        transformOrigin: 'top left'
+                      left: `${d.x0}px`,
+                      top: `${d.y0}px`,
+                      width: `${width}px`,
+                      height: `${height}px`,
+                      backgroundColor: getColor(percentChange),
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      padding: '5px',
+                      boxSizing: 'border-box',
+                      color: '#ffffff',
+                      fontSize: `${fontSize}px`,
+                      textAlign: 'center',
+                      overflow: 'hidden',
+                      fontFamily: 'Arial, sans-serif',
+                      textShadow: '1px 1px 1px rgba(0, 0, 0, 0.5)'
                     }}
-                >
-                    {error && <div className="error-message">{error}</div>}
-                    {treeMapData.map((d, i) => {
-                        const holding = d.data.holding;
-                        const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
-                        const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
-                        const percentChange = holding.percentChange;
-                        const fontSize = Math.min(width, height) * 0.12;
-                        const minSizeForText = 100; // Minimum size in pixels to show text
-                        
-                        // Debug log to see actual dimensions
-                        console.log(`Rectangle ${holding.stock.ticker}: width=${width}, height=${height}, minSize=${minSizeForText}`);
-                        
-                        return (
-                            <div
-                                key={i}
-                                className="heatmap-rect"
-                                style={{
-                                    left: `${d.x0}px`,
-                                    top: `${d.y0}px`,
-                                    width: `${width}px`,
-                                    height: `${height}px`,
-                                    backgroundColor: getColor(percentChange),
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    padding: '5px',
-                                    boxSizing: 'border-box',
-                                    color: '#ffffff',
-                                    fontSize: `${fontSize}px`,
-                                    textAlign: 'center',
-                                    overflow: 'hidden',
-                                    fontFamily: 'Arial, sans-serif',
-                                    textShadow: '1px 1px 1px rgba(0, 0, 0, 0.5)'
-                                }}
-                            >
-                                {/* Only show text if both width and height are above minimum size */}
-                                {(width >= minSizeForText && height >= minSizeForText) ? (
-                                    <>
-                                        <div className="ticker">{holding.stock.ticker}</div>
-                                        <div className="change">
-                                            {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
-                                        </div>
-                                    </>
-                                ) : null}
-                            </div>
-                        );
-                    })}
-                </div>
+                  >
+                    <div className="ticker" style={{ fontSize: `${fontSize}px` }}>{holding.stock.ticker}</div>
+                    <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+                      {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          </div>
         </div>
+      </div>
     </div>
   );
 }

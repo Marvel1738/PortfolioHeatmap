@@ -7,19 +7,31 @@
 
 .heatmap-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
+  flex-direction: row;
   background-color: var(--background-primary);
   min-height: 100vh;
   width: 100%;
   box-sizing: border-box;
 }
 
+.heatmap-main {
+  flex: 1;
+  margin-left: 18%; /* Use percentage instead of fixed pixels */
+  margin-right: 4%; /* Use percentage instead of fixed pixels */
+  padding: 20px;
+  padding-top: 80px; /* Space for header */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .heatmap-controls {
   display: flex;
+  justify-content: center; /* Center the controls */
   gap: 20px;
   margin-bottom: 20px;
+  width: 100%;
+  max-width: 1200px;
 }
 
 .portfolio-selector,
@@ -79,7 +91,6 @@
   text-align: center;
   color: var(--text-primary);
   font-family: Arial, sans-serif;
-  font-size: 0.8rem;
   padding: 4px;
   box-sizing: border-box;
 }
@@ -98,7 +109,6 @@
 }
 
 .heatmap-rect .price {
-  font-size: 0.9em;
   opacity: 0.9;
   margin-bottom: 2px;
 }
