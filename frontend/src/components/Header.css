@@ -18,7 +18,7 @@
 /* Social Media Icons */
 .social-icons {
   display: flex;
-  gap: 15px;
+  gap: 25px;
   flex: 1;
   min-width: 120px; /* Ensure minimum width for social icons */
 }

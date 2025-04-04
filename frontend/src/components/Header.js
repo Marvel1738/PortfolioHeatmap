@@ -18,7 +18,7 @@ const Header = () => {
           <FaTwitter />
         </a>
         <a 
-          href="https://linkedin.com" 
+          href="https://www.linkedin.com/in/marvel-bana-7aa697317/" 
           target="_blank" 
           rel="noopener noreferrer" 
           className="social-icon"
@@ -27,7 +27,7 @@ const Header = () => {
           <FaLinkedin />
         </a>
         <a 
-          href="https://github.com" 
+          href="https://github.com/Marvel1738" 
           target="_blank" 
           rel="noopener noreferrer" 
           className="social-icon"
