@@ -3,9 +3,9 @@
 A full-stack stock portfolio visualization application with a custom heatmap feature, built by a first-year computer science student to showcase professional-grade development skills.
 
 ## 📌 Project Overview
-Portfolio Heatmap is a web application designed to help users manage and visualize their stock portfolios through an interactive heatmap, inspired by Finviz’s S&P 500 heatmap. Unlike traditional heatmaps, this app focuses on user-defined portfolios or custom stock lists, with square sizes representing the percentage of the portfolio and colors indicating price performance (e.g., green for gains, red for losses).
+Portfolio Heatmap is a web application designed to help users manage and visualize their stock portfolios through an interactive heatmap, inspired by Finviz's S&P 500 heatmap. Unlike traditional heatmaps, this app focuses on user-defined portfolios or custom stock lists, with square sizes representing the percentage of the portfolio and colors indicating price performance (e.g., green for gains, red for losses).
 
-This project is a work-in-progress full-stack application built to professional standards, demonstrating advanced skills in backend development (Spring Boot), database management (MySQL), API integration (FMP, Alpha Vantage), user authentication (Spring Security with JWT), and soon, front-end development (React) and cloud deployment (AWS). As a 19-year-old first-year computer science student, I’m using this project to challenge myself, learn advanced concepts, and create a portfolio piece that stands out for internship applications. The backend is now mostly complete, and I’m currently focusing on learning React to build a high-quality front end that matches the backend’s capabilities.
+This project is a work-in-progress full-stack application built to professional standards, demonstrating advanced skills in backend development (Spring Boot), database management (MySQL), API integration (FMP, Alpha Vantage), user authentication (Spring Security with JWT), and soon, front-end development (React) and cloud deployment (AWS). As a 19-year-old first-year computer science student, I'm using this project to challenge myself, learn advanced concepts, and create a portfolio piece that stands out for internship applications. The backend is now mostly complete, and I'm currently focusing on learning React to build a high-quality front end that matches the backend's capabilities.
 
 ---
 
@@ -33,10 +33,11 @@ This project is a work-in-progress full-stack application built to professional 
   - `PUT /stocks/{id}/update-price`
   - `POST /stocks/price-history/populate-all`
 
- ### 📅 Daily Price Updates: *(New Feature Added)*
-- Automatically update the `price_history` table with the latest closing prices for all 503 stocks every day at 6:00 PM EST (after market close).
-- Uses batch requests to fetch prices efficiently within FMP’s rate limits (300 requests/min, paid plan).
+### 📅 Daily Price Updates:
+- Automatically update the `price_history` table with the latest closing prices for all stocks every day at 6:00 PM EST (after market close).
+- Uses batch requests to fetch prices efficiently within FMP's rate limits (300 requests/min, paid plan).
 - Ensures historical data integrity with duplicate checks to prevent redundant entries.
+- Caches current prices to reduce API calls and improve performance.
 
 ### 📁 Portfolio Management:
 - Full CRUD operations for portfolios: create, view, and delete portfolios for authenticated users.
@@ -53,6 +54,19 @@ This project is a work-in-progress full-stack application built to professional 
   - `POST /portfolios/{portfolioId}/holdings/add?ticker=AAPL&shares=10&purchasePrice=150.25&purchaseDate=2024-06-15`
   - `PUT /portfolios/holdings/{holdingId}?shares=10&sellingPrice=225.50&sellingDate=2025-03-25`
   - `DELETE /portfolios/holdings/{holdingId}`
+
+### 🔥 Portfolio Heatmap Visualization:
+- Interactive heatmap displaying stocks from the user's portfolio.
+- Square sizes based on the percentage of the portfolio (larger squares for higher allocation).
+- Square colors based on price performance (green for gains, red for losses).
+- Dynamic text sizing based on rectangle dimensions for better readability.
+- Multiple timeframe options (1d, 1w, 1m, 3m, 6m, YTD, 1y, Total).
+
+### 🎨 Modern User Interface:
+- Responsive dark theme design across all components.
+- Fixed header with social media links and navigation.
+- Clean, intuitive portfolio and timeframe selection.
+- Consistent styling across login, registration, and main application pages.
 
 ### 📈 Performance Metrics:
 - Calculate key portfolio metrics: total portfolio value, total open/closed gains/losses, and percentage returns.
@@ -81,16 +95,7 @@ This project is a work-in-progress full-stack application built to professional 
 
 ## 🎯 Planned Features
 
-### 🔥 Portfolio Heatmap Visualization:
-- Build an interactive heatmap (similar to Finviz’s S&P 500 heatmap) using React.
-- Display stocks from the user’s portfolio or a custom list.
-- Square sizes based on the percentage of the portfolio (e.g., larger squares for higher allocation).
-- Square colors based on price performance (e.g., green for gains, red for losses).
-
-### 🌐 React Front End:
-- Develop a dynamic, responsive front end with React.
-- Features: user authentication (login/register), portfolio management (add/view/delete portfolios and holdings), performance metrics display, and heatmap visualization.
-- Polished UI with a modern design (e.g., Material-UI, Tailwind CSS).
+=
 
 ### ☁️ AWS Deployment:
 - Deploy the backend (Spring Boot) to AWS Elastic Beanstalk and the database to RDS.
@@ -99,10 +104,11 @@ This project is a work-in-progress full-stack application built to professional 
 - Enable HTTPS with AWS Certificate Manager.
 
 ### 🏢 Professional Features:
-- Add caching (Redis) for same-day stock prices to reduce API calls.
-- Implement error handling with consistent responses (e.g., 404 for not-found).
+- Add Redis caching for frequently accessed data.
+- Implement comprehensive error handling with consistent responses.
 - Optimize database performance with indexing and partitioning.
 - Set up monitoring with AWS CloudWatch.
+- Add portfolio analytics and reporting features.
 
 ---
 
@@ -181,14 +187,14 @@ GET http://localhost:8080/stocks/batch-prices?symbols=AAPL,MSFT,TSLA
 
 ## 🎯 Future Goals
 - **Professional Portfolio:** Showcase this project to employers.
-- **React Front End: Build a high-quality React front end within the next few months to match the backend’s capabilities.
+- **React Front End: Build a high-quality React front end within the next few months to match the backend's capabilities.
 - **Potential Startup:** Monetization through subscriptions or ads.
 - **Learning and Growth:** Advance skills in authentication, React, and AWS deployment.
 
 ---
 
 ## 🤝 Contributing
-Contributions are welcome! If you’d like to contribute:
+Contributions are welcome! If you'd like to contribute:
 1. Fork the repository.
 2. Create a new branch: `git checkout -b feature/your-feature`.
 3. Commit your changes: `git commit -m 'Add your feature'`.
