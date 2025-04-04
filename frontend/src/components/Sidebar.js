@@ -1,12 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
 import axios from 'axios';
+import debounce from 'lodash.debounce';
 
 function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings }) {
   const [editingHolding, setEditingHolding] = useState(null);
   const [shares, setShares] = useState('');
   const [price, setPrice] = useState('');
   const [isBuying, setIsBuying] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [ticker, setTicker] = useState('');
+  const [stockSuggestions, setStockSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Fetch stock suggestions based on ticker prefix
+  const fetchStockSuggestions = debounce(async (prefix) => {
+    if (prefix.length === 0) {
+      setStockSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+    try {
+      const response = await axios.get('http://localhost:8080/stocks/search', {
+        params: { prefix },
+      });
+      setStockSuggestions(response.data);
+      setShowDropdown(true);
+    } catch (err) {
+      console.error('Error fetching stock suggestions:', err);
+      setStockSuggestions([]);
+      setShowDropdown(false);
+    }
+  }, 300);
+
+  useEffect(() => {
+    if (ticker.length >= 2) {
+      fetchStockSuggestions(ticker);
+    } else {
+      setStockSuggestions([]);
+      setShowDropdown(false);
+    }
+  }, [ticker]);
+
+  const handleTickerSelect = (selectedTicker) => {
+    setTicker(selectedTicker);
+    setShowDropdown(false);
+  };
+
+  const handleAddNewHolding = async (e) => {
+    e.preventDefault();
+    if (!ticker || !shares || !price) {
+      console.error('Missing required fields');
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+      
+      const sharesNum = Number(shares);
+      const priceNum = Number(price);
+      
+      if (isNaN(sharesNum) || sharesNum <= 0 || isNaN(priceNum) || priceNum <= 0) {
+        console.error('Invalid shares or price values');
+        return;
+      }
+      
+      await axios.post(
+        `http://localhost:8080/portfolios/${selectedPortfolioId}/holdings/add`,
+        null,
+        {
+          params: {
+            ticker: ticker,
+            shares: sharesNum,
+            purchasePrice: priceNum,
+            purchaseDate: new Date().toISOString().split('T')[0]
+          },
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      console.log(`Successfully added ${sharesNum} shares of ${ticker} at $${priceNum}`);
+      
+      // Reset form and close modal
+      setTicker('');
+      setShares('');
+      setPrice('');
+      setShowAddModal(false);
+      
+      // Trigger a refresh of the holdings
+      if (onPortfolioSelect) {
+        onPortfolioSelect(selectedPortfolioId);
+      }
+    } catch (err) {
+      console.error('Failed to add shares:', err);
+    }
+  };
 
   const handleAddShares = (holding) => {
     setIsBuying(true);
@@ -133,36 +225,114 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
         </select>
       </div>
       
+      <button 
+        className="add-button"
+        onClick={() => setShowAddModal(true)}
+      >
+        ADD
+      </button>
+      
       <div className="holdings-list">
         {holdings.map(holding => (
           <div key={holding.id} className="holding-item">
             <div className="holding-info">
               <span className="ticker">{holding.stock.ticker}</span>
-              {editingHolding?.id === holding.id && (
-                <div className="shares-info">
-                  Current Shares: {holding.shares}
-                </div>
-              )}
             </div>
             <div className="holding-actions">
               <button 
                 className="action-button add" 
                 onClick={() => handleAddShares(holding)}
-                style={{ width: '20px', height: '20px', marginRight: '2px' }}
+                style={{ width: '25px', height: '25px', marginRight: '0px' }}
               >
-                <span className="plus-icon" style={{ fontSize: '10px' }}>+</span>
+                <span className="plus-icon" style={{ fontSize: '15px' }}>+</span>
               </button>
               <button 
                 className="action-button remove" 
                 onClick={() => handleRemoveShares(holding)}
-                style={{ width: '20px', height: '20px' }}
+                style={{ width: '25px', height: '25px' }}
               >
-                <span className="minus-icon" style={{ fontSize: '10px' }}>-</span>
+                <span className="minus-icon" style={{ fontSize: '15px' }}>-</span>
               </button>
             </div>
           </div>
         ))}
       </div>
+
+      {showAddModal && (
+        <div className="edit-modal">
+          <div className="edit-content">
+            <h3>Add New Holding</h3>
+            <form onSubmit={handleAddNewHolding}>
+              <div className="input-group">
+                <label>Stock Ticker:</label>
+                <div className="ticker-input-container">
+                  <input
+                    type="text"
+                    value={ticker}
+                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                    placeholder="e.g., AAPL"
+                    autoComplete="off"
+                    required
+                  />
+                  {showDropdown && stockSuggestions.length > 0 && (
+                    <ul className="ticker-dropdown">
+                      {stockSuggestions.map((stock) => (
+                        <li
+                          key={stock.ticker}
+                          onClick={() => handleTickerSelect(stock.ticker)}
+                        >
+                          {stock.ticker} - {stock.companyName}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <div className="input-group">
+                <label>Shares:</label>
+                <input
+                  type="number"
+                  value={shares}
+                  onChange={(e) => setShares(e.target.value)}
+                  placeholder="Enter number of shares"
+                  step="0.01"
+                  min="0.01"
+                  required
+                />
+              </div>
+              <div className="input-group">
+                <label>Price:</label>
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Enter price per share"
+                  step="0.01"
+                  min="0.01"
+                  required
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="submit" className="submit-button buy">
+                  Add Holding
+                </button>
+                <button 
+                  type="button" 
+                  className="cancel-button"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setTicker('');
+                    setShares('');
+                    setPrice('');
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {editingHolding && (
         <div className="edit-modal">

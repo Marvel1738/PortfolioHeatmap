@@ -45,6 +45,23 @@
   font-size: 12px;
 }
 
+.add-button {
+  width: calc(100% - 8px);
+  margin: 0 4px 12px 4px;
+  padding: 8px 0;
+  background-color: #4dabf7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.add-button:hover {
+  background-color: #74c0fc;
+}
+
 .holdings-list {
   display: flex;
   flex-direction: column;
@@ -231,4 +248,34 @@
 .cancel-button {
   background-color: var(--background-secondary);
   color: var(--text-primary);
+}
+
+.ticker-input-container {
+  position: relative;
+}
+
+.ticker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  z-index: 10;
+}
+
+.ticker-dropdown li {
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.ticker-dropdown li:hover {
+  background-color: var(--background-hover);
 } 
