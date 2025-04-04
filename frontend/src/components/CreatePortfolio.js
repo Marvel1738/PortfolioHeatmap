@@ -48,9 +48,13 @@ function CreatePortfolio() {
   }, 300);
 
   useEffect(() => {
-    fetchStockSuggestions(ticker);
-    return () => fetchStockSuggestions.cancel();
-  }, [ticker]);
+    if (ticker.length >= 2) {
+      fetchStockSuggestions(ticker);
+    } else {
+      setStockSuggestions([]);
+      setShowDropdown(false);
+    }
+  }, [ticker, fetchStockSuggestions]);
 
   /**
    * Saves the current portfolio locally and resets for a new one.

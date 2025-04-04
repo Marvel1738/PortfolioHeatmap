@@ -60,7 +60,7 @@ function Heatmap() {
     handleResize(); // Initial size
 
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [ASPECT_RATIO, BASE_HEIGHT, BASE_WIDTH]);
 
   // Fetch portfolios on component mount
   useEffect(() => {
@@ -268,6 +268,32 @@ function Heatmap() {
 
   const treeMapData = createTreemap(holdings);
 
+  const getColorForPercentage = (percentage) => {
+    if (percentage > 0) {
+      return `rgba(0, 255, 0, ${Math.min(Math.abs(percentage) / 100, 0.8)})`;
+    } else if (percentage < 0) {
+      return `rgba(255, 0, 0, ${Math.min(Math.abs(percentage) / 100, 0.8)})`;
+    }
+    return 'rgba(128, 128, 128, 0.5)';
+  };
+
+  const calculateWidth = (holding) => {
+    // Scale the width based on the holding's percentage of the total portfolio value
+    const scaledWidth = (holding.value / 100) * (BASE_WIDTH * 0.8); // Use 80% of base width
+    return Math.max(scaledWidth, MIN_RECTANGLE_SIZE);
+  };
+
+  const calculateHeight = (holding) => {
+    // Scale the height based on the holding's percentage of the total portfolio value
+    const scaledHeight = (holding.value / 100) * (BASE_HEIGHT * 0.8); // Use 80% of base height
+    return Math.max(scaledHeight, MIN_RECTANGLE_SIZE);
+  };
+
+  const handleCellClick = (holding) => {
+    // You can add click handling logic here
+    console.log('Clicked holding:', holding);
+  };
+
   return (
     <div className="heatmap-container">
         <div className="heatmap-controls">
@@ -308,6 +334,10 @@ function Heatmap() {
                         const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
                         const percentChange = holding.percentChange;
                         const fontSize = Math.min(width, height) * 0.12;
+                        const minSizeForText = 100; // Minimum size in pixels to show text
+                        
+                        // Debug log to see actual dimensions
+                        console.log(`Rectangle ${holding.stock.ticker}: width=${width}, height=${height}, minSize=${minSizeForText}`);
                         
                         return (
                             <div
@@ -333,10 +363,15 @@ function Heatmap() {
                                     textShadow: '1px 1px 1px rgba(0, 0, 0, 0.5)'
                                 }}
                             >
-                                <div className="ticker">{holding.stock.ticker}</div>
-                                <div className="change">
-                                    {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
-                                </div>
+                                {/* Only show text if both width and height are above minimum size */}
+                                {(width >= minSizeForText && height >= minSizeForText) ? (
+                                    <>
+                                        <div className="ticker">{holding.stock.ticker}</div>
+                                        <div className="change">
+                                            {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
+                                        </div>
+                                    </>
+                                ) : null}
                             </div>
                         );
                     })}
