@@ -72,6 +72,14 @@ public class PortfolioHoldingService {
                 sellingPrice, sellingDate);
         PortfolioHolding holding = portfolioHoldingRepository.findById(holdingId)
                 .orElseThrow(() -> new RuntimeException("Holding not found with id: " + holdingId));
+
+        // If shares are 0 or less, delete the holding
+        if (shares <= 0) {
+            log.info("Shares reduced to 0, deleting holding with id: {}", holdingId);
+            portfolioHoldingRepository.deleteById(holdingId);
+            return;
+        }
+
         holding.setShares(shares);
         holding.setSellingPrice(sellingPrice);
         holding.setSellingDate(sellingDate);
