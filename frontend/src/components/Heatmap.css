@@ -57,10 +57,14 @@
 }
 
 .error-message {
-  color: var(--error-color);
+  color: var(--text-primary) !important;
   text-align: center;
   padding: 20px;
   font-family: Arial, sans-serif;
+  font-size: 40px;
+  border-radius: 8px;
+  margin: 10px auto;
+  max-width: 1000px;
 }
 
 .heatmap-visualization {

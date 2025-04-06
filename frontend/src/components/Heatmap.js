@@ -167,7 +167,7 @@ function Heatmap() {
         console.log('Valid holdings:', validHoldings);
 
         if (validHoldings.length === 0) {
-          setError('No valid holdings found in portfolio');
+          setError('Click ADD STOCK to add stocks to your portfolio!');
           setHoldings([]);
           return;
         }
@@ -330,7 +330,7 @@ function Heatmap() {
                 transformOrigin: 'top left'
               }}
             >
-              {error && <div className="error-message">{error}</div>}
+              {holdings.length === 0 && error && <div className="error-message">{error}</div>}
               {treeMapData.map((d, i) => {
                 const holding = d.data.holding;
                 const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);

@@ -12,6 +12,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   const [ticker, setTicker] = useState('');
   const [stockSuggestions, setStockSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNewPortfolioModal, setShowNewPortfolioModal] = useState(false);
+  const [newPortfolioName, setNewPortfolioName] = useState('');
 
   // Fetch stock suggestions based on ticker prefix
   const fetchStockSuggestions = debounce(async (prefix) => {
@@ -209,8 +211,53 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
     }
   };
 
+  const handleCreatePortfolio = async (e) => {
+    e.preventDefault();
+    if (!newPortfolioName.trim()) {
+      console.error('Portfolio name is required');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+
+      const response = await axios.post(
+        'http://localhost:8080/portfolios/create',
+        null,
+        {
+          params: {
+            name: newPortfolioName
+          },
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      console.log('Portfolio created:', response.data);
+      setNewPortfolioName('');
+      setShowNewPortfolioModal(false);
+
+      // Select the newly created portfolio
+      if (onPortfolioSelect) {
+        onPortfolioSelect(response.data.id);
+      }
+    } catch (err) {
+      console.error('Failed to create portfolio:', err);
+    }
+  };
+
   return (
     <div className="sidebar">
+      <button 
+        className="new-portfolio-button"
+        onClick={() => setShowNewPortfolioModal(true)}
+      >
+        NEW PORTFOLIO
+      </button>
+
       <div className="portfolio-selector">
         <select 
           value={selectedPortfolioId || ''} 
@@ -230,6 +277,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
         onClick={() => setShowAddModal(true)}
       >
         ADD
+        STOCK
       </button>
       
       <div className="holdings-list">
@@ -371,6 +419,41 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                   type="button" 
                   className="cancel-button"
                   onClick={() => setEditingHolding(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showNewPortfolioModal && (
+        <div className="edit-modal">
+          <div className="edit-content">
+            <h3>Create New Portfolio</h3>
+            <form onSubmit={handleCreatePortfolio}>
+              <div className="input-group">
+                <label>Portfolio Name:</label>
+                <input
+                  type="text"
+                  value={newPortfolioName}
+                  onChange={(e) => setNewPortfolioName(e.target.value)}
+                  placeholder="Enter portfolio name"
+                  required
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="submit" className="submit-button buy">
+                  Create
+                </button>
+                <button 
+                  type="button" 
+                  className="cancel-button"
+                  onClick={() => {
+                    setShowNewPortfolioModal(false);
+                    setNewPortfolioName('');
+                  }}
                 >
                   Cancel
                 </button>

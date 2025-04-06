@@ -239,7 +239,7 @@
   width: 100%;
   padding: 8px;
   margin: 8px 0;
-  background-color: #2196F3 !important;
+  background-color: #0784ea !important;
   color: white;
   border: none;
   border-radius: 4px;
@@ -282,4 +282,21 @@
 
 .ticker-dropdown li:hover {
   background-color: var(--background-hover);
+}
+
+.new-portfolio-button {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  background-color: #0784ea !important;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.new-portfolio-button:hover {
+  background-color: #1976D2 !important;
 } 
