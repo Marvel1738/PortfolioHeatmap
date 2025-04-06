@@ -9,12 +9,15 @@
   background-color: var(--background-secondary);
   padding: 20px;
   padding-top: 80px; /* Space for header */
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   z-index: 10;
   box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: var(--border-color) transparent;
+  border: none !important;
+  border-right: none !important;
+  border-left: none !important;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar::-webkit-scrollbar {
@@ -39,27 +42,10 @@
   width: 100%;
   padding: 4px 6px;
   border-radius: 4px;
-  border: 1px solid var(--border-color);
   background-color: var(--background-primary);
   color: var(--text-primary);
   font-size: 12px;
-}
-
-.add-button {
-  width: calc(100% - 8px);
-  margin: 0 4px 12px 4px;
-  padding: 8px 0;
-  background-color: #4dabf7;
-  color: white;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s;
-}
-
-.add-button:hover {
-  background-color: #74c0fc;
 }
 
 .holdings-list {
@@ -76,7 +62,6 @@
   padding: 4px 6px;
   background-color: var(--background-primary);
   border-radius: 4px;
-  border: 1px solid var(--border-color);
   transition: background-color 0.2s;
 }
 
@@ -250,8 +235,26 @@
   color: var(--text-primary);
 }
 
+.add-button {
+  width: 100%;
+  padding: 8px;
+  margin: 8px 0;
+  background-color: #2196F3 !important;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.add-button:hover {
+  background-color: #1976D2 !important;
+}
+
 .ticker-input-container {
   position: relative;
+  width: 100%;
 }
 
 .ticker-dropdown {
@@ -259,20 +262,21 @@
   top: 100%;
   left: 0;
   right: 0;
-  background-color: var(--background-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
   max-height: 200px;
   overflow-y: auto;
-  list-style: none;
-  padding: 0;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
   margin: 0;
-  z-index: 10;
+  padding: 0;
+  list-style: none;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .ticker-dropdown li {
-  padding: 8px;
+  padding: 6px 8px;
   cursor: pointer;
+  font-size: 12px;
   color: var(--text-primary);
 }
 
