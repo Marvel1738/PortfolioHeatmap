@@ -14,6 +14,12 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNewPortfolioModal, setShowNewPortfolioModal] = useState(false);
   const [newPortfolioName, setNewPortfolioName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter holdings based on search query
+  const filteredHoldings = holdings.filter(holding => 
+    holding.stock.ticker.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Fetch stock suggestions based on ticker prefix
   const fetchStockSuggestions = debounce(async (prefix) => {
@@ -277,11 +283,20 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
         onClick={() => setShowAddModal(true)}
       >
         ADD
-        STOCK
       </button>
+
+      <div className="search-container">
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
       
       <div className="holdings-list">
-        {holdings.map(holding => (
+        {filteredHoldings.map(holding => (
           <div key={holding.id} className="holding-item">
             <div className="holding-info">
               <span className="ticker">{holding.stock.ticker}</span>

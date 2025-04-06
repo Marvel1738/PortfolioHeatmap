@@ -34,8 +34,10 @@
 }
 
 .portfolio-selector {
-  margin-bottom: 12px;
-  padding: 0 4px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px !important;
 }
 
 .portfolio-selector select {
@@ -51,8 +53,8 @@
 .holdings-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 4px;
+  gap: 0px;
+  margin-top: 0px !important;
 }
 
 .holding-item {
@@ -299,4 +301,32 @@
 
 .new-portfolio-button:hover {
   background-color: #1976D2 !important;
+}
+
+.search-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0px !important;
+}
+
+.search-input {
+  width: 100%;
+  padding: 6px 8px;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+  text-transform: none;
+}
+
+.search-input:focus {
+  outline: none;
+  background-color: var(--background-hover);
 } 
