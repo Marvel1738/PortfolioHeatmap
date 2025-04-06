@@ -18,6 +18,8 @@ function Heatmap() {
   const [holdings, setHoldings] = useState([]);
   const [timeframe, setTimeframe] = useState('1d');
   const [error, setError] = useState('');
+  const [showPercentChange, setShowPercentChange] = useState(true);
+  const [showDollarChange, setShowDollarChange] = useState(false);
 
   // Constants for heatmap
   const BASE_WIDTH = 1200;
@@ -118,6 +120,7 @@ function Heatmap() {
                   { headers: { 'Authorization': `Bearer ${token}` } }
                 );
                 
+                console.log('Fetched holding details:', holdingResponse.data);
                 return {
                   ...holdingResponse.data,
                   percentChange: response.data.timeframePercentageChanges[holdingId] || 0
@@ -129,6 +132,7 @@ function Heatmap() {
             }
             
             // If we already have the holding data, just use the timeframe change
+            console.log('Using existing holding data:', holding);
             return {
               ...holding,
               percentChange: response.data.timeframePercentageChanges[holding.id] || 0
@@ -317,6 +321,24 @@ function Heatmap() {
               ))}
             </select>
           </div>
+          <div className="display-options">
+            <label>
+              <input
+                type="checkbox"
+                checked={showPercentChange}
+                onChange={(e) => setShowPercentChange(e.target.checked)}
+              />
+              % Change
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={showDollarChange}
+                onChange={(e) => setShowDollarChange(e.target.checked)}
+              />
+              $ Change
+            </label>
+          </div>
         </div>
         <div className="heatmap">
           <div className="heatmap-visualization">
@@ -337,8 +359,19 @@ function Heatmap() {
                 const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
                 const percentChange = holding.percentChange;
                 
-                // Calculate font size based on rectangle dimensions - reduced from 0.2 to 0.12
-                const fontSize = Math.min(width, height) * 0.12; // 12% of the smaller dimension
+                // Calculate dollar change based on timeframe
+                let dollarChange;
+                if (timeframe === 'total') {
+                  // For total gain/loss: use the percentage change to calculate total dollar change
+                  const totalValue = holding.currentValue;
+                  dollarChange = (totalValue * percentChange) / 100;
+                } else {
+                  // For other timeframes: use the percentage change to calculate price change per share
+                  const pricePerShare = holding.currentPrice;
+                  dollarChange = (pricePerShare * percentChange) / 100;
+                }
+                
+                const fontSize = Math.min(width, height) * 0.12;
                 
                 return (
                   <div
@@ -365,9 +398,16 @@ function Heatmap() {
                     }}
                   >
                     <div className="ticker" style={{ fontSize: `${fontSize}px` }}>{holding.stock.ticker}</div>
-                    <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                      {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
-                    </div>
+                    {showPercentChange && (
+                      <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+                        {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
+                      </div>
+                    )}
+                    {showDollarChange && (
+                      <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+                        {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2)}$
+                      </div>
+                    )}
                   </div>
                 );
               })}
