@@ -354,24 +354,21 @@ function Heatmap() {
             >
               {holdings.length === 0 && error && <div className="error-message">{error}</div>}
               {treeMapData.map((d, i) => {
-                const holding = d.data.holding;
-                const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
-                const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
-                const percentChange = holding.percentChange;
-                
-                // Calculate dollar change based on timeframe
-                let dollarChange;
-                if (timeframe === 'total') {
-                  // For total gain/loss: use the percentage change to calculate total dollar change
-                  const totalValue = holding.currentValue;
-                  dollarChange = (totalValue * percentChange) / 100;
-                } else {
-                  // For other timeframes: use the percentage change to calculate price change per share
-                  const pricePerShare = holding.currentPrice;
-                  dollarChange = (pricePerShare * percentChange) / 100;
-                }
-                
-                const fontSize = Math.min(width, height) * 0.12;
+  const holding = d.data.holding;
+  const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
+  const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
+  const percentChange = holding.percentChange;
+  
+  let dollarChange;
+  if (timeframe === 'total') {
+    const totalValue = holding.currentValue;
+    dollarChange = (totalValue * percentChange) / 100;
+  } else {
+    const pricePerShare = holding.currentPrice || holding.purchasePrice || 0; // Fallback to purchasePrice
+    dollarChange = (pricePerShare * percentChange) / 100;
+  }
+  
+  const fontSize = Math.min(width, height) * 0.12;
                 
                 return (
                   <div
