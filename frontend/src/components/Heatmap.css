@@ -203,3 +203,23 @@ label {
   gap: 4px;
   color: var(--text-primary);
 }
+
+.heatmap-tooltip {
+  background-color: rgba(0, 0, 0, 0.85);
+  color: #ffffff;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  font-family: 'Arial, sans-serif';
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  white-space: nowrap;
+}
+
+.heatmap-tooltip div {
+  margin-bottom: 5px;
+}
+
+.heatmap-tooltip div:last-child {
+  margin-bottom: 0;
+}
