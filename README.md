@@ -7,7 +7,7 @@ A full-stack stock portfolio visualization application with a custom heatmap fea
 ## 📌 Project Overview
 Portfolio Heatmap is a web application designed to help users manage and visualize their stock portfolios through an interactive heatmap, inspired by Finviz's S&P 500 heatmap. Unlike traditional heatmaps, this app focuses on user-defined portfolios or custom stock lists, with square sizes representing the percentage of the portfolio and colors indicating price performance (e.g., green for gains, red for losses).
 
-This project is a work-in-progress full-stack application built to professional standards, demonstrating advanced skills in backend development (Spring Boot), database management (MySQL), API integration (FMP, Alpha Vantage), user authentication (Spring Security with JWT), and soon, front-end development (React) and cloud deployment (AWS). As a 19-year-old first-year computer science student, I'm using this project to challenge myself, learn advanced concepts, and create a portfolio piece that stands out for internship applications. The backend is now mostly complete, and I'm currently focusing on learning React to build a high-quality front end that matches the backend's capabilities.
+This project is a work-in-progress full-stack application built to professional standards, demonstrating advanced skills in backend development (Spring Boot), database management (MySQL), API integration (FMP, Alpha Vantage), user authentication (Spring Security with JWT), front-end development (React) and soon cloud deployment (AWS). As a 19-year-old first-year computer science student, I'm using this project to challenge myself, learn advanced concepts, and create a tool that I would use every day. The backend is now mostly complete, and I'm currently focusing on finishing up the front-end to the best of my ability to ensure its quality matches the back-end.
 
 ---
 
@@ -22,15 +22,17 @@ This project is a work-in-progress full-stack application built to professional 
   - `POST /stocks/populate`
   - `DELETE /stocks/{id}`
 
-### 📈 Stock Price Retrieval:
-- Fetch real-time stock prices using Financial Modeling Prep (FMP) API (250 requests/day, free tier) with Alpha Vantage as a fallback (5/min, 25/day).
+### 📈 Stock Data Retrieval:
+- Fetch real-time stock prices using Financial Modeling Prep (FMP) API (300 requests/min, paid tier) with Alpha Vantage as an automatic fallback (5/min, 25/day).
 - **Endpoints:**
   - `GET /stocks/price/{symbol}`
   - `GET /stocks/batch-prices?symbols=AAPL,MSFT,TSLA`
 
 ### ⏳ Historical Price Updates:
 - Update historical prices in the database for visualization and performance calculations.
-- Populate historical price data for all stocks.
+- Populate historical prices data for all stocks (currently only S&P500 stocks) for every closing price dating to a year back.
+- 251 trading days in a year * 500 stocks = 125500 rows in the Historical Prices table (will be more when I add all 2300 US stocks) but will need a stronger server for that.
+- Population process takes about 8 minutes as all the prices for 1 stock are updated every second to ensure api limits don't get hit
 - **Endpoints:**
   - `PUT /stocks/{id}/update-price`
   - `POST /stocks/price-history/populate-all`
@@ -61,7 +63,8 @@ This project is a work-in-progress full-stack application built to professional 
 - Square sizes based on the percentage of the portfolio (larger squares for higher allocation).
 - Square colors based on price performance (green for gains, red for losses).
 - Dynamic text sizing based on rectangle dimensions for better readability.
-- Multiple timeframe options (1d, 1w, 1m, 3m, 6m, YTD, 1y, Total).
+- Ability to chose % change or $ change or both or niether
+- Multiple timeframe options (1d, 1w, 1m, 3m, 6m, YTD, 1y, Total Gain/Loss).
 
 ### 🎨 Modern User Interface:
 - Responsive dark theme design across all components.
@@ -72,7 +75,6 @@ This project is a work-in-progress full-stack application built to professional 
 ### 📈 Performance Metrics:
 - Calculate key portfolio metrics: total portfolio value, total open/closed gains/losses, and percentage returns.
 - Per-holding gains/losses and percentage returns for both open and closed positions.
-- Uses historical price data to compute unrealized gains/losses for open positions.
 
 ### 🗄️ Database:
 - MySQL database with tables for stocks, portfolios, holdings, users, and historical prices.
