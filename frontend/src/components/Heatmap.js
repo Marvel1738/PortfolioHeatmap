@@ -14,12 +14,12 @@ import Sidebar from './Sidebar';
 function Heatmap() {
   const [portfolios, setPortfolios] = useState([]);
   const [selectedPortfolioId, setSelectedPortfolioId] = useState(null);
+  const [portfolioData, setPortfolioData] = useState(null); // Changed to store full response
   const [holdings, setHoldings] = useState([]);
   const [timeframe, setTimeframe] = useState('1d');
   const [error, setError] = useState('');
   const [showPercentChange, setShowPercentChange] = useState(true);
   const [showDollarChange, setShowDollarChange] = useState(false);
-  // Tooltip state
   const [tooltip, setTooltip] = useState({
     visible: false,
     x: 0,
@@ -27,7 +27,6 @@ function Heatmap() {
     data: null,
   });
 
-  // Constants for heatmap
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 800;
   const ASPECT_RATIO = BASE_WIDTH / BASE_HEIGHT;
@@ -64,11 +63,10 @@ function Heatmap() {
 
     window.addEventListener('resize', handleResize);
     handleResize();
-
     return () => window.removeEventListener('resize', handleResize);
   }, [ASPECT_RATIO, BASE_HEIGHT, BASE_WIDTH]);
 
-  // Fetch portfolios on component mount
+  // Fetch portfolios on mount
   useEffect(() => {
     const fetchPortfolios = async () => {
       try {
@@ -91,107 +89,105 @@ function Heatmap() {
     fetchPortfolios();
   }, []);
 
-// Fetch holdings when portfolio is selected
-useEffect(() => {
-  if (!selectedPortfolioId) return;
+  // Fetch holdings when portfolio or timeframe changes
+  useEffect(() => {
+    if (!selectedPortfolioId) return;
 
-  const fetchHoldings = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
+    const fetchHoldings = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No token found');
 
-      const response = await axios.get(
-        `http://localhost:8080/portfolios/${selectedPortfolioId}?timeframe=${timeframe}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+        const response = await axios.get(
+          `http://localhost:8080/portfolios/${selectedPortfolioId}?timeframe=${timeframe}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
 
-      let holdingsData = response.data.openPositions || [];
+        setPortfolioData(response.data); // Store full response
 
-      const fullHoldingsData = await Promise.all(
-        holdingsData.map(async (holding) => {
-          if (typeof holding === 'number' || !holding.stock || !holding.shares) {
-            try {
-              const holdingId = typeof holding === 'number' ? holding : holding.id;
-              const holdingResponse = await axios.get(
-                `http://localhost:8080/portfolios/holdings/${holdingId}`,
-                { headers: { 'Authorization': `Bearer ${token}` } }
-              );
-              return {
-                ...holdingResponse.data,
-                percentChange: response.data.timeframePercentageChanges[holdingId] || 0,
-              };
-            } catch (err) {
-              console.warn('Failed to fetch holding details:', err);
-              return null;
+        let holdingsData = response.data.openPositions || [];
+
+        const fullHoldingsData = await Promise.all(
+          holdingsData.map(async (holding) => {
+            if (typeof holding === 'number' || !holding.stock || !holding.shares) {
+              try {
+                const holdingId = typeof holding === 'number' ? holding : holding.id;
+                const holdingResponse = await axios.get(
+                  `http://localhost:8080/portfolios/holdings/${holdingId}`,
+                  { headers: { 'Authorization': `Bearer ${token}` } }
+                );
+                return {
+                  ...holdingResponse.data,
+                  percentChange: response.data.timeframePercentageChanges[holdingId] || 0,
+                };
+              } catch (err) {
+                console.warn('Failed to fetch holding details:', err);
+                return null;
+              }
             }
-          }
-          return {
-            ...holding,
-            percentChange: response.data.timeframePercentageChanges[holding.id] || 0,
-          };
-        })
-      );
+            return {
+              ...holding,
+              percentChange: response.data.timeframePercentageChanges[holding.id] || 0,
+            };
+          })
+        );
 
-      const validHoldings = fullHoldingsData.filter((h) => h !== null);
-      if (validHoldings.length === 0) {
-        setError('Click ADD STOCK to add stocks to your portfolio!');
-        setHoldings([]);
-        return;
-      }
-
-      // Fetch current prices for display consistency
-      const tickers = validHoldings.map((h) => h.stock.ticker);
-      const batchResponse = await axios.get('http://localhost:8080/stocks/batch-prices', {
-        params: { symbols: tickers },
-        headers: { 'Authorization': `Bearer ${token}` },
-        paramsSerializer: (params) => `symbols=${params.symbols.join(',')}`,
-      });
-      const currentPrices = batchResponse.data.reduce((acc, stockPrice) => {
-        acc[stockPrice.symbol] = stockPrice.price;
-        return acc;
-      }, {});
-
-      const totalValue = validHoldings.reduce((sum, h) => {
-        const price = currentPrices[h.stock.ticker] || h.purchasePrice;
-        return sum + h.shares * price;
-      }, 0);
-
-      const holdingsWithAllocation = validHoldings.map((holding) => {
-        const currentPrice = currentPrices[holding.stock.ticker] || holding.purchasePrice;
-        const currentValue = holding.shares * currentPrice;
-        const allocation = currentValue / totalValue;
-        const percentChange = holding.percentChange; // From server
-
-        // Revert $ change to be derived from % change
-        let dollarChange;
-        if (timeframe === 'total') {
-          const totalValue = holding.currentValue;
-          dollarChange = (totalValue * percentChange) / 100;
-        } else {
-          const pricePerShare = currentPrice;
-          dollarChange = (pricePerShare * percentChange) / 100;
+        const validHoldings = fullHoldingsData.filter((h) => h !== null);
+        if (validHoldings.length === 0) {
+          setError('Click ADD STOCK to add stocks to your portfolio!');
+          setHoldings([]);
+          return;
         }
 
-        return {
-          ...holding,
-          currentPrice,
-          currentValue,
-          allocation,
-          percentChange,
-          dollarChange, // Add this back for rendering
-        };
-      });
+        const tickers = validHoldings.map((h) => h.stock.ticker);
+        const batchResponse = await axios.get('http://localhost:8080/stocks/batch-prices', {
+          params: { symbols: tickers },
+          headers: { 'Authorization': `Bearer ${token}` },
+          paramsSerializer: (params) => `symbols=${params.symbols.join(',')}`,
+        });
+        const currentPrices = batchResponse.data.reduce((acc, stockPrice) => {
+          acc[stockPrice.symbol] = stockPrice.price;
+          return acc;
+        }, {});
 
-      holdingsWithAllocation.sort((a, b) => b.allocation - a.allocation);
-      setHoldings(holdingsWithAllocation);
-    } catch (err) {
-      console.error('Error fetching holdings:', err);
-      setError('Failed toaleb fetch holdings: ' + err.message);
-    }
-  };
+        const totalValue = validHoldings.reduce((sum, h) => {
+          const price = currentPrices[h.stock.ticker] || h.purchasePrice;
+          return sum + h.shares * price;
+        }, 0);
 
-  fetchHoldings();
-}, [selectedPortfolioId, timeframe]);
+        const holdingsWithAllocation = validHoldings.map((holding) => {
+          const currentPrice = currentPrices[holding.stock.ticker] || holding.purchasePrice;
+          const currentValue = holding.shares * currentPrice;
+          const allocation = currentValue / totalValue;
+          const percentChange = holding.percentChange;
+
+          let dollarChange;
+          if (timeframe === 'total') {
+            dollarChange = (currentValue * percentChange) / 100;
+          } else {
+            dollarChange = (currentPrice * percentChange) / 100;
+          }
+
+          return {
+            ...holding,
+            currentPrice,
+            currentValue,
+            allocation,
+            percentChange,
+            dollarChange,
+          };
+        });
+
+        holdingsWithAllocation.sort((a, b) => b.allocation - a.allocation);
+        setHoldings(holdingsWithAllocation);
+      } catch (err) {
+        console.error('Error fetching holdings:', err);
+        setError('Failed to fetch holdings: ' + err.message);
+      }
+    };
+
+    fetchHoldings();
+  }, [selectedPortfolioId, timeframe]);
 
   // Get color based on percentage change (Finviz style)
   const getColor = (percentChange) => {
@@ -363,12 +359,12 @@ const handleMouseMove = (e) => {
 
                 const fontSize = Math.min(width, height) * 0.12;
 
-                return (
+return (
                   <div
                     key={i}
                     className="heatmap-rect"
                     style={{
-                      position: 'absolute', // Ensure absolute positioning
+                      position: 'absolute',
                       left: `${d.x0}px`,
                       top: `${d.y0}px`,
                       width: `${width}px`,
@@ -386,7 +382,7 @@ const handleMouseMove = (e) => {
                       overflow: 'hidden',
                       fontFamily: 'Arial, sans-serif',
                       textShadow: '1px 1px 1px rgba(0, 0, 0, 0.5)',
-                      cursor: 'pointer', // Add cursor pointer to indicate interactivity
+                      cursor: 'pointer',
                     }}
                     onMouseEnter={(e) => handleMouseEnter(e, holding)}
                     onMouseMove={handleMouseMove}
@@ -408,39 +404,43 @@ const handleMouseMove = (e) => {
                   </div>
                 );
               })}
-              {/* Tooltip */}
               {tooltip.visible && tooltip.data && (
                 <div
                   className="heatmap-tooltip"
                   style={{
-  position: 'fixed',
-  left: `${tooltip.x + 10}px`, // 10px to the right of the cursor
-  top: `${tooltip.y - 10}px`,  // 10px above the cursor
-  pointerEvents: 'none',
-}}
+                    position: 'fixed',
+                    left: `${tooltip.x + 10}px`,
+                    top: `${tooltip.y - 10}px`,
+                    pointerEvents: 'none',
+                  }}
                 >
-                  <div>
-                    <strong>{tooltip.data.stock.ticker}</strong>
-                  </div>
-                  <div>
-                    Company: {tooltip.data.stock.companyName || 'N/A'}
-                  </div>
-                  <div>
-                    Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%
-                  </div>
-                  <div>
-                    Current Value: ${tooltip.data.currentValue.toFixed(2)}
-                  </div>
-                  <div>
-                    Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}
-                  </div>
-                  <div>
-      Current Price: ${tooltip.data.currentPrice}
-    </div>
+                  <div><strong>{tooltip.data.stock.ticker}</strong></div>
+                  <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
+                  <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
+                  <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
+                  <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
+                  <div>Current Price: ${tooltip.data.currentPrice}</div>
                 </div>
               )}
             </div>
           </div>
+          {/* Portfolio Summary - Hidden when no holdings */}
+          {portfolioData && holdings.length > 0 && (
+            <div className="portfolio-summary" style={{ marginTop: '20px', padding: '10px', fontFamily: 'Arial, sans-serif' }}>
+              <h3>Portfolio Summary</h3>
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                <li>
+                  <strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%
+                </li>
+                <li>
+                  <strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}
+                </li>
+                <li>
+                  <strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>

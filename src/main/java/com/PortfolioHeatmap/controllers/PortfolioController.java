@@ -141,11 +141,15 @@ public class PortfolioController {
 
             Map<Long, Double> timeframePercentageChanges = new HashMap<>();
             double totalPortfolioValue = 0.0;
+            double totalInitialValue = 0.0; // Sum of purchase costs for open positions
 
             for (PortfolioHolding holding : openPositions) {
                 String ticker = holding.getStock().getTicker();
                 Double currentPrice = currentPriceMap.getOrDefault(ticker, holding.getPurchasePrice());
                 double currentValue = holding.getShares() * currentPrice;
+                double initialValue = holding.getShares() * holding.getPurchasePrice();
+                totalPortfolioValue += currentValue;
+                totalInitialValue += initialValue;
 
                 double startPrice;
                 LocalDate effectiveStartDate;
@@ -192,32 +196,48 @@ public class PortfolioController {
                         String.format("%.2f", startPrice), String.format("%.2f", currentPrice),
                         changeSign, String.format("%.2f", Math.abs(timeframeChange)),
                         usedPurchasePriceFallback ? " (using purchase price)" : "");
-
-                totalPortfolioValue += currentValue;
             }
 
-            // Closed positions logic unchanged
+            // Calculate total % return for the timeframe
+            double totalPercentageReturn = totalInitialValue != 0
+                    ? ((totalPortfolioValue - totalInitialValue) / totalInitialValue) * 100
+                    : 0.0;
+
+            // Closed positions logic
             Map<Long, Double> closedGainsLosses = new HashMap<>();
             Map<Long, Double> closedPercentageReturns = new HashMap<>();
             for (PortfolioHolding holding : closedPositions) {
                 double gainLoss = (holding.getSellingPrice() - holding.getPurchasePrice()) * holding.getShares();
-                double percentageReturn = ((holding.getSellingPrice() - holding.getPurchasePrice())
-                        / holding.getPurchasePrice()) * 100;
+                double percentageReturn = holding.getPurchasePrice() != 0
+                        ? ((holding.getSellingPrice() - holding.getPurchasePrice()) / holding.getPurchasePrice()) * 100
+                        : 0;
                 closedGainsLosses.put(holding.getId(), gainLoss);
                 closedPercentageReturns.put(holding.getId(), percentageReturn);
+                totalPortfolioValue += gainLoss; // Add realized gains/losses to total value
+                totalInitialValue += holding.getShares() * holding.getPurchasePrice();
             }
+
+            // Recalculate total % return including closed positions
+            totalPercentageReturn = totalInitialValue != 0
+                    ? ((totalPortfolioValue - totalInitialValue) / totalInitialValue) * 100
+                    : 0.0;
+            double totalDollarReturn = totalPortfolioValue - totalInitialValue; // New calculation
 
             Map<String, Object> response = new HashMap<>();
             response.put("openPositions", openPositions);
             response.put("closedPositions", closedPositions);
             response.put("totalPortfolioValue", totalPortfolioValue);
+            response.put("totalPercentageReturn", totalPercentageReturn); // New field
+            response.put("totalDollarReturn", totalDollarReturn); // New field
             response.put("timeframePercentageChanges", timeframePercentageChanges);
             response.put("closedGainsLosses", closedGainsLosses);
             response.put("closedPercentageReturns", closedPercentageReturns);
             response.put("timeframe", timeframe);
 
-            log.info("Returning response with {} open positions and {} closed positions",
-                    openPositions.size(), closedPositions.size());
+            log.info(
+                    "Portfolio {} response prepared - totalValue: ${}, totalPercentageReturn: {}%, timeframeChanges: {}, totalDollarReturn: ${}",
+                            id, String.format("%.2f", totalPortfolioValue), String.format("%.2f", totalPercentageReturn), String.format("%.2f", totalDollarReturn),
+                    timeframePercentageChanges);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error fetching portfolio details", e);

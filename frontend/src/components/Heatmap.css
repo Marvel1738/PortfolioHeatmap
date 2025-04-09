@@ -223,3 +223,14 @@ label {
 .heatmap-tooltip div:last-child {
   margin-bottom: 0;
 }
+
+
+.portfolio-summary h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+}
+
+.portfolio-summary ul li {
+  margin: 5px 0;
+  font-size: 16px;
+}
