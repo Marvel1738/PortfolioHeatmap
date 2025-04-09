@@ -108,7 +108,7 @@ public class PortfolioController {
     }
 
     // Retrieves detailed information about a specific portfolio
-   @GetMapping("/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<?> getPortfolioDetails(
             @PathVariable Long id,
             @RequestParam(defaultValue = "1d") String timeframe,
@@ -147,17 +147,37 @@ public class PortfolioController {
                 Double currentPrice = currentPriceMap.getOrDefault(ticker, holding.getPurchasePrice());
                 double currentValue = holding.getShares() * currentPrice;
 
-                LocalDate startDate = getStartDateForTimeframe(timeframe);
                 double startPrice;
+                LocalDate effectiveStartDate;
+                boolean usedPurchasePriceFallback = false;
+
                 if (timeframe.equals("total")) {
                     startPrice = holding.getPurchasePrice();
-                    log.info("Timeframe 'total' for {}: using purchasePrice={}", ticker, startPrice);
+                    effectiveStartDate = null;
+                    log.info("Ticker: {}, timeframe: total, date: N/A (purchase), oldPrice: ${}, currentPrice: ${}",
+                            ticker, startPrice, currentPrice);
                 } else {
-                    Optional<PriceHistory> startPriceOpt = priceHistoryService.findByStockTickerAndDate(ticker,
-                            startDate);
-                    startPrice = startPriceOpt.map(PriceHistory::getClosingPrice).orElse(holding.getPurchasePrice());
-                    log.info("Timeframe '{}' for {}: startDate={}, startPrice={}, foundInDB={}",
-                            timeframe, ticker, startDate, startPrice, startPriceOpt.isPresent());
+                    LocalDate initialStartDate = getStartDateForTimeframe(timeframe);
+                    Optional<PriceHistory> startPriceOpt = Optional.empty();
+                    effectiveStartDate = initialStartDate;
+                    for (int daysBack = 0; daysBack <= 3 && !startPriceOpt.isPresent(); daysBack++) {
+                        effectiveStartDate = initialStartDate.minusDays(daysBack);
+                        startPriceOpt = priceHistoryService.findByStockTickerAndDate(ticker, effectiveStartDate);
+                        log.info("Ticker: {}, timeframe: {}, checking date: {}, found: {}",
+                                ticker, timeframe, effectiveStartDate, startPriceOpt.isPresent());
+                    }
+
+                    if (startPriceOpt.isPresent()) {
+                        startPrice = startPriceOpt.get().getClosingPrice();
+                        log.info("Ticker: {}, timeframe: {}, date: {}, oldPrice: ${}, currentPrice: ${}",
+                                ticker, timeframe, effectiveStartDate, startPrice, currentPrice);
+                    } else {
+                        startPrice = holding.getPurchasePrice();
+                        usedPurchasePriceFallback = true;
+                        log.warn(
+                                "Ticker: {}, timeframe: {}, date: {} - No data after 3 days back from {}, falling back to purchasePrice: ${}, currentPrice: ${}",
+                                ticker, timeframe, effectiveStartDate, initialStartDate, startPrice, currentPrice);
+                    }
                 }
 
                 double timeframeChange = startPrice != 0
@@ -165,13 +185,18 @@ public class PortfolioController {
                         : 0;
                 timeframePercentageChanges.put(holding.getId(), timeframeChange);
 
-                log.info("Holding {}: currentPrice={}, startPrice={}, timeframeChange={}",
-                        ticker, currentPrice, startPrice, timeframeChange);
+                String changeSign = timeframeChange >= 0 ? "+" : "-";
+                log.info(
+                        "Ticker: {}, timeframe: {}, date: {}, oldPrice: ${}, currentPrice: ${}, timeFrameChange: {}{}%{}",
+                        ticker, timeframe, timeframe.equals("total") ? "N/A (purchase)" : effectiveStartDate,
+                        String.format("%.2f", startPrice), String.format("%.2f", currentPrice),
+                        changeSign, String.format("%.2f", Math.abs(timeframeChange)),
+                        usedPurchasePriceFallback ? " (using purchase price)" : "");
 
                 totalPortfolioValue += currentValue;
             }
 
-            // Closed positions logic (unchanged)
+            // Closed positions logic unchanged
             Map<Long, Double> closedGainsLosses = new HashMap<>();
             Map<Long, Double> closedPercentageReturns = new HashMap<>();
             for (PortfolioHolding holding : closedPositions) {

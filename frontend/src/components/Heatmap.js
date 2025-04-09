@@ -31,7 +31,7 @@ function Heatmap() {
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 800;
   const ASPECT_RATIO = BASE_WIDTH / BASE_HEIGHT;
-  const MIN_RECTANGLE_SIZE = 60;
+  const MIN_RECTANGLE_SIZE = 30;
   const [scale, setScale] = useState(1);
 
   const timeframeOptions = [
