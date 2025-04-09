@@ -20,13 +20,17 @@ import com.PortfolioHeatmap.security.JwtUtil;
 import com.PortfolioHeatmap.services.UserService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.PortfolioHeatmap.models.PriceHistory;
+import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.services.PriceHistoryService;
+import com.PortfolioHeatmap.services.StockDataService;
+import com.PortfolioHeatmap.services.StockDataServiceFactory;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Controller class responsible for handling HTTP requests related to portfolio
@@ -49,6 +53,7 @@ public class PortfolioController {
     private final JwtUtil jwtUtil; // Added for JWT parsing
     private final UserService userService; // Added for user lookup
     private final PriceHistoryService priceHistoryService;
+    private final StockDataService stockDataService; // New dependency
 
     /**
      * Constructor for dependency injection of required services and utilities.
@@ -64,12 +69,14 @@ public class PortfolioController {
             PortfolioHoldingService portfolioHoldingService,
             JwtUtil jwtUtil,
             UserService userService,
-            PriceHistoryService priceHistoryService) {
+            PriceHistoryService priceHistoryService,
+            StockDataServiceFactory stockDataServiceFactory) {
         this.portfolioService = portfolioService;
         this.portfolioHoldingService = portfolioHoldingService;
         this.jwtUtil = jwtUtil;
         this.userService = userService;
         this.priceHistoryService = priceHistoryService;
+        this.stockDataService = stockDataServiceFactory.getService();
     }
 
     // Creates a new portfolio for the current user with the specified name
@@ -101,7 +108,7 @@ public class PortfolioController {
     }
 
     // Retrieves detailed information about a specific portfolio
-    @GetMapping("/{id}")
+   @GetMapping("/{id}")
     public ResponseEntity<?> getPortfolioDetails(
             @PathVariable Long id,
             @RequestParam(defaultValue = "1d") String timeframe,
@@ -115,10 +122,6 @@ public class PortfolioController {
                 return ResponseEntity.notFound().build();
             }
 
-            log.info("Retrieved portfolio with user ID: {}", portfolio.getUserId());
-            log.info("Portfolio ownership check - Current user: {}, Portfolio owner: {}", currentUserId,
-                    portfolio.getUserId());
-
             if (!portfolio.getUserId().equals(currentUserId)) {
                 log.warn("Access denied - User {} attempted to access portfolio {} owned by user {}",
                         currentUserId, id, portfolio.getUserId());
@@ -129,44 +132,52 @@ public class PortfolioController {
             List<PortfolioHolding> openPositions = portfolioHoldingService.getOpenPositions(id);
             List<PortfolioHolding> closedPositions = portfolioHoldingService.getClosedPositions(id);
 
-            log.info("Found {} open positions and {} closed positions", openPositions.size(), closedPositions.size());
+            List<String> tickers = openPositions.stream()
+                    .map(h -> h.getStock().getTicker())
+                    .collect(Collectors.toList());
+            List<StockPrice> currentPrices = stockDataService.getBatchStockPrices(tickers);
+            Map<String, Double> currentPriceMap = currentPrices.stream()
+                    .collect(Collectors.toMap(StockPrice::getSymbol, StockPrice::getPrice));
 
-            // Calculate metrics for open positions
             Map<Long, Double> timeframePercentageChanges = new HashMap<>();
             double totalPortfolioValue = 0.0;
 
             for (PortfolioHolding holding : openPositions) {
-                log.info("Open position: {} - {} shares", holding.getStock().getTicker(), holding.getShares());
+                String ticker = holding.getStock().getTicker();
+                Double currentPrice = currentPriceMap.getOrDefault(ticker, holding.getPurchasePrice());
+                double currentValue = holding.getShares() * currentPrice;
 
-                // Get current price and calculate current value
-                Optional<PriceHistory> currentPrice = priceHistoryService
-                        .findTopByStockTickerOrderByDateDesc(holding.getStock().getTicker());
-                if (currentPrice != null) {
-                    double currentValue = holding.getShares() * currentPrice.get().getClosingPrice();
-                    double gainLoss = currentValue - (holding.getShares() * holding.getPurchasePrice());
-                    double percentageReturn = (gainLoss / (holding.getShares() * holding.getPurchasePrice())) * 100;
-
-                    // Calculate timeframe change
-                    double timeframeChange = priceHistoryService
-                            .calculatePercentageChange(holding.getStock().getTicker(), timeframe);
-                    timeframePercentageChanges.put(holding.getId(), timeframeChange);
-
-                    log.info("Holding {}: currentValue={}, gainLoss={}, percentageReturn={}, timeframeChange={}",
-                            holding.getStock().getTicker(), currentValue, gainLoss, percentageReturn, timeframeChange);
-
-                    totalPortfolioValue += currentValue;
+                LocalDate startDate = getStartDateForTimeframe(timeframe);
+                double startPrice;
+                if (timeframe.equals("total")) {
+                    startPrice = holding.getPurchasePrice();
+                    log.info("Timeframe 'total' for {}: using purchasePrice={}", ticker, startPrice);
+                } else {
+                    Optional<PriceHistory> startPriceOpt = priceHistoryService.findByStockTickerAndDate(ticker,
+                            startDate);
+                    startPrice = startPriceOpt.map(PriceHistory::getClosingPrice).orElse(holding.getPurchasePrice());
+                    log.info("Timeframe '{}' for {}: startDate={}, startPrice={}, foundInDB={}",
+                            timeframe, ticker, startDate, startPrice, startPriceOpt.isPresent());
                 }
+
+                double timeframeChange = startPrice != 0
+                        ? ((currentPrice - startPrice) / startPrice) * 100
+                        : 0;
+                timeframePercentageChanges.put(holding.getId(), timeframeChange);
+
+                log.info("Holding {}: currentPrice={}, startPrice={}, timeframeChange={}",
+                        ticker, currentPrice, startPrice, timeframeChange);
+
+                totalPortfolioValue += currentValue;
             }
 
-            // Calculate metrics for closed positions
+            // Closed positions logic (unchanged)
             Map<Long, Double> closedGainsLosses = new HashMap<>();
             Map<Long, Double> closedPercentageReturns = new HashMap<>();
-
             for (PortfolioHolding holding : closedPositions) {
                 double gainLoss = (holding.getSellingPrice() - holding.getPurchasePrice()) * holding.getShares();
                 double percentageReturn = ((holding.getSellingPrice() - holding.getPurchasePrice())
                         / holding.getPurchasePrice()) * 100;
-
                 closedGainsLosses.put(holding.getId(), gainLoss);
                 closedPercentageReturns.put(holding.getId(), percentageReturn);
             }
@@ -187,6 +198,22 @@ public class PortfolioController {
             log.error("Error fetching portfolio details", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error fetching portfolio details: " + e.getMessage());
+        }
+    }
+
+    // Helper method to determine start date for timeframe
+    private LocalDate getStartDateForTimeframe(String timeframe) {
+        LocalDate today = LocalDate.now();
+        switch (timeframe) {
+            case "1d": return today.minusDays(1);
+            case "1w": return today.minusWeeks(1);
+            case "1m": return today.minusMonths(1);
+            case "3m": return today.minusMonths(3);
+            case "6m": return today.minusMonths(6);
+            case "ytd": return LocalDate.of(today.getYear(), 1, 1);
+            case "1y": return today.minusYears(1);
+            case "total": return LocalDate.of(1900, 1, 1); // Far back, will use purchasePrice
+            default: return today.minusDays(1); // Default to 1d
         }
     }
 
@@ -285,35 +312,28 @@ public class PortfolioController {
      * @throws RuntimeException if token is missing or invalid
      */
     private Long getCurrentUserId() {
-        // Get the current request attributes
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
             log.error("No request attributes available to fetch Authorization header");
             throw new RuntimeException("Unable to determine current user");
         }
-
-        // Get the Authorization header from the request
         String authHeader = attributes.getRequest().getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.error("Authorization header missing or invalid: {}", authHeader);
             throw new RuntimeException("Invalid or missing Authorization header");
         }
-
-        // Extract token and validate
         String token = authHeader.replace("Bearer ", "");
         String username = jwtUtil.extractUsername(token);
         if (!jwtUtil.validateToken(token, username)) {
             log.error("Invalid JWT token for username: {}", username);
             throw new RuntimeException("Invalid JWT token");
         }
-
-        // Fetch user and return ID
         User user = (User) userService.loadUserByUsername(username);
         return user.getId();
     }
 
     private Long getCurrentUserId(String authHeader) {
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
+        String token = authHeader.substring(7);
         String username = jwtUtil.extractUsername(token);
         return userService.getUserByUsername(username).getId();
     }

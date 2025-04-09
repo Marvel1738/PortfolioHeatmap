@@ -42,7 +42,7 @@ public class PriceUpdateService {
 
     // Runs daily at 6:00 PM EST (assuming server is in UTC; adjust if needed) to
     // update stock prices
-    @Scheduled(cron = "0 0 18 * * ?")
+    @Scheduled(cron = "0 0 17 * * ?")
     public void updateDailyPrices() {
         log.info("Starting daily price update for all stocks...");
 

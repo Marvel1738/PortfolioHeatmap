@@ -91,84 +91,107 @@ function Heatmap() {
     fetchPortfolios();
   }, []);
 
-  // Fetch holdings when portfolio is selected
-  useEffect(() => {
-    if (!selectedPortfolioId) return;
+// Fetch holdings when portfolio is selected
+useEffect(() => {
+  if (!selectedPortfolioId) return;
 
-    const fetchHoldings = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) throw new Error('No token found');
+  const fetchHoldings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No token found');
 
-        const response = await axios.get(
-          `http://localhost:8080/portfolios/${selectedPortfolioId}?timeframe=${timeframe}`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
+      const response = await axios.get(
+        `http://localhost:8080/portfolios/${selectedPortfolioId}?timeframe=${timeframe}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
 
-        let holdingsData = response.data.openPositions || [];
+      let holdingsData = response.data.openPositions || [];
 
-        const fullHoldingsData = await Promise.all(
-          holdingsData.map(async (holding) => {
-            if (typeof holding === 'number' || !holding.stock || !holding.shares) {
-              try {
-                const holdingId = typeof holding === 'number' ? holding : holding.id;
-                const holdingResponse = await axios.get(
-                  `http://localhost:8080/portfolios/holdings/${holdingId}`,
-                  { headers: { 'Authorization': `Bearer ${token}` } }
-                );
-                return {
-                  ...holdingResponse.data,
-                  percentChange: response.data.timeframePercentageChanges[holdingId] || 0,
-                };
-              } catch (err) {
-                console.warn('Failed to fetch holding details:', err);
-                return null;
-              }
+      const fullHoldingsData = await Promise.all(
+        holdingsData.map(async (holding) => {
+          if (typeof holding === 'number' || !holding.stock || !holding.shares) {
+            try {
+              const holdingId = typeof holding === 'number' ? holding : holding.id;
+              const holdingResponse = await axios.get(
+                `http://localhost:8080/portfolios/holdings/${holdingId}`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+              );
+              return {
+                ...holdingResponse.data,
+                percentChange: response.data.timeframePercentageChanges[holdingId] || 0,
+              };
+            } catch (err) {
+              console.warn('Failed to fetch holding details:', err);
+              return null;
             }
-            return {
-              ...holding,
-              percentChange: response.data.timeframePercentageChanges[holding.id] || 0,
-            };
-          })
-        );
-
-        const validHoldings = fullHoldingsData.filter(
-          (h) => h && h.stock && h.stock.ticker && h.shares && h.purchasePrice
-        );
-
-        if (validHoldings.length === 0) {
-          setError('Click ADD STOCK to add stocks to your portfolio!');
-          setHoldings([]);
-          return;
-        }
-
-        const totalValue = validHoldings.reduce((sum, h) => {
-          const price = h.currentPrice || h.purchasePrice;
-          return sum + h.shares * price;
-        }, 0);
-
-        const holdingsWithAllocation = validHoldings.map((holding) => {
-          const price = holding.currentPrice || holding.purchasePrice;
-          const currentValue = holding.shares * price;
-          const allocation = currentValue / totalValue;
+          }
           return {
             ...holding,
-            currentValue,
-            allocation,
+            percentChange: response.data.timeframePercentageChanges[holding.id] || 0,
           };
-        });
+        })
+      );
 
-        // Sort by allocation in descending order
-        holdingsWithAllocation.sort((a, b) => b.allocation - a.allocation);
-        setHoldings(holdingsWithAllocation);
-      } catch (err) {
-        console.error('Error fetching holdings:', err);
-        setError('Failed to fetch holdings: ' + err.message);
+      const validHoldings = fullHoldingsData.filter((h) => h !== null);
+      if (validHoldings.length === 0) {
+        setError('Click ADD STOCK to add stocks to your portfolio!');
+        setHoldings([]);
+        return;
       }
-    };
 
-    fetchHoldings();
-  }, [selectedPortfolioId, timeframe]);
+      // Fetch current prices for display consistency
+      const tickers = validHoldings.map((h) => h.stock.ticker);
+      const batchResponse = await axios.get('http://localhost:8080/stocks/batch-prices', {
+        params: { symbols: tickers },
+        headers: { 'Authorization': `Bearer ${token}` },
+        paramsSerializer: (params) => `symbols=${params.symbols.join(',')}`,
+      });
+      const currentPrices = batchResponse.data.reduce((acc, stockPrice) => {
+        acc[stockPrice.symbol] = stockPrice.price;
+        return acc;
+      }, {});
+
+      const totalValue = validHoldings.reduce((sum, h) => {
+        const price = currentPrices[h.stock.ticker] || h.purchasePrice;
+        return sum + h.shares * price;
+      }, 0);
+
+      const holdingsWithAllocation = validHoldings.map((holding) => {
+        const currentPrice = currentPrices[holding.stock.ticker] || holding.purchasePrice;
+        const currentValue = holding.shares * currentPrice;
+        const allocation = currentValue / totalValue;
+        const percentChange = holding.percentChange; // From server
+
+        // Revert $ change to be derived from % change
+        let dollarChange;
+        if (timeframe === 'total') {
+          const totalValue = holding.currentValue;
+          dollarChange = (totalValue * percentChange) / 100;
+        } else {
+          const pricePerShare = currentPrice;
+          dollarChange = (pricePerShare * percentChange) / 100;
+        }
+
+        return {
+          ...holding,
+          currentPrice,
+          currentValue,
+          allocation,
+          percentChange,
+          dollarChange, // Add this back for rendering
+        };
+      });
+
+      holdingsWithAllocation.sort((a, b) => b.allocation - a.allocation);
+      setHoldings(holdingsWithAllocation);
+    } catch (err) {
+      console.error('Error fetching holdings:', err);
+      setError('Failed toaleb fetch holdings: ' + err.message);
+    }
+  };
+
+  fetchHoldings();
+}, [selectedPortfolioId, timeframe]);
 
   // Get color based on percentage change (Finviz style)
   const getColor = (percentChange) => {
@@ -411,6 +434,9 @@ const handleMouseMove = (e) => {
                   <div>
                     Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}
                   </div>
+                  <div>
+      Current Price: ${tooltip.data.currentPrice}
+    </div>
                 </div>
               )}
             </div>
