@@ -44,6 +44,18 @@ function Heatmap() {
     { value: 'total', label: 'Total Gain/Loss' },
   ];
 
+  // Define max percentage ranges for each timeframe (Finviz style)
+  const timeframeRanges = {
+    '1d': 3,    // ±3%
+    '1w': 6,    // ±6%
+    '1m': 9,   // ±9%
+    '3m': 15,   // ±15%
+    '6m': 24,   // ±24%
+    'ytd': 30,  // ±30% 
+    '1y': 30,   // ±30%
+    'total': 60 // ±60% (for lifetime performance)
+  };
+
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
@@ -189,16 +201,19 @@ function Heatmap() {
     fetchHoldings();
   }, [selectedPortfolioId, timeframe]);
 
-  // Get color based on percentage change (Finviz style)
-  const getColor = (percentChange) => {
+// Get color based on percentage change (Finviz style with dynamic scaling)
+  const getColor = (percentChange, timeframe) => {
     const pc = Number(percentChange) || 0;
     const baseGray = { r: 43, g: 49, b: 58 };
-
-    const cappedPC = Math.min(Math.abs(pc), 3);
-    const factor = cappedPC / 3;
-
     const green = { r: 0, g: 153, b: 51 };
     const red = { r: 204, g: 51, b: 51 };
+
+    // Get the max range for the current timeframe
+    const maxRange = timeframeRanges[timeframe]
+
+    // Cap the percentage change at the max range for color scaling
+    const cappedPC = Math.min(Math.abs(pc), maxRange);
+    const factor = cappedPC / maxRange; // Scale factor based on the timeframe's range
 
     let targetColor;
     if (pc > 0) {
@@ -213,7 +228,7 @@ function Heatmap() {
     const g = Math.round(baseGray.g + (targetColor.g - baseGray.g) * factor);
     const b = Math.round(baseGray.b + (targetColor.b - baseGray.b) * factor);
 
-    const opacity = 0.7 + factor * (0.95 - 0.5);
+    const opacity = 0.7 + factor * (0.95 - 0.7); // Adjust opacity from 0.7 to 0.95
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
@@ -286,6 +301,25 @@ const handleMouseMove = (e) => {
 
   const handlePortfolioSelect = (portfolioId) => {
     setSelectedPortfolioId(portfolioId);
+  };
+
+  // Generate percentage markers for the color scale
+  const getColorScaleMarkers = (timeframe) => {
+    const maxRange = timeframeRanges[timeframe] || 10;
+    // Finviz uses 7 markers: -max, -2/3*max, -1/3*max, 0, +1/3*max, +2/3*max, +max
+    const steps = [
+      -maxRange,
+      -(maxRange * 2) / 3,
+      -maxRange / 3,
+      0,
+      maxRange / 3,
+      (maxRange * 2) / 3,
+      maxRange,
+    ];
+    return steps.map((value) => ({
+      value,
+      label: value >= 0 ? `+${value}%` : `${value}%`,
+    }));
   };
 
   return (
@@ -369,7 +403,7 @@ return (
                       top: `${d.y0}px`,
                       width: `${width}px`,
                       height: `${height}px`,
-                      backgroundColor: getColor(percentChange),
+                      backgroundColor: getColor(percentChange, timeframe),
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'center',
@@ -425,20 +459,37 @@ return (
             </div>
           </div>
           {/* Portfolio Summary - Hidden when no holdings */}
-          {portfolioData && holdings.length > 0 && (
-            <div className="portfolio-summary" style={{ marginTop: '20px', textAlign: 'left', padding: '10px', fontFamily: 'Arial, sans-serif' }}>
-              <h3>Portfolio Summary</h3>
-              <ul style={{ listStyle: 'none', padding: 0 }}>
-                <li>
-                  <strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%
-                </li>
-                <li>
-                  <strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}
-                </li>
-                <li>
-                  <strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}
-                </li>
-              </ul>
+{portfolioData && holdings.length > 0 && (
+            <div className="summary-and-scale" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', width: '100%'}}>
+              <div className="portfolio-summary" style={{ textAlign: 'left', padding: '10px', fontFamily: 'Arial, sans-serif' }}>
+                <h3>Portfolio Summary</h3>
+                <ul style={{ listStyle: 'none', padding: 0 }}>
+                  <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%</li>
+                  <li><strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}</li>
+                  <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}</li>
+                </ul>
+              </div>
+              <div className="color-scale" style={{ fontFamily: 'Arial, sans-serif'}}>
+                <div className="color-scale-bar" style={{
+                  width: '100%',
+                  height: '20px',
+                  background: `linear-gradient(to right, 
+                    rgba(204, 51, 51, 0.95), 
+                    rgba(204, 51, 51, 0.82) 33%, 
+                    rgba(43, 49, 58, 0.7) 50%, 
+                    rgba(0, 153, 51, 0.82) 67%, 
+                    rgba(0, 153, 51, 0.95)
+                  )`,
+                  borderRadius: '3px',
+                }}></div>
+                <div className="color-scale-labels" style={{ display: 'flex', justifyContent: 'space-between'}}>
+                  {getColorScaleMarkers(timeframe).map((marker, index) => (
+                    <span key={index} style={{ fontSize: '12px', color: '#ffffff' }}>
+                      {marker.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

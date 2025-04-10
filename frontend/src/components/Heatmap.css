@@ -235,3 +235,31 @@ label {
   margin: 5px 0;
   font-size: 16px;
 }
+
+.portfolio-summary {
+  flex-shrink: 0; /* Prevent shrinking */
+}
+/* Add wrapper for color scale alignment */
+.color-scale-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.color-scale {
+  margin-bottom: 20px;
+  margin-left: auto; /* Align to the right */
+    width: 35%;
+    margin-top: 6px !important;
+}
+
+.color-scale-bar {
+  transition: background 0.3s ease;
+  width: 100%;
+}
+
+.color-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
