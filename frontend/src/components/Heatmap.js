@@ -426,7 +426,7 @@ return (
           </div>
           {/* Portfolio Summary - Hidden when no holdings */}
           {portfolioData && holdings.length > 0 && (
-            <div className="portfolio-summary" style={{ marginTop: '20px', padding: '10px', fontFamily: 'Arial, sans-serif' }}>
+            <div className="portfolio-summary" style={{ marginTop: '20px', textAlign: 'left', padding: '10px', fontFamily: 'Arial, sans-serif' }}>
               <h3>Portfolio Summary</h3>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 <li>
