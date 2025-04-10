@@ -92,10 +92,12 @@ function Heatmap() {
         setPortfolios(response.data);
         if (response.data.length > 0) {
           setSelectedPortfolioId(response.data[0].id);
-        }
-      } catch (err) {
-        setError('Failed to fetch portfolios: ' + err.message);
+        } else {
+        setError('Click NEW PORTFOLIO to create a portfolio!');
       }
+    } catch (err) {
+      setError('Failed to fetch portfolios: ' + err.message);
+    }
     };
 
     fetchPortfolios();
@@ -103,7 +105,11 @@ function Heatmap() {
 
   // Fetch holdings when portfolio or timeframe changes
   useEffect(() => {
-    if (!selectedPortfolioId) return;
+    if (!selectedPortfolioId) {
+      setError('Select portfolio to see Heatmap!');
+      setHoldings([]);
+      return;
+    }
 
     const fetchHoldings = async () => {
       try {
@@ -146,7 +152,7 @@ function Heatmap() {
 
         const validHoldings = fullHoldingsData.filter((h) => h !== null);
         if (validHoldings.length === 0) {
-          setError('Click ADD to add stocks to your portfolio!');
+          setError('Click ADD STOCK to add stocks to your portfolio!');
           setHoldings([]);
           return;
         }

@@ -282,7 +282,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
         className="add-button"
         onClick={() => setShowAddModal(true)}
       >
-        ADD
+        ADD STOCK
       </button>
 
       <div className="search-container">
@@ -312,7 +312,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
               <button 
                 className="action-button remove" 
                 onClick={() => handleRemoveShares(holding)}
-                style={{ width: '25px', height: '25px', marginLeft: '-5px' }}
+                style={{ width: '25px', height: '25px', marginLeft: '1px' }}
               >
                 <span className="minus-icon" style={{ fontSize: '15px' }}>-</span>
               </button>

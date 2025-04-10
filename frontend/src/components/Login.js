@@ -46,13 +46,7 @@ function Login() {
       const portfolioResponse = await axios.get('http://localhost:8080/portfolios/user', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      const hasPortfolios = portfolioResponse.data.length > 0; // Check if list is empty
-
-      if (hasPortfolios) {
         navigate('/heatmap'); // Returning user with portfolios
-      } else {
-        navigate('/create-portfolio'); // New user, no portfolios
-      }
     } catch (err) {
       const errorMessage = err.response && err.response.data
         ? err.response.data

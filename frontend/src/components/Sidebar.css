@@ -58,7 +58,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 1px !important;
+  padding: 7px 1px !important;
+  border: none;
+  border-bottom: 1px solid rgb(42, 41, 41);
 }
 
 .holding-item:hover {
@@ -73,7 +75,7 @@
 
 .ticker {
   font-weight: bold;
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-primary);
   line-height: 1.2;
 }
@@ -175,7 +177,7 @@
 
 .input-group input {
   width: 100%;
-  padding: 4px 6px;
+  padding: 4px 1px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   background-color: var(--background-secondary);

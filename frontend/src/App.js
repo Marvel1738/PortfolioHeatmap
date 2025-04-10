@@ -5,8 +5,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import Register from './components/Register';
 import Heatmap from './components/Heatmap';
-import CreatePortfolio from './components/CreatePortfolio';
-import Preview from './components/Preview';
 import Header from './components/Header';
 import Predictions from './components/Predictions';
 import './App.css';
@@ -27,8 +25,6 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/heatmap" element={<Heatmap />} />
-            <Route path="/create-portfolio" element={<CreatePortfolio />} />
-            <Route path="/preview" element={<Preview />} />
             <Route path="/predictions" element={<Predictions />} />
             <Route path="/" element={<Navigate to="/heatmap" replace />} />
           </Routes>
