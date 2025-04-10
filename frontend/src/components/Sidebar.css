@@ -51,16 +51,22 @@
   display: flex;
   flex-direction: column;
   gap: 0px;
-  margin-top: 0px !important;
+  margin-top: 10px !important;
 }
 
 .holding-item {
+  width: 130px;
+  margin-left: -5px !important;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 7px 1px !important;
+  padding: 8px 0px !important;
   border: none;
-  border-bottom: 1px solid rgb(42, 41, 41);
+  border-bottom: 1px solid rgb(93, 106, 109);
+}
+
+.holding-item:last-child {
+  border-bottom: none;
 }
 
 .holding-item:hover {
@@ -70,7 +76,7 @@
 .holding-info {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  width: 80%;
 }
 
 .ticker {
@@ -105,6 +111,7 @@
 
 .action-button.remove {
   background-color: #f44336;
+  margin-right: 10px !important;
 }
 
 .plus-icon, .minus-icon {

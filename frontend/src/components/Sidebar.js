@@ -305,7 +305,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
               <button 
                 className="action-button add" 
                 onClick={() => handleAddShares(holding)}
-                style={{ width: '25px', height: '25px'}}
+                style={{ width: '25px', height: '25px' }}
               >
                 <span className="plus-icon" style={{ fontSize: '15px' }}>+</span>
               </button>
