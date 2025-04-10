@@ -23,6 +23,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  max-width: 1000px;
 }
 
 .heatmap-controls {
@@ -97,9 +98,6 @@
   font-family: Arial, sans-serif;
   padding: 4px;
   box-sizing: border-box;
-}
-
-.heatmap-rect:hover {
 }
 
 .heatmap-rect .ticker {
@@ -227,7 +225,6 @@ label {
 
 
 .portfolio-summary h3 {
-  margin: 0 0 10px 0;
   font-size: 18px;
 }
 
@@ -237,29 +234,16 @@ label {
 }
 
 .portfolio-summary {
-  flex-shrink: 0; /* Prevent shrinking */
-}
-/* Add wrapper for color scale alignment */
-.color-scale-wrapper {
+  text-align: center !important;
+  font-family: 'Arial, sans-serif';
   width: 100%;
   max-width: 1200px;
-  margin: 0 auto;
+  margin-top: -20px !important;
 }
 
 .color-scale {
-  margin-bottom: 20px;
-  margin-left: auto; /* Align to the right */
-    width: 35%;
-    margin-top: 6px !important;
-}
-
-.color-scale-bar {
-  transition: background 0.3s ease;
-  width: 100%;
-}
-
-.color-scale-labels {
   display: flex;
-  justify-content: space-between;
-  width: 100%;
+  flex-direction: column;
+  gap: 1px;
+  margin-right: -10px
 }

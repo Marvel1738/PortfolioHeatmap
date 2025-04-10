@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as d3 from 'd3';
 import './Heatmap.css';
-import Sidebar from './Sidebar';
+import Sidebar from './Sidebar.js';
 
 /**
  * Heatmap component for displaying portfolio visualizations with a tooltip on hover.
@@ -146,7 +146,7 @@ function Heatmap() {
 
         const validHoldings = fullHoldingsData.filter((h) => h !== null);
         if (validHoldings.length === 0) {
-          setError('Click ADD STOCK to add stocks to your portfolio!');
+          setError('Click ADD to add stocks to your portfolio!');
           setHoldings([]);
           return;
         }
@@ -361,135 +361,148 @@ const handleMouseMove = (e) => {
             </label>
           </div>
         </div>
-        <div className="heatmap">
-          <div className="heatmap-visualization">
-            <div
-              className="heatmap-content"
-              style={{
-                position: 'absolute', 
-                width: `${BASE_WIDTH}px`,
-                height: `${BASE_HEIGHT}px`,
-                transform: `scale(${scale})`,
-                transformOrigin: 'top left',
-              }}
-            >
-              {holdings.length === 0 && error && (
-                <div className="error-message">{error}</div>
-              )}
-              {treeMapData.map((d, i) => {
-                const holding = d.data.holding;
-                const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
-                const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
-                const percentChange = holding.percentChange;
+<div className="heatmap">
+          <div className="heatmap-and-scale" style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '1200px' }}>
+            <div className="heatmap-visualization">
+              <div
+                className="heatmap-content"
+                style={{
+                  position: 'absolute',
+                  width: `${BASE_WIDTH}px`,
+                  height: `${BASE_HEIGHT}px`,
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top left',
+                }}
+              >
+                {holdings.length === 0 && error && (
+                  <div className="error-message">{error}</div>
+                )}
+                {treeMapData.map((d, i) => {
+                  const holding = d.data.holding;
+                  const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
+                  const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
+                  const percentChange = holding.percentChange;
 
-                let dollarChange;
-                if (timeframe === 'total') {
-                  const totalValue = holding.currentValue;
-                  dollarChange = (totalValue * percentChange) / 100;
-                } else {
-                  const pricePerShare = holding.currentPrice || holding.purchasePrice || 0;
-                  dollarChange = (pricePerShare * percentChange) / 100;
-                }
+                  let dollarChange;
+                  if (timeframe === 'total') {
+                    dollarChange = (holding.currentValue * percentChange) / 100;
+                  } else {
+                    dollarChange = (holding.currentPrice * percentChange) / 100;
+                  }
 
-                const fontSize = Math.min(width, height) * 0.12;
+                  const fontSize = Math.min(width, height) * 0.12;
 
-return (
-                  <div
-                    key={i}
-                    className="heatmap-rect"
-                    style={{
-                      position: 'absolute',
-                      left: `${d.x0}px`,
-                      top: `${d.y0}px`,
-                      width: `${width}px`,
-                      height: `${height}px`,
-                      backgroundColor: getColor(percentChange, timeframe),
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      padding: '5px',
-                      boxSizing: 'border-box',
-                      color: '#ffffff',
-                      fontSize: `${fontSize}px`,
-                      textAlign: 'center',
-                      overflow: 'hidden',
-                      fontFamily: 'Arial, sans-serif',
-                      textShadow: '1px 1px 1px rgba(0, 0, 0, 0.5)',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => handleMouseEnter(e, holding)}
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
-                      {holding.stock.ticker}
+                  return (
+                    <div
+                      key={i}
+                      className="heatmap-rect"
+                      style={{
+                        position: 'absolute',
+                        left: `${d.x0}px`,
+                        top: `${d.y0}px`,
+                        width: `${width}px`,
+                        height: `${height}px`,
+                        backgroundColor: getColor(percentChange, timeframe),
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: '5px',
+                        boxSizing: 'border-box',
+                        color: '#ffffff',
+                        fontSize: `${fontSize}px`,
+                        textAlign: 'center',
+                        overflow: 'hidden',
+                        fontFamily: 'Arial, sans-serif',
+                        textShadow: '1px 1px 1px rgba(0, 0, 0, 0.5)',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => handleMouseEnter(e, holding)}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
+                        {holding.stock.ticker}
+                      </div>
+                      {showPercentChange && (
+                        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+                          {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
+                        </div>
+                      )}
+                      {showDollarChange && (
+                        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+                          {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2)}$
+                        </div>
+                      )}
                     </div>
-                    {showPercentChange && (
-                      <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                        {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
-                      </div>
-                    )}
-                    {showDollarChange && (
-                      <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                        {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2)}$
-                      </div>
-                    )}
+                  );
+                })}
+                {tooltip.visible && tooltip.data && (
+                  <div
+                    className="heatmap-tooltip"
+                    style={{
+                      position: 'fixed',
+                      left: `${tooltip.x + 10}px`,
+                      top: `${tooltip.y - 10}px`,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <div><strong>{tooltip.data.stock.ticker}</strong></div>
+                    <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
+                    <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
+                    <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
+                    <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
+                    <div>Current Price: ${tooltip.data.currentPrice}</div>
                   </div>
-                );
-              })}
-              {tooltip.visible && tooltip.data && (
-                <div
-                  className="heatmap-tooltip"
-                  style={{
-                    position: 'fixed',
-                    left: `${tooltip.x + 10}px`,
-                    top: `${tooltip.y - 10}px`,
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <div><strong>{tooltip.data.stock.ticker}</strong></div>
-                  <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
-                  <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
-                  <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
-                  <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
-                  <div>Current Price: ${tooltip.data.currentPrice}</div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
+            {portfolioData && holdings.length > 0 && (
+<div
+  className="color-scale"
+  style={{
+    fontFamily: 'Arial, sans-serif',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    gap: '1px',
+    marginLeft: '20px',
+    height: `${BASE_HEIGHT * 0.75 * scale}px`,
+    width: `${BASE_WIDTH * 0.06 * scale}px`, // 6% of heatmap width
+    minWidth: '40px',
+  }}
+>
+  {getColorScaleMarkers(timeframe).map((marker, index) => (
+    <div
+      key={index}
+      style={{
+        backgroundColor: getColor(marker.value, timeframe),
+        color: '#fff',
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        minHeight: '0',
+      }}
+    >
+      {marker.label}
+    </div>
+  ))}
+</div>
+
+
+            )}
           </div>
-          {/* Portfolio Summary - Hidden when no holdings */}
-{portfolioData && holdings.length > 0 && (
-            <div className="summary-and-scale" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', width: '100%'}}>
-              <div className="portfolio-summary" style={{ textAlign: 'left', padding: '10px', fontFamily: 'Arial, sans-serif' }}>
-                <h3>Portfolio Summary</h3>
-                <ul style={{ listStyle: 'none', padding: 0 }}>
-                  <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%</li>
-                  <li><strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}</li>
-                  <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}</li>
-                </ul>
-              </div>
-              <div className="color-scale" style={{ fontFamily: 'Arial, sans-serif'}}>
-                <div className="color-scale-bar" style={{
-                  width: '100%',
-                  height: '20px',
-                  background: `linear-gradient(to right, 
-                    rgba(204, 51, 51, 0.95), 
-                    rgba(204, 51, 51, 0.82) 33%, 
-                    rgba(43, 49, 58, 0.7) 50%, 
-                    rgba(0, 153, 51, 0.82) 67%, 
-                    rgba(0, 153, 51, 0.95)
-                  )`,
-                  borderRadius: '3px',
-                }}></div>
-                <div className="color-scale-labels" style={{ display: 'flex', justifyContent: 'space-between'}}>
-                  {getColorScaleMarkers(timeframe).map((marker, index) => (
-                    <span key={index} style={{ fontSize: '12px', color: '#ffffff' }}>
-                      {marker.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
+          {portfolioData && holdings.length > 0 && (
+            <div className="portfolio-summary" style={{ textAlign: 'left', fontFamily: 'Arial, sans-serif', width: '100%' }}>
+              <h3>Portfolio Summary</h3>
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%</li>
+                <li><strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}</li>
+                <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}</li>
+              </ul>
             </div>
           )}
         </div>
