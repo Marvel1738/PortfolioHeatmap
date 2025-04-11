@@ -371,132 +371,139 @@ const handleMouseMove = (e) => {
           </div>
         </div>
 <div className="heatmap">
-          <div className="heatmap-and-scale" style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '1200px' }}>
-            <div className="heatmap-visualization">
-              <div
-                className="heatmap-content"
-                style={{
-                  position: 'absolute',
-                  width: `${BASE_WIDTH}px`,
-                  height: `${BASE_HEIGHT}px`,
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'top left',
-                }}
-              >
-                {holdings.length === 0 && error && (
-                  <div className="error-message">{error}</div>
-                )}
-                {treeMapData.map((d, i) => {
-                  const holding = d.data.holding;
-                  const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
-                  const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
-                  const percentChange = holding.percentChange;
-
-                  let dollarChange;
-                  if (timeframe === 'total') {
-                    dollarChange = (holding.currentValue * percentChange) / 100;
-                  } else {
-                    dollarChange = (holding.currentPrice * percentChange) / 100;
-                  }
-
-                  const fontSize = Math.min(width, height) * 0.12;
-
-                  return (
-                    <div
-  key={i}
-  className="heatmap-rect"
-  style={{
-    position: 'absolute',
-    left: `${d.x0}px`,
-    top: `${d.y0}px`,
-    width: `${width}px`,
-    height: `${height}px`,
-    backgroundColor: getColor(percentChange, timeframe),
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: '5px',
-    boxSizing: 'border-box',
-    color: '#ffffff',
-    fontSize: `${fontSize}px`,
-    textAlign: 'center',
-    overflow: 'hidden',
-    fontFamily: 'Arial, sans-serif',
-    textShadow: '1px 1px 1px rgba(0, 0, 0, 0.9)',
-    cursor: 'default', /* Explicitly set inline cursor */
-  }}
-  onMouseEnter={(e) => handleMouseEnter(e, holding)}
-  onMouseMove={handleMouseMove}
-  onMouseLeave={handleMouseLeave}
->
-                      <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
-                        {holding.stock.ticker}
-                      </div>
-                      {showPercentChange && (
-                        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                          {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
-                        </div>
-                      )}
-                      {showDollarChange && (
-                        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                          {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2)}$
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            {portfolioData && holdings.length > 0 && (
-<div
-  className="color-scale"
-  style={{
-    fontFamily: 'Arial, sans-serif',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    gap: '1px',
-    marginLeft: '20px',
-    height: `${BASE_HEIGHT * 0.75 * scale}px`,
-    width: `${BASE_WIDTH * 0.06 * scale}px`, // 6% of heatmap width
-    minWidth: '40px',
-  }}
->
-  {getColorScaleMarkers(timeframe).map((marker, index) => (
-    <div
-      key={index}
-      style={{
-        backgroundColor: getColor(marker.value, timeframe),
-        color: '#fff',
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '12px',
-        fontWeight: 'bold',
-        minHeight: '0',
-      }}
-    >
-      {marker.label}
+  {portfolios.length > 0 && holdings.length > 0 && (
+    <div className="heatmap-message">
+      *Double click stock to see detailed chart
     </div>
-  ))}
-</div>
+  )}
+  <div className="heatmap-and-scale" style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '1200px' }}>
+    <div className="heatmap-visualization">
+      <div
+        className="heatmap-content"
+        style={{
+          position: 'absolute',
+          width: `${BASE_WIDTH}px`,
+          height: `${BASE_HEIGHT}px`,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      >
+        {holdings.length === 0 && error && (
+          <div className="error-message">{error}</div>
+        )}
+        {treeMapData.map((d, i) => {
+          const holding = d.data.holding;
+          const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
+          const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
+          const percentChange = holding.percentChange;
 
+          let dollarChange;
+          if (timeframe === 'total') {
+            dollarChange = (holding.currentValue * percentChange) / 100;
+          } else {
+            dollarChange = (holding.currentPrice * percentChange) / 100;
+          }
 
-            )}
-          </div>
-          {portfolioData && holdings.length > 0 && (
-            <div className="portfolio-summary" style={{ textAlign: 'left', fontFamily: 'Arial, sans-serif', width: '100%' }}>
-              <h3>Portfolio Summary</h3>
-              <ul style={{ listStyle: 'none', padding: 0 }}>
-                <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%</li>
-                <li><strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}</li>
-                <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}</li>
-              </ul>
+          const fontSize = Math.min(width, height) * 0.12;
+
+          return (
+            <div
+              key={i}
+              className="heatmap-rect"
+              style={{
+                position: 'absolute',
+                left: `${d.x0}px`,
+                top: `${d.y0}px`,
+                width: `${width}px`,
+                height: `${height}px`,
+                backgroundColor: getColor(percentChange, timeframe),
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '5px',
+                boxSizing: 'border-box',
+                color: '#ffffff',
+                fontSize: `${fontSize}px`,
+                textAlign: 'center',
+                overflow: 'hidden',
+                fontFamily: 'Arial, sans-serif',
+                textShadow: '1px 1px 1px rgba(0, 0, 0, 0.9)',
+                cursor: 'default',
+              }}
+              onMouseEnter={(e) => handleMouseEnter(e, holding)}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              onDoubleClick={() => {
+                const ticker = holding.stock.ticker;
+                window.open(`https://finviz.com/quote.ashx?t=${ticker}&p=d`, '_blank');
+              }}
+            >
+              <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
+                {holding.stock.ticker}
+              </div>
+              {showPercentChange && (
+                <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+                  {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
+                </div>
+              )}
+              {showDollarChange && (
+                <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+                  {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2)}$
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })}
+      </div>
+    </div>
+    {portfolioData && holdings.length > 0 && (
+      <div
+        className="color-scale"
+        style={{
+          fontFamily: 'Arial, sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: '1px',
+          marginLeft: '20px',
+          height: `${BASE_HEIGHT * 0.75 * scale}px`,
+          width: `${BASE_WIDTH * 0.06 * scale}px`,
+          minWidth: '40px',
+        }}
+      >
+        {getColorScaleMarkers(timeframe).map((marker, index) => (
+          <div
+            key={index}
+            style={{
+              backgroundColor: getColor(marker.value, timeframe),
+              color: '#fff',
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              minHeight: '0',
+            }}
+          >
+            {marker.label}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+  {portfolioData && holdings.length > 0 && (
+    <div className="portfolio-summary" style={{ textAlign: 'left', fontFamily: 'Arial, sans-serif', width: '100%' }}>
+      <h3>Portfolio Summary</h3>
+      <ul style={{ listStyle: 'none', padding: 0 }}>
+        <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%</li>
+        <li><strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}</li>
+        <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}</li>
+      </ul>
+    </div>
+  )}
+</div>
       </div>
       {tooltip.visible && tooltip.data &&
   ReactDOM.createPortal(

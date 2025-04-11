@@ -240,7 +240,7 @@ label {
 }
 
 .portfolio-summary {
-  text-align: center !important;
+  text-align: left !important;
   font-family: 'Arial, sans-serif';
   width: 100%;
   max-width: 1200px;
@@ -252,4 +252,13 @@ label {
   flex-direction: column;
   gap: 1px;
   margin-right: -10px
+}
+
+.heatmap-message {
+  text-align: left;
+  font-family: 'Arial, sans-serif' !important;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  font-style: italic;
 }
