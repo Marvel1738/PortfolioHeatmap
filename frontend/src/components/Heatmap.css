@@ -72,7 +72,6 @@
   width: 100%;
   height: 0;
   padding-bottom: 66.67%; /* This maintains 3:2 aspect ratio */
-  background-color: var(--background-primary);
   overflow: hidden;
 }
 
@@ -87,7 +86,7 @@
 .heatmap-rect {
   position: absolute;
   transition: transform 0.2s ease;
-  cursor: pointer;
+  cursor: default;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -97,6 +96,12 @@
   font-family: Arial, sans-serif;
   padding: 4px;
   box-sizing: border-box;
+  cursor: default;
+}
+
+.heatmap-rect:hover {
+  border: 2px solid gold;
+  cursor: default !important;
 }
 
 .heatmap-rect .ticker {
@@ -212,16 +217,18 @@ label {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   white-space: nowrap;
+  pointer-events: none; /* Prevent interaction */
+  opacity: 0.9; /* Slight transparency */
+  transition: opacity 0.1s ease-out, transform 0.1s ease-out; /* Smooth transitions */
 }
 
 .heatmap-tooltip div {
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .heatmap-tooltip div:last-child {
   margin-bottom: 0;
 }
-
 
 .portfolio-summary h3 {
   font-size: 18px;

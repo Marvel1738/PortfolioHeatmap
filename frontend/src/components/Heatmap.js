@@ -5,6 +5,9 @@ import axios from 'axios';
 import * as d3 from 'd3';
 import './Heatmap.css';
 import Sidebar from './Sidebar.js';
+import ReactDOM from 'react-dom';
+
+
 
 /**
  * Heatmap component for displaying portfolio visualizations with a tooltip on hover.
@@ -289,6 +292,14 @@ const handleMouseEnter = (e, holding) => {
   });
 };
 
+const handleMouseLeave = () => {
+  setTooltip((prev) => ({
+    ...prev,
+    visible: false,
+    data: null,
+  }));
+};
+
 const handleMouseMove = (e) => {
   setTooltip((prev) => ({
     ...prev,
@@ -296,14 +307,6 @@ const handleMouseMove = (e) => {
     y: e.clientY,
   }));
 };
-
-  const handleMouseLeave = () => {
-    setTooltip((prev) => ({
-      ...prev,
-      visible: false,
-      data: null,
-    }));
-  };
 
   const handlePortfolioSelect = (portfolioId) => {
     setSelectedPortfolioId(portfolioId);
@@ -400,33 +403,33 @@ const handleMouseMove = (e) => {
 
                   return (
                     <div
-                      key={i}
-                      className="heatmap-rect"
-                      style={{
-                        position: 'absolute',
-                        left: `${d.x0}px`,
-                        top: `${d.y0}px`,
-                        width: `${width}px`,
-                        height: `${height}px`,
-                        backgroundColor: getColor(percentChange, timeframe),
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        padding: '5px',
-                        boxSizing: 'border-box',
-                        color: '#ffffff',
-                        fontSize: `${fontSize}px`,
-                        textAlign: 'center',
-                        overflow: 'hidden',
-                        fontFamily: 'Arial, sans-serif',
-                        textShadow: '1px 1px 1px rgba(0, 0, 0, 0.5)',
-                        cursor: 'pointer',
-                      }}
-                      onMouseEnter={(e) => handleMouseEnter(e, holding)}
-                      onMouseMove={handleMouseMove}
-                      onMouseLeave={handleMouseLeave}
-                    >
+  key={i}
+  className="heatmap-rect"
+  style={{
+    position: 'absolute',
+    left: `${d.x0}px`,
+    top: `${d.y0}px`,
+    width: `${width}px`,
+    height: `${height}px`,
+    backgroundColor: getColor(percentChange, timeframe),
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '5px',
+    boxSizing: 'border-box',
+    color: '#ffffff',
+    fontSize: `${fontSize}px`,
+    textAlign: 'center',
+    overflow: 'hidden',
+    fontFamily: 'Arial, sans-serif',
+    textShadow: '1px 1px 1px rgba(0, 0, 0, 0.9)',
+    cursor: 'default', /* Explicitly set inline cursor */
+  }}
+  onMouseEnter={(e) => handleMouseEnter(e, holding)}
+  onMouseMove={handleMouseMove}
+  onMouseLeave={handleMouseLeave}
+>
                       <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
                         {holding.stock.ticker}
                       </div>
@@ -443,24 +446,6 @@ const handleMouseMove = (e) => {
                     </div>
                   );
                 })}
-                {tooltip.visible && tooltip.data && (
-                  <div
-                    className="heatmap-tooltip"
-                    style={{
-                      position: 'fixed',
-                      left: `${tooltip.x + 10}px`,
-                      top: `${tooltip.y - 10}px`,
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <div><strong>{tooltip.data.stock.ticker}</strong></div>
-                    <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
-                    <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
-                    <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
-                    <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
-                    <div>Current Price: ${tooltip.data.currentPrice}</div>
-                  </div>
-                )}
               </div>
             </div>
             {portfolioData && holdings.length > 0 && (
@@ -513,6 +498,35 @@ const handleMouseMove = (e) => {
           )}
         </div>
       </div>
+      {tooltip.visible && tooltip.data &&
+  ReactDOM.createPortal(
+    <div
+      className="heatmap-tooltip"
+      style={{
+        position: 'fixed',
+        left: `${tooltip.x - 0}px`,
+        top: `${tooltip.y - 135}px`,
+        backgroundColor: 'black',
+        color: '#ffffff',
+        borderRadius: '6px',
+        fontSize: '14px',
+        pointerEvents: 'none',
+        whiteSpace: 'nowrap',
+        transition: 'none', // remove lag
+        cursor: 'pointer'
+      }}
+    >
+      <div style={{alignContent: 'middle'  }}><strong>{tooltip.data.stock.ticker}</strong></div>
+      <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
+      <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
+      <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
+      <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
+      <div>Current Price: ${tooltip.data.currentPrice}</div>
+    </div>,
+    document.body
+  )
+}
+
     </div>
   );
 }

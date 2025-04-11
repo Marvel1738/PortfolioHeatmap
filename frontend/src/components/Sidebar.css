@@ -69,10 +69,6 @@
   border-bottom: none;
 }
 
-.holding-item:hover {
-  background-color: var(--background-hover);
-}
-
 .holding-info {
   display: flex;
   flex-direction: column;
