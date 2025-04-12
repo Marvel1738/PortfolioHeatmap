@@ -6,6 +6,27 @@ import * as d3 from 'd3';
 import './Heatmap.css';
 import Sidebar from './Sidebar.js';
 import ReactDOM from 'react-dom';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip as ChartTooltip,
+  Legend,
+} from 'chart.js';
+
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ChartTooltip,
+  Legend
+);
 
 
 
@@ -28,7 +49,10 @@ function Heatmap() {
     x: 0,
     y: 0,
     data: null,
+chartData: null, // New field for chart data
+    chartError: '', // New field for chart errors
   });
+  const [chartCache, setChartCache] = useState({}); // Cache for intraday data
 
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 800;
@@ -283,20 +307,71 @@ function Heatmap() {
   };
 
   // Tooltip event handlers
-const handleMouseEnter = (e, holding) => {
-  setTooltip({
-    visible: true,
-    x: e.clientX,
-    y: e.clientY,
-    data: holding,
-  });
-};
+  const handleMouseEnter = async (e, holding) => {
+    let chartData = null;
+    let chartError = '';
+
+    // Check cache first
+    if (chartCache[holding.stock.ticker]) {
+      chartData = chartCache[holding.stock.ticker];
+    } else {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(
+          `https://financialmodelingprep.com/api/v3/historical-chart/5min/${holding.stock.ticker}?apikey=${process.env.REACT_APP_FMP_API_KEY}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+
+        if (!response.data || response.data.length === 0) {
+          chartError = 'No intraday data available';
+        } else {
+          const labels = response.data.map((point) => point.date.slice(11, 16)); // HH:MM
+          const prices = response.data.map((point) => point.close);
+
+          chartData = {
+            labels: labels.reverse(), // Latest on right
+            datasets: [
+              {
+                label: 'Close Price',
+                data: prices.reverse(),
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                fill: false,
+                tension: 0.1,
+                pointRadius: 0, // No points for subtle look
+              },
+            ],
+          };
+
+          // Cache the data
+          setChartCache((prev) => ({
+            ...prev,
+            [holding.stock.ticker]: chartData,
+          }));
+        }
+      } catch (err) {
+        console.error('Error fetching chart data:', err);
+        chartError = 'Failed to load chart';
+      }
+    }
+
+    setTooltip({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      data: holding,
+      chartData,
+      chartError,
+    });
+  };
 
 const handleMouseLeave = () => {
   setTooltip((prev) => ({
     ...prev,
     visible: false,
     data: null,
+    chartData: null,
+    chartError: '',
   }));
 };
 
@@ -518,18 +593,56 @@ const handleMouseMove = (e) => {
         borderRadius: '6px',
         fontSize: '14px',
         pointerEvents: 'none',
+        width: '300px',
         whiteSpace: 'nowrap',
         transition: 'none', // remove lag
         cursor: 'pointer'
       }}
     >
-      <div style={{alignContent: 'middle'  }}><strong>{tooltip.data.stock.ticker}</strong></div>
+      <div style={{marginBottom: '8px' }}><strong>{tooltip.data.stock.ticker}</strong></div>
       <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
       <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
       <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
       <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
       <div>Current Price: ${tooltip.data.currentPrice}</div>
-    </div>,
+      {tooltip.chartError ? (
+              <div style={{ fontSize: '12px', color: '#ff6666', marginTop: '8px' }}>
+                {tooltip.chartError}
+              </div>
+            ) : tooltip.chartData ? (
+              <div style={{ marginTop: '10px', width: '100%', height: '100px' }}>
+                <Line
+                  data={tooltip.chartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: { enabled: false }, // Disable Chart.js tooltip to avoid conflict
+                    },
+                    scales: {
+                      x: {
+                        display: false, // Hide x-axis for subtle look
+                        grid: { display: false },
+                      },
+                      y: {
+                        display: false, // Hide y-axis
+                        grid: { display: false },
+                      },
+                    },
+                    elements: {
+                      line: { borderWidth: 1 }, // Thin line
+                      point: { radius: 0 },
+                    },
+                  }}
+                />
+              </div>
+            ) : (
+              <div style={{ fontSize: '12px', color: '#ffffff', marginTop: '8px' }}>
+                Loading chart...
+              </div>
+            )}
+          </div>,
     document.body
   )
 }
