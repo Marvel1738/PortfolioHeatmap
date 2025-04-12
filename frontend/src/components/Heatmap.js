@@ -586,8 +586,8 @@ const handleMouseMove = (e) => {
       className="heatmap-tooltip"
       style={{
         position: 'fixed',
-        left: `${tooltip.x - 0}px`,
-        top: `${tooltip.y - 135}px`,
+        left: `${tooltip.x - 1}px`,
+        top: `${tooltip.y - 249}px`,
         backgroundColor: 'black',
         color: '#ffffff',
         borderRadius: '6px',

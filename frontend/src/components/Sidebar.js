@@ -255,6 +255,42 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
     }
   };
 
+  // New function to handle random portfolio generation
+  const handleGenerateRandomPortfolio = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+
+      // Use the portfolio name from the input, or default to "Random Portfolio"
+      const portfolioName = newPortfolioName.trim() || `Random Portfolio ${new Date().toISOString().slice(0, 10)}`;
+
+      const response = await axios.post(
+        'http://localhost:8080/portfolios/create-random',
+        null,
+        {
+          params: {
+            name: portfolioName
+          },
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      console.log('Random portfolio created:', response.data);
+      setNewPortfolioName('');
+      setShowNewPortfolioModal(false);
+
+      // Select the newly created portfolio
+      if (onPortfolioSelect) {
+        onPortfolioSelect(response.data.id);
+      }
+    } catch (err) {
+      console.error('Failed to create random portfolio:', err);
+    }
+  };
+
   return (
     <div className="sidebar">
       <button 
@@ -458,6 +494,15 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                   required
                 />
               </div>
+              {/* New button for generating random portfolio */}
+              <button
+                type="button"
+                className="submit-button random"
+                onClick={handleGenerateRandomPortfolio}
+                style={{ marginTop: '10px', width: '100%' }}
+              >
+                Generate Random Portfolio
+              </button>
               <div className="modal-actions">
                 <button type="submit" className="submit-button buy">
                   Create
@@ -481,4 +526,4 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   );
 }
 
-export default Sidebar; 
+export default Sidebar;

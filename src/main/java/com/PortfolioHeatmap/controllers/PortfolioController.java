@@ -1,7 +1,6 @@
-// package declaration
 package com.PortfolioHeatmap.controllers;
 
-// Existing imports
+import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
 import com.PortfolioHeatmap.models.Portfolio;
 import com.PortfolioHeatmap.models.PortfolioHolding;
 import com.PortfolioHeatmap.models.User;
@@ -15,21 +14,24 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-// New imports for JWT and user handling
 import com.PortfolioHeatmap.security.JwtUtil;
 import com.PortfolioHeatmap.services.UserService;
-import org.springframework.security.core.context.SecurityContextHolder;
 import com.PortfolioHeatmap.models.PriceHistory;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.services.PriceHistoryService;
 import com.PortfolioHeatmap.services.StockDataService;
 import com.PortfolioHeatmap.services.StockDataServiceFactory;
+import com.PortfolioHeatmap.repositories.PriceHistoryRepository;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import org.springframework.data.domain.Pageable;
 import java.util.stream.Collectors;
 
 /**
@@ -50,10 +52,11 @@ public class PortfolioController {
 
     private final PortfolioService portfolioService;
     private final PortfolioHoldingService portfolioHoldingService;
-    private final JwtUtil jwtUtil; // Added for JWT parsing
-    private final UserService userService; // Added for user lookup
+    private final JwtUtil jwtUtil;
+    private final UserService userService;
     private final PriceHistoryService priceHistoryService;
-    private final StockDataService stockDataService; // New dependency
+    private final StockDataService stockDataService;
+    private final PriceHistoryRepository priceHistoryRepository;
 
     /**
      * Constructor for dependency injection of required services and utilities.
@@ -63,6 +66,7 @@ public class PortfolioController {
      * @param jwtUtil                 Utility for JWT token handling
      * @param userService             Service for user operations
      * @param priceHistoryService     Service for price history operations
+     * @param priceHistoryRepository  Repository for price history operations
      */
     public PortfolioController(
             PortfolioService portfolioService,
@@ -70,13 +74,15 @@ public class PortfolioController {
             JwtUtil jwtUtil,
             UserService userService,
             PriceHistoryService priceHistoryService,
-            StockDataServiceFactory stockDataServiceFactory) {
+            StockDataServiceFactory stockDataServiceFactory,
+            PriceHistoryRepository priceHistoryRepository) {
         this.portfolioService = portfolioService;
         this.portfolioHoldingService = portfolioHoldingService;
         this.jwtUtil = jwtUtil;
         this.userService = userService;
         this.priceHistoryService = priceHistoryService;
         this.stockDataService = stockDataServiceFactory.getService();
+        this.priceHistoryRepository = priceHistoryRepository;
     }
 
     // Creates a new portfolio for the current user with the specified name
@@ -90,6 +96,82 @@ public class PortfolioController {
         } catch (RuntimeException e) {
             log.error("Error creating portfolio: {}", e.getMessage(), e);
             return ResponseEntity.status(400).body(null); // 400 Bad Request for client errors
+        }
+    }
+
+    // Creates a new portfolio with random holdings for the current user
+    @PostMapping("/create-random")
+    public ResponseEntity<Portfolio> createRandomPortfolio(@RequestParam(required = false) String name) {
+        log.info("Creating random portfolio with name: {}", name);
+        try {
+            Long userId = getCurrentUserId();
+
+            // Default portfolio name if none provided
+            String portfolioName = name != null && !name.trim().isEmpty()
+                    ? name
+                    : "Random Portfolio " + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+
+            // Create new portfolio
+            Portfolio portfolio = portfolioService.createPortfolio(userId, portfolioName);
+
+            // Generate random number of stocks (1–50)
+            Random random = new Random();
+            int numStocks = random.nextInt(50) + 1; // 1 to 50 inclusive
+            log.info("Generating {} random holdings for portfolio {}", numStocks, portfolio.getId());
+
+            // Fetch S&P 500 tickers
+            List<String> allTickers = stockDataService.getSP500Constituents().stream()
+                    .map(FMPSP500ConstituentResponse::getSymbol)
+                    .collect(Collectors.toList());
+            if (allTickers.isEmpty()) {
+                log.error("No S&P 500 tickers found");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(null);
+            }
+
+            // Randomly select tickers (avoid duplicates)
+            List<String> selectedTickers = allTickers;
+            Collections.shuffle(selectedTickers, random);
+            selectedTickers = selectedTickers.stream()
+                    .limit(Math.min(numStocks, selectedTickers.size()))
+                    .collect(Collectors.toList());
+
+            // Add holdings
+            for (String ticker : selectedTickers) {
+                // Fetch a random price from price_history
+                List<PriceHistory> priceHistories = priceHistoryRepository
+                        .findByStockTickerOrderByDateDesc(ticker, Pageable.unpaged()).getContent();
+                Double purchasePrice;
+                if (!priceHistories.isEmpty()) {
+                    PriceHistory randomPrice = priceHistories.get(random.nextInt(priceHistories.size()));
+                    purchasePrice = randomPrice.getClosingPrice();
+                } else {
+                    // Fallback: use current price
+                    StockPrice currentPrice = stockDataService.getStockPrice(ticker);
+                    purchasePrice = currentPrice != null ? currentPrice.getPrice() : 100.0;
+                }
+
+                // Generate random shares (1–50)
+                double shares = random.nextInt(50) + 1; // 1 to 50 inclusive
+
+                // Add holding
+                portfolioHoldingService.addHolding(
+                        portfolio,
+                        ticker,
+                        shares,
+                        purchasePrice,
+                        LocalDate.now(),
+                        null,
+                        null);
+                log.info("Added holding: ticker={}, shares={}, price=${}", ticker, shares, purchasePrice);
+            }
+
+            log.info("Random portfolio created successfully: id={}, name={}", portfolio.getId(), portfolioName);
+            return ResponseEntity.ok(portfolio);
+        } catch (RuntimeException e) {
+            log.error("Error creating random portfolio: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
         }
     }
 
@@ -236,7 +318,8 @@ public class PortfolioController {
 
             log.info(
                     "Portfolio {} response prepared - totalValue: ${}, totalPercentageReturn: {}%, timeframeChanges: {}, totalDollarReturn: ${}",
-                            id, String.format("%.2f", totalPortfolioValue), String.format("%.2f", totalPercentageReturn), String.format("%.2f", totalDollarReturn),
+                    id, String.format("%.2f", totalPortfolioValue), String.format("%.2f", totalPercentageReturn),
+                    String.format("%.2f", totalDollarReturn),
                     timeframePercentageChanges);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -250,15 +333,24 @@ public class PortfolioController {
     private LocalDate getStartDateForTimeframe(String timeframe) {
         LocalDate today = LocalDate.now();
         switch (timeframe) {
-            case "1d": return today.minusDays(1);
-            case "1w": return today.minusWeeks(1);
-            case "1m": return today.minusMonths(1);
-            case "3m": return today.minusMonths(3);
-            case "6m": return today.minusMonths(6);
-            case "ytd": return LocalDate.of(today.getYear(), 1, 1);
-            case "1y": return today.minusYears(1);
-            case "total": return LocalDate.of(1900, 1, 1); // Far back, will use purchasePrice
-            default: return today.minusDays(1); // Default to 1d
+            case "1d":
+                return today.minusDays(1);
+            case "1w":
+                return today.minusWeeks(1);
+            case "1m":
+                return today.minusMonths(1);
+            case "3m":
+                return today.minusMonths(3);
+            case "6m":
+                return today.minusMonths(6);
+            case "ytd":
+                return LocalDate.of(today.getYear(), 1, 1);
+            case "1y":
+                return today.minusYears(1);
+            case "total":
+                return LocalDate.of(1900, 1, 1); // Far back, will use purchasePrice
+            default:
+                return today.minusDays(1); // Default to 1d
         }
     }
 

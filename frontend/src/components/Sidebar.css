@@ -317,3 +317,15 @@
   outline: none;
   background-color: var(--background-hover);
 } 
+
+.submit-button.random {
+  background-color: #5300bf; /* Example color */
+  color: #fff;
+  border: none;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.submit-button.random:hover {
+  background-color: #e68a00;
+}
