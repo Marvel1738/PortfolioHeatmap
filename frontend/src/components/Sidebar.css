@@ -33,18 +33,114 @@
 .portfolio-selector {
   width: 100%;
   display: flex;
-  justify-content: center;
-  margin-bottom: 20px !important;
+  flex-direction: column; /* Stack toggle and list vertically */
+  align-items: center; /* Center contents */
+  margin-bottom: 5px !important; /* Reduced to avoid excessive spacing */
+  box-sizing: border-box;
 }
 
-.portfolio-selector select {
-  width: 100%;
-  padding: 4px 6px;
+.portfolio-toggle {
+  font-size: 14px; /* Slightly smaller for better fit */
+  font-weight: bold;
+  cursor: pointer;
+  padding: 6px 0; /* Reduced padding */
+  color: #ffffff;
+  width: 100%; /* Ensure toggle spans container */
+  text-align: left; /* Align text with holdings */
+}
+
+.portfolio-list {
+  width: 130px; /* Match holding-item width */
+  overflow-y: auto;
   border-radius: 4px;
-  background-color: var(--background-primary);
+  padding: 0;
+  list-style: none;
+  box-sizing: border-box;
+}
+
+.portfolio-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  border-bottom: 1px solid rgb(93, 106, 109); /* Match holdings border */
+}
+
+.portfolio-item:last-child {
+  border-bottom: none;
+}
+
+.portfolio-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.portfolio-name {
+  cursor: pointer;
+  flex: 1;
+  font-size: 13px; /* Slightly smaller to fit */
   color: var(--text-primary);
-  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Handle long names */
+  white-space: nowrap;
+}
+
+.portfolio-actions {
+  display: flex;
+  gap: 4px; /* Tighter spacing */
+  flex-shrink: 0; /* Prevent buttons from shrinking */
+}
+
+.action-button {
+  background: none;
   border: none;
+  cursor: pointer;
+  font-size: 14px; /* Smaller for better fit */
+  padding: 2px;
+  color: var(--text-primary);
+  line-height: 1;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-button:hover {
+  opacity: 0.7;
+}
+
+.rename-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.rename-input {
+  flex: 1;
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+}
+
+.action-button.save,
+.action-button.cancel {
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.action-button.cancel {
+  background-color: #6c757d;
 }
 
 .holdings-list {
@@ -82,25 +178,6 @@
   line-height: 1.2;
 }
 
-.action-button {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  padding: 0;
-  margin: 0;
-  line-height: 1;
-}
-
-.action-button:hover {
-  filter: brightness(1.1);
-}
-
 .action-button.add {
   background-color: #4CAF50;
 }
@@ -110,7 +187,8 @@
   margin-right: 10px !important;
 }
 
-.plus-icon, .minus-icon {
+.plus-icon,
+.minus-icon {
   color: white;
   font-size: 8px;
   font-weight: bold;
@@ -194,7 +272,8 @@
   margin-top: 12px;
 }
 
-.submit-button, .cancel-button {
+.submit-button,
+.cancel-button {
   flex: 1;
   padding: 4px 6px;
   border: none;
@@ -205,7 +284,8 @@
   transition: all 0.2s;
 }
 
-.submit-button:hover, .cancel-button:hover {
+.submit-button:hover,
+.cancel-button:hover {
   filter: brightness(1.1);
 }
 
@@ -316,16 +396,15 @@
 .search-input:focus {
   outline: none;
   background-color: var(--background-hover);
-} 
+}
 
 .submit-button.random {
-  background-color: #5300bf; /* Example color */
+  background-color: #5300bf;
   color: #fff;
   border: none;
-  padding: 8px;
-  border-radius: 4px;
   cursor: pointer;
 }
+
 .submit-button.random:hover {
-  background-color: #e68a00;
+  background-color: #005ce6;
 }

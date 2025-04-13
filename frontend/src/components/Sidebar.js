@@ -15,9 +15,28 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   const [showNewPortfolioModal, setShowNewPortfolioModal] = useState(false);
   const [newPortfolioName, setNewPortfolioName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPortfolioListOpen, setIsPortfolioListOpen] = useState(false);
+  const [renamePortfolioId, setRenamePortfolioId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [localPortfolios, setLocalPortfolios] = useState(portfolios);
+
+  // Sync localPortfolios with portfolios, but preserve local updates
+  useEffect(() => {
+    setLocalPortfolios((prev) => {
+      // Merge portfolios with local changes to avoid overwriting isFavorite
+      return portfolios.map((newP) => {
+        const existing = prev.find((p) => p.id === newP.id);
+        return existing ? { ...newP, isFavorite: existing.isFavorite } : newP;
+      });
+    });
+  }, [portfolios]);
+
+  // Log portfolios for debugging
+  console.log('Portfolios:', portfolios);
+  console.log('LocalPortfolios:', localPortfolios);
 
   // Filter holdings based on search query
-  const filteredHoldings = holdings.filter(holding => 
+  const filteredHoldings = holdings.filter((holding) =>
     holding.stock.ticker.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -58,25 +77,25 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   const handleAddNewHolding = async (e) => {
     e.preventDefault();
     if (!ticker || !shares || !price) {
-      console.error('Missing required fields');
+      alert('Please fill in all required fields');
       return;
     }
-    
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.error('No authentication token found');
+        alert('You are not authenticated. Please log in.');
         return;
       }
-      
+
       const sharesNum = Number(shares);
       const priceNum = Number(price);
-      
+
       if (isNaN(sharesNum) || sharesNum <= 0 || isNaN(priceNum) || priceNum <= 0) {
-        console.error('Invalid shares or price values');
+        alert('Shares and price must be positive numbers');
         return;
       }
-      
+
       await axios.post(
         `http://localhost:8080/portfolios/${selectedPortfolioId}/holdings/add`,
         null,
@@ -85,26 +104,23 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
             ticker: ticker,
             shares: sharesNum,
             purchasePrice: priceNum,
-            purchaseDate: new Date().toISOString().split('T')[0]
+            purchaseDate: new Date().toISOString().split('T')[0],
           },
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
-      console.log(`Successfully added ${sharesNum} shares of ${ticker} at $${priceNum}`);
-      
-      // Reset form and close modal
+
       setTicker('');
       setShares('');
       setPrice('');
       setShowAddModal(false);
-      
-      // Trigger a refresh of the holdings
+
       if (onPortfolioSelect) {
         onPortfolioSelect(selectedPortfolioId);
       }
     } catch (err) {
       console.error('Failed to add shares:', err);
+      alert('Failed to add holding. Please try again.');
     }
   };
 
@@ -124,49 +140,42 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!editingHolding || !shares || !price) {
-      console.error('Missing required fields');
+      alert('Please fill in all required fields');
       return;
     }
-    
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.error('No authentication token found');
+        alert('You are not authenticated. Please log in.');
         return;
       }
-      
+
       const sharesNum = Number(shares);
       const priceNum = Number(price);
-      
+
       if (isNaN(sharesNum) || sharesNum <= 0 || isNaN(priceNum) || priceNum <= 0) {
-        console.error('Invalid shares or price values');
+        alert('Shares and price must be positive numbers');
         return;
       }
-      
-      // Make API call to update shares
-      const endpoint = isBuying ? 'add' : 'remove';
-      
-      // For adding shares, we need to check if the stock already exists in the portfolio
+
       if (isBuying) {
-        // Check if the stock already exists in the portfolio
-        const existingHolding = holdings.find(h => h.stock.ticker === editingHolding.stock.ticker);
-        
+        const existingHolding = holdings.find((h) => h.stock.ticker === editingHolding.stock.ticker);
+
         if (existingHolding) {
-          // If the stock already exists, update the existing holding
           await axios.put(
             `http://localhost:8080/portfolios/holdings/${existingHolding.id}`,
             null,
             {
               params: {
-                shares: existingHolding.shares + sharesNum
+                shares: existingHolding.shares + sharesNum,
               },
-              headers: { 'Authorization': `Bearer ${token}` }
+              headers: { Authorization: `Bearer ${token}` },
             }
           );
         } else {
-          // If the stock doesn't exist, add a new holding
           await axios.post(
             `http://localhost:8080/portfolios/${selectedPortfolioId}/holdings/add`,
             null,
@@ -175,59 +184,54 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                 ticker: editingHolding.stock.ticker,
                 shares: sharesNum,
                 purchasePrice: priceNum,
-                purchaseDate: new Date().toISOString().split('T')[0]
+                purchaseDate: new Date().toISOString().split('T')[0],
               },
-              headers: { 'Authorization': `Bearer ${token}` }
+              headers: { Authorization: `Bearer ${token}` },
             }
           );
         }
       } else {
-        // For removing shares, we need to update the existing holding
         if (editingHolding.shares < sharesNum) {
-          console.error('Cannot remove more shares than currently owned');
+          alert('Cannot sell more shares than you own');
           return;
         }
-        
-        // Update the existing holding with the new share count
+
         await axios.put(
           `http://localhost:8080/portfolios/holdings/${editingHolding.id}`,
           null,
           {
             params: {
-              shares: editingHolding.shares - sharesNum
+              shares: editingHolding.shares - sharesNum,
             },
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
       }
-      
-      console.log(`Successfully ${isBuying ? 'bought' : 'sold'} ${sharesNum} shares of ${editingHolding.stock.ticker} at $${priceNum}`);
-      
-      // Close the modal and reset state
+
       setEditingHolding(null);
       setShares('');
       setPrice('');
-      
-      // Trigger a refresh of the holdings
+
       if (onPortfolioSelect) {
         onPortfolioSelect(selectedPortfolioId);
       }
     } catch (err) {
       console.error(`Failed to ${isBuying ? 'buy' : 'sell'} shares:`, err);
+      alert(`Failed to ${isBuying ? 'buy' : 'sell'} shares. Please try again.`);
     }
   };
 
   const handleCreatePortfolio = async (e) => {
     e.preventDefault();
     if (!newPortfolioName.trim()) {
-      console.error('Portfolio name is required');
+      alert('Portfolio name is required');
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.error('No authentication token found');
+        alert('You are not authenticated. Please log in.');
         return;
       }
 
@@ -236,64 +240,169 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
         null,
         {
           params: {
-            name: newPortfolioName
+            name: newPortfolioName,
           },
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      console.log('Portfolio created:', response.data);
+      setLocalPortfolios([...localPortfolios, response.data]);
       setNewPortfolioName('');
       setShowNewPortfolioModal(false);
 
-      // Select the newly created portfolio
       if (onPortfolioSelect) {
         onPortfolioSelect(response.data.id);
       }
     } catch (err) {
       console.error('Failed to create portfolio:', err);
+      alert('Failed to create portfolio. Please try again.');
     }
   };
 
-  // New function to handle random portfolio generation
   const handleGenerateRandomPortfolio = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.error('No authentication token found');
+        alert('You are not authenticated. Please log in.');
         return;
       }
 
-      // Use the portfolio name from the input, or default to "Random Portfolio"
-      const portfolioName = newPortfolioName.trim() || `Random Portfolio ${new Date().toISOString().slice(0, 10)}`;
+      const portfolioName =
+        newPortfolioName.trim() || `Random Portfolio ${new Date().toISOString().slice(0, 10)}`;
 
       const response = await axios.post(
         'http://localhost:8080/portfolios/create-random',
         null,
         {
           params: {
-            name: portfolioName
+            name: portfolioName,
           },
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      console.log('Random portfolio created:', response.data);
+      setLocalPortfolios([...localPortfolios, response.data]);
       setNewPortfolioName('');
       setShowNewPortfolioModal(false);
 
-      // Select the newly created portfolio
       if (onPortfolioSelect) {
         onPortfolioSelect(response.data.id);
       }
     } catch (err) {
       console.error('Failed to create random portfolio:', err);
+      alert('Failed to create random portfolio. Please try again.');
     }
+  };
+
+  const handleDeletePortfolio = async (portfolioId) => {
+    if (!window.confirm('Are you sure you want to delete this portfolio?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You are not authenticated. Please log in.');
+        return;
+      }
+
+      await axios.delete(`http://localhost:8080/portfolios/${portfolioId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setLocalPortfolios(localPortfolios.filter((p) => p.id !== portfolioId));
+
+      if (onPortfolioSelect && selectedPortfolioId === portfolioId) {
+        const remainingPortfolios = localPortfolios.filter((p) => p.id !== portfolioId);
+        onPortfolioSelect(remainingPortfolios[0]?.id || '');
+      }
+    } catch (err) {
+      console.error('Failed to delete portfolio:', err);
+      alert('Failed to delete portfolio. Please try again.');
+    }
+  };
+
+  const handleRenamePortfolio = async (portfolioId, newName) => {
+    if (!newName.trim()) {
+      alert('Portfolio name is required');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You are not authenticated. Please log in.');
+        return;
+      }
+
+      const response = await axios.patch(
+        `http://localhost:8080/portfolios/${portfolioId}/rename`,
+        null,
+        {
+          params: { name: newName },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log('Rename response:', response.data); // Debug
+
+      setLocalPortfolios(
+        localPortfolios.map((p) =>
+          p.id === portfolioId ? { ...p, name: response.data.name } : p
+        )
+      );
+      setRenamePortfolioId(null);
+      setRenameValue('');
+
+      if (onPortfolioSelect) {
+        onPortfolioSelect(portfolioId);
+      }
+    } catch (err) {
+      console.error('Failed to rename portfolio:', err.response?.data || err.message);
+      alert('Failed to rename portfolio. Please try again.');
+    }
+  };
+
+  const handleToggleFavorite = async (portfolioId, isFavorite) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You are not authenticated. Please log in.');
+        return;
+      }
+
+      const response = await axios.patch(
+        `http://localhost:8080/portfolios/${portfolioId}/favorite`,
+        null,
+        {
+          params: { isFavorite: !isFavorite },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log('Favorite response:', response.data); // Debug
+
+      // Update local portfolios with response
+      setLocalPortfolios(
+        localPortfolios.map((p) =>
+          p.id === portfolioId
+            ? { ...p, isFavorite: response.data.isFavorite }
+            : p
+        )
+      );
+
+      if (onPortfolioSelect) {
+        onPortfolioSelect(portfolioId);
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err.response?.data || err.message);
+      alert('Failed to toggle favorite. Please try again.');
+    }
+  };
+
+  const togglePortfolioList = () => {
+    setIsPortfolioListOpen(!isPortfolioListOpen);
   };
 
   return (
     <div className="sidebar">
-      <button 
+      <button
         className="new-portfolio-button"
         onClick={() => setShowNewPortfolioModal(true)}
       >
@@ -301,23 +410,92 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
       </button>
 
       <div className="portfolio-selector">
-        <select 
-          value={selectedPortfolioId || ''} 
-          onChange={(e) => onPortfolioSelect(e.target.value)}
+        <div
+          className="portfolio-toggle"
+          onClick={togglePortfolioList}
+          style={{ cursor: 'pointer', fontWeight: 'bold', marginBottom: '10px' }}
         >
-          <option value="">Select Portfolio</option>
-          {portfolios.map(portfolio => (
-            <option key={portfolio.id} value={portfolio.id}>
-              {portfolio.name}
-            </option>
-          ))}
-        </select>
+          Select Portfolio {isPortfolioListOpen ? '∨' : '>'}
+        </div>
+        {isPortfolioListOpen && (
+          <div className="portfolio-list">
+            {localPortfolios.map((portfolio) => (
+              <div key={portfolio.id} className="portfolio-item">
+                {renamePortfolioId === portfolio.id ? (
+                  <div className="rename-container">
+                    <input
+                      type="text"
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      className="rename-input"
+                      placeholder="Enter new name"
+                    />
+                    <button
+                      onClick={() => handleRenamePortfolio(portfolio.id, renameValue)}
+                      className="action-button save"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setRenamePortfolioId(null)}
+                      className="action-button cancel"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="portfolio-row">
+                    <span
+                      onClick={() => onPortfolioSelect(portfolio.id)}
+                      className="portfolio-name"
+                      style={{
+                        fontWeight: selectedPortfolioId === portfolio.id ? 'bold' : 'normal',
+                      }}
+                    >
+                      {selectedPortfolioId === portfolio.id && '✔ '}
+                      {portfolio.name}
+                    </span>
+                    <div className="portfolio-actions">
+                      <button
+                        onClick={() => {
+                          setRenamePortfolioId(portfolio.id);
+                          setRenameValue(portfolio.name);
+                        }}
+                        className="action-button"
+                        title="Rename"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => handleToggleFavorite(portfolio.id, portfolio.isFavorite)}
+                        className="action-button"
+                        title={portfolio.isFavorite ? 'Unfavorite' : 'Favorite'}
+                      >
+                        <span
+                          style={{
+                            color: portfolio.isFavorite ? '#FFD700' : '#ccc',
+                          }}
+                        >
+                          ★
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => handleDeletePortfolio(portfolio.id)}
+                        className="action-button"
+                        title="Delete"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      
-      <button 
-        className="add-button"
-        onClick={() => setShowAddModal(true)}
-      >
+
+      <button className="add-button" onClick={() => setShowAddModal(true)}>
         ADD STOCK
       </button>
 
@@ -330,27 +508,31 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-      
+
       <div className="holdings-list">
-        {filteredHoldings.map(holding => (
+        {filteredHoldings.map((holding) => (
           <div key={holding.id} className="holding-item">
             <div className="holding-info">
               <span className="ticker">{holding.stock.ticker}</span>
             </div>
             <div className="holding-actions">
-              <button 
-                className="action-button add" 
+              <button
+                className="action-button add"
                 onClick={() => handleAddShares(holding)}
                 style={{ width: '25px', height: '25px' }}
               >
-                <span className="plus-icon" style={{ fontSize: '15px' }}>+</span>
+                <span className="plus-icon" style={{ fontSize: '15px' }}>
+                  +
+                </span>
               </button>
-              <button 
-                className="action-button remove" 
+              <button
+                className="action-button remove"
                 onClick={() => handleRemoveShares(holding)}
                 style={{ width: '25px', height: '25px', marginLeft: '1px' }}
               >
-                <span className="minus-icon" style={{ fontSize: '15px' }}>-</span>
+                <span className="minus-icon" style={{ fontSize: '15px' }}>
+                  -
+                </span>
               </button>
             </div>
           </div>
@@ -415,8 +597,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                 <button type="submit" className="submit-button buy">
                   Add Holding
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="cancel-button"
                   onClick={() => {
                     setShowAddModal(false);
@@ -436,7 +618,9 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
       {editingHolding && (
         <div className="edit-modal">
           <div className="edit-content">
-            <h3>{isBuying ? 'Buy' : 'Sell'} {editingHolding.stock.ticker}</h3>
+            <h3>
+              {isBuying ? 'Buy' : 'Sell'} {editingHolding.stock.ticker}
+            </h3>
             <div className="current-shares">
               Current Shares: {editingHolding.shares}
             </div>
@@ -463,11 +647,14 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                 />
               </div>
               <div className="modal-actions">
-                <button type="submit" className={`submit-button ${isBuying ? 'buy' : 'sell'}`}>
+                <button
+                  type="submit"
+                  className={`submit-button ${isBuying ? 'buy' : 'sell'}`}
+                >
                   {isBuying ? 'Buy' : 'Sell'} Shares
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="cancel-button"
                   onClick={() => setEditingHolding(null)}
                 >
@@ -494,7 +681,6 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                   required
                 />
               </div>
-              {/* New button for generating random portfolio */}
               <button
                 type="button"
                 className="submit-button random"
@@ -507,8 +693,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                 <button type="submit" className="submit-button buy">
                   Create
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="cancel-button"
                   onClick={() => {
                     setShowNewPortfolioModal(false);

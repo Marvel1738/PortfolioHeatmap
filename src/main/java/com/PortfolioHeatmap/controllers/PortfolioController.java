@@ -34,19 +34,10 @@ import java.util.Collections;
 import org.springframework.data.domain.Pageable;
 import java.util.stream.Collectors;
 
-/**
- * Controller class responsible for handling HTTP requests related to portfolio
- * management.
- * Provides endpoints for creating, retrieving, updating, and deleting
- * portfolios and their holdings.
- * Integrates with PortfolioService, PortfolioHoldingService, JwtUtil, and
- * UserService for functionality.
- *
- * @author Marvel Bana
- */
 @RestController
 @RequestMapping("/portfolios")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:3000", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.DELETE,
+        RequestMethod.OPTIONS }, allowedHeaders = { "Authorization", "Content-Type" }, allowCredentials = "true")
 public class PortfolioController {
     private static final Logger log = LoggerFactory.getLogger(PortfolioController.class);
 
@@ -58,16 +49,6 @@ public class PortfolioController {
     private final StockDataService stockDataService;
     private final PriceHistoryRepository priceHistoryRepository;
 
-    /**
-     * Constructor for dependency injection of required services and utilities.
-     * 
-     * @param portfolioService        Service for portfolio operations
-     * @param portfolioHoldingService Service for portfolio holding operations
-     * @param jwtUtil                 Utility for JWT token handling
-     * @param userService             Service for user operations
-     * @param priceHistoryService     Service for price history operations
-     * @param priceHistoryRepository  Repository for price history operations
-     */
     public PortfolioController(
             PortfolioService portfolioService,
             PortfolioHoldingService portfolioHoldingService,
@@ -85,7 +66,6 @@ public class PortfolioController {
         this.priceHistoryRepository = priceHistoryRepository;
     }
 
-    // Creates a new portfolio for the current user with the specified name
     @PostMapping("/create")
     public ResponseEntity<Portfolio> createPortfolio(@RequestParam String name) {
         log.info("Creating portfolio with name: {}", name);
@@ -95,31 +75,22 @@ public class PortfolioController {
             return ResponseEntity.ok(portfolio);
         } catch (RuntimeException e) {
             log.error("Error creating portfolio: {}", e.getMessage(), e);
-            return ResponseEntity.status(400).body(null); // 400 Bad Request for client errors
+            return ResponseEntity.status(400).body(null);
         }
     }
 
-    // Creates a new portfolio with random holdings for the current user
     @PostMapping("/create-random")
     public ResponseEntity<Portfolio> createRandomPortfolio(@RequestParam(required = false) String name) {
         log.info("Creating random portfolio with name: {}", name);
         try {
             Long userId = getCurrentUserId();
-
-            // Default portfolio name if none provided
             String portfolioName = name != null && !name.trim().isEmpty()
                     ? name
                     : "Random Portfolio " + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-
-            // Create new portfolio
             Portfolio portfolio = portfolioService.createPortfolio(userId, portfolioName);
-
-            // Generate random number of stocks (1–50)
             Random random = new Random();
-            int numStocks = random.nextInt(50) + 1; // 1 to 50 inclusive
+            int numStocks = random.nextInt(50) + 1;
             log.info("Generating {} random holdings for portfolio {}", numStocks, portfolio.getId());
-
-            // Fetch S&P 500 tickers
             List<String> allTickers = stockDataService.getSP500Constituents().stream()
                     .map(FMPSP500ConstituentResponse::getSymbol)
                     .collect(Collectors.toList());
@@ -128,17 +99,12 @@ public class PortfolioController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .body(null);
             }
-
-            // Randomly select tickers (avoid duplicates)
             List<String> selectedTickers = allTickers;
             Collections.shuffle(selectedTickers, random);
             selectedTickers = selectedTickers.stream()
                     .limit(Math.min(numStocks, selectedTickers.size()))
                     .collect(Collectors.toList());
-
-            // Add holdings
             for (String ticker : selectedTickers) {
-                // Fetch a random price from price_history
                 List<PriceHistory> priceHistories = priceHistoryRepository
                         .findByStockTickerOrderByDateDesc(ticker, Pageable.unpaged()).getContent();
                 Double purchasePrice;
@@ -146,15 +112,10 @@ public class PortfolioController {
                     PriceHistory randomPrice = priceHistories.get(random.nextInt(priceHistories.size()));
                     purchasePrice = randomPrice.getClosingPrice();
                 } else {
-                    // Fallback: use current price
                     StockPrice currentPrice = stockDataService.getStockPrice(ticker);
                     purchasePrice = currentPrice != null ? currentPrice.getPrice() : 100.0;
                 }
-
-                // Generate random shares (1–50)
-                double shares = random.nextInt(50) + 1; // 1 to 50 inclusive
-
-                // Add holding
+                double shares = random.nextInt(50) + 1;
                 portfolioHoldingService.addHolding(
                         portfolio,
                         ticker,
@@ -165,7 +126,6 @@ public class PortfolioController {
                         null);
                 log.info("Added holding: ticker={}, shares={}, price=${}", ticker, shares, purchasePrice);
             }
-
             log.info("Random portfolio created successfully: id={}, name={}", portfolio.getId(), portfolioName);
             return ResponseEntity.ok(portfolio);
         } catch (RuntimeException e) {
@@ -175,7 +135,6 @@ public class PortfolioController {
         }
     }
 
-    // Retrieves all portfolios belonging to the current user
     @GetMapping("/user")
     public ResponseEntity<List<Portfolio>> getUserPortfolios() {
         log.info("Fetching portfolios for current user");
@@ -185,11 +144,10 @@ public class PortfolioController {
             return ResponseEntity.ok(portfolios);
         } catch (RuntimeException e) {
             log.error("Error fetching portfolios: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(null); // 500 Internal Server Error
+            return ResponseEntity.status(500).body(null);
         }
     }
 
-    // Retrieves detailed information about a specific portfolio
     @GetMapping("/{id}")
     public ResponseEntity<?> getPortfolioDetails(
             @PathVariable Long id,
@@ -198,33 +156,27 @@ public class PortfolioController {
         try {
             Long currentUserId = getCurrentUserId(authHeader);
             log.info("Fetching portfolio details with id: {} and timeframe: {}", id, timeframe);
-
             Portfolio portfolio = portfolioService.getPortfolioById(id);
             if (portfolio == null) {
                 return ResponseEntity.notFound().build();
             }
-
             if (!portfolio.getUserId().equals(currentUserId)) {
                 log.warn("Access denied - User {} attempted to access portfolio {} owned by user {}",
                         currentUserId, id, portfolio.getUserId());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body("You do not have permission to access this portfolio");
+                    .body("You do not have permission to access this portfolio");
             }
-
             List<PortfolioHolding> openPositions = portfolioHoldingService.getOpenPositions(id);
             List<PortfolioHolding> closedPositions = portfolioHoldingService.getClosedPositions(id);
-
             List<String> tickers = openPositions.stream()
                     .map(h -> h.getStock().getTicker())
                     .collect(Collectors.toList());
             List<StockPrice> currentPrices = stockDataService.getBatchStockPrices(tickers);
             Map<String, Double> currentPriceMap = currentPrices.stream()
                     .collect(Collectors.toMap(StockPrice::getSymbol, StockPrice::getPrice));
-
             Map<Long, Double> timeframePercentageChanges = new HashMap<>();
             double totalPortfolioValue = 0.0;
-            double totalInitialValue = 0.0; // Sum of purchase costs for open positions
-
+            double totalInitialValue = 0.0;
             for (PortfolioHolding holding : openPositions) {
                 String ticker = holding.getStock().getTicker();
                 Double currentPrice = currentPriceMap.getOrDefault(ticker, holding.getPurchasePrice());
@@ -232,11 +184,9 @@ public class PortfolioController {
                 double initialValue = holding.getShares() * holding.getPurchasePrice();
                 totalPortfolioValue += currentValue;
                 totalInitialValue += initialValue;
-
                 double startPrice;
                 LocalDate effectiveStartDate;
                 boolean usedPurchasePriceFallback = false;
-
                 if (timeframe.equals("total")) {
                     startPrice = holding.getPurchasePrice();
                     effectiveStartDate = null;
@@ -252,7 +202,6 @@ public class PortfolioController {
                         log.info("Ticker: {}, timeframe: {}, checking date: {}, found: {}",
                                 ticker, timeframe, effectiveStartDate, startPriceOpt.isPresent());
                     }
-
                     if (startPriceOpt.isPresent()) {
                         startPrice = startPriceOpt.get().getClosingPrice();
                         log.info("Ticker: {}, timeframe: {}, date: {}, oldPrice: ${}, currentPrice: ${}",
@@ -265,12 +214,10 @@ public class PortfolioController {
                                 ticker, timeframe, effectiveStartDate, initialStartDate, startPrice, currentPrice);
                     }
                 }
-
                 double timeframeChange = startPrice != 0
                         ? ((currentPrice - startPrice) / startPrice) * 100
                         : 0;
                 timeframePercentageChanges.put(holding.getId(), timeframeChange);
-
                 String changeSign = timeframeChange >= 0 ? "+" : "-";
                 log.info(
                         "Ticker: {}, timeframe: {}, date: {}, oldPrice: ${}, currentPrice: ${}, timeFrameChange: {}{}%{}",
@@ -279,13 +226,9 @@ public class PortfolioController {
                         changeSign, String.format("%.2f", Math.abs(timeframeChange)),
                         usedPurchasePriceFallback ? " (using purchase price)" : "");
             }
-
-            // Calculate total % return for the timeframe
             double totalPercentageReturn = totalInitialValue != 0
                     ? ((totalPortfolioValue - totalInitialValue) / totalInitialValue) * 100
                     : 0.0;
-
-            // Closed positions logic
             Map<Long, Double> closedGainsLosses = new HashMap<>();
             Map<Long, Double> closedPercentageReturns = new HashMap<>();
             for (PortfolioHolding holding : closedPositions) {
@@ -295,66 +238,83 @@ public class PortfolioController {
                         : 0;
                 closedGainsLosses.put(holding.getId(), gainLoss);
                 closedPercentageReturns.put(holding.getId(), percentageReturn);
-                totalPortfolioValue += gainLoss; // Add realized gains/losses to total value
+                totalPortfolioValue += gainLoss;
                 totalInitialValue += holding.getShares() * holding.getPurchasePrice();
             }
-
-            // Recalculate total % return including closed positions
             totalPercentageReturn = totalInitialValue != 0
                     ? ((totalPortfolioValue - totalInitialValue) / totalInitialValue) * 100
                     : 0.0;
-            double totalDollarReturn = totalPortfolioValue - totalInitialValue; // New calculation
-
+            double totalDollarReturn = totalPortfolioValue - totalInitialValue;
             Map<String, Object> response = new HashMap<>();
             response.put("openPositions", openPositions);
             response.put("closedPositions", closedPositions);
             response.put("totalPortfolioValue", totalPortfolioValue);
-            response.put("totalPercentageReturn", totalPercentageReturn); // New field
-            response.put("totalDollarReturn", totalDollarReturn); // New field
+            response.put("totalPercentageReturn", totalPercentageReturn);
+            response.put("totalDollarReturn", totalDollarReturn);
             response.put("timeframePercentageChanges", timeframePercentageChanges);
             response.put("closedGainsLosses", closedGainsLosses);
             response.put("closedPercentageReturns", closedPercentageReturns);
             response.put("timeframe", timeframe);
-
             log.info(
                     "Portfolio {} response prepared - totalValue: ${}, totalPercentageReturn: {}%, timeframeChanges: {}, totalDollarReturn: ${}",
                     id, String.format("%.2f", totalPortfolioValue), String.format("%.2f", totalPercentageReturn),
-                    String.format("%.2f", totalDollarReturn),
-                    timeframePercentageChanges);
+                    timeframePercentageChanges, String.format("%.2f", totalDollarReturn));
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error fetching portfolio details", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error fetching portfolio details: " + e.getMessage());
+                .body("Error fetching portfolio details: " + e.getMessage());
         }
     }
 
-    // Helper method to determine start date for timeframe
-    private LocalDate getStartDateForTimeframe(String timeframe) {
-        LocalDate today = LocalDate.now();
-        switch (timeframe) {
-            case "1d":
-                return today.minusDays(1);
-            case "1w":
-                return today.minusWeeks(1);
-            case "1m":
-                return today.minusMonths(1);
-            case "3m":
-                return today.minusMonths(3);
-            case "6m":
-                return today.minusMonths(6);
-            case "ytd":
-                return LocalDate.of(today.getYear(), 1, 1);
-            case "1y":
-                return today.minusYears(1);
-            case "total":
-                return LocalDate.of(1900, 1, 1); // Far back, will use purchasePrice
-            default:
-                return today.minusDays(1); // Default to 1d
+    @PatchMapping("/{portfolioId}/rename")
+    public ResponseEntity<Portfolio> renamePortfolio(
+            @PathVariable Long portfolioId,
+            @RequestParam String name) {
+        log.info("Renaming portfolio with id: {} to name: {}", portfolioId, name);
+        try {
+            Long userId = getCurrentUserId();
+            Portfolio portfolio = portfolioService.getPortfolioById(portfolioId);
+            if (portfolio == null) {
+                return ResponseEntity.notFound().build();
+            }
+            if (!portfolio.getUserId().equals(userId)) {
+                log.warn("Access denied - User {} attempted to rename portfolio {} owned by user {}",
+                        userId, portfolioId, portfolio.getUserId());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+            }
+            Portfolio updatedPortfolio = portfolioService.renamePortfolio(portfolioId, name);
+            return ResponseEntity.ok(updatedPortfolio);
+        } catch (RuntimeException e) {
+            log.error("Error renaming portfolio: {}", e.getMessage(), e);
+            return ResponseEntity.status(400).body(null);
         }
     }
 
-    // Deletes a portfolio by its ID
+    @PatchMapping("/{portfolioId}/favorite")
+    public ResponseEntity<Portfolio> setFavoritePortfolio(
+            @PathVariable Long portfolioId,
+            @RequestParam boolean isFavorite) {
+        log.info("Setting favorite status for portfolio id: {} to {}", portfolioId, isFavorite);
+        try {
+            Long userId = getCurrentUserId();
+            Portfolio portfolio = portfolioService.getPortfolioById(portfolioId);
+            if (portfolio == null) {
+                return ResponseEntity.notFound().build();
+            }
+            if (!portfolio.getUserId().equals(userId)) {
+                log.warn("Access denied - User {} attempted to favorite portfolio {} owned by user {}",
+                        userId, portfolioId, portfolio.getUserId());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+            }
+            Portfolio updatedPortfolio = portfolioService.setFavoritePortfolio(portfolioId, isFavorite);
+            return ResponseEntity.ok(updatedPortfolio);
+        } catch (RuntimeException e) {
+            log.error("Error setting favorite portfolio: {}", e.getMessage(), e);
+            return ResponseEntity.status(400).body(null);
+        }
+    }
+
     @DeleteMapping("/{portfolioId}")
     public ResponseEntity<String> deletePortfolio(@PathVariable Long portfolioId) {
         log.info("Deleting portfolio with id: {}", portfolioId);
@@ -367,7 +327,6 @@ public class PortfolioController {
         }
     }
 
-    // Adds a new holding to a specified portfolio
     @PostMapping("/{portfolioId}/holdings/add")
     public ResponseEntity<PortfolioHolding> addHolding(
             @PathVariable Long portfolioId,
@@ -387,11 +346,10 @@ public class PortfolioController {
             return ResponseEntity.ok(holding);
         } catch (RuntimeException e) {
             log.error("Error adding holding: {}", e.getMessage(), e);
-            return ResponseEntity.status(400).body(null); // 400 Bad Request
+            return ResponseEntity.status(400).body(null);
         }
     }
 
-    // Updates an existing holding
     @PutMapping("/holdings/{holdingId}")
     public ResponseEntity<String> updateHolding(
             @PathVariable Long holdingId,
@@ -409,7 +367,6 @@ public class PortfolioController {
         }
     }
 
-    // Deletes a holding by its ID
     @DeleteMapping("/holdings/{holdingId}")
     public ResponseEntity<String> deleteHolding(@PathVariable Long holdingId) {
         log.info("Deleting holding with id: {}", holdingId);
@@ -422,7 +379,6 @@ public class PortfolioController {
         }
     }
 
-    // Gets details for a specific holding
     @GetMapping("/holdings/{holdingId}")
     public ResponseEntity<PortfolioHolding> getHolding(@PathVariable Long holdingId) {
         log.info("Fetching holding with id: {}", holdingId);
@@ -438,16 +394,6 @@ public class PortfolioController {
         }
     }
 
-    /**
-     * Retrieves the ID of the current authenticated user from the Authorization
-     * header.
-     * Fetches the token directly from the request header, validates it with
-     * JwtUtil,
-     * and retrieves the user ID via UserService.
-     * 
-     * @return Long The ID of the current user
-     * @throws RuntimeException if token is missing or invalid
-     */
     private Long getCurrentUserId() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
@@ -473,5 +419,29 @@ public class PortfolioController {
         String token = authHeader.substring(7);
         String username = jwtUtil.extractUsername(token);
         return userService.getUserByUsername(username).getId();
+    }
+
+    private LocalDate getStartDateForTimeframe(String timeframe) {
+        LocalDate today = LocalDate.now();
+        switch (timeframe) {
+            case "1d":
+                return today.minusDays(1);
+            case "1w":
+                return today.minusWeeks(1);
+            case "1m":
+                return today.minusMonths(1);
+            case "3m":
+                return today.minusMonths(3);
+            case "6m":
+                return today.minusMonths(6);
+            case "ytd":
+                return LocalDate.of(today.getYear(), 1, 1);
+            case "1y":
+                return today.minusYears(1);
+            case "total":
+                return LocalDate.of(1900, 1, 1);
+            default:
+                return today.minusDays(1);
+        }
     }
 }

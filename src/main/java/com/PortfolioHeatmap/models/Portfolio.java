@@ -7,17 +7,16 @@ package com.PortfolioHeatmap.models;
  *
  * @author Marvel Bana
  */
+
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "portfolios")
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Portfolio {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +28,9 @@ public class Portfolio {
     @Column(nullable = false)
     private String name;
 
+    @Column(name = "isFavorite", nullable = false)
+    private boolean isFavorite = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -38,20 +40,17 @@ public class Portfolio {
     @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PortfolioHolding> holdings = new ArrayList<>();
 
-    // Sets createdAt and updatedAt timestamps when a new portfolio is persisted
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
 
-    // Updates the updatedAt timestamp when the portfolio is modified
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 
-    // Getters and setters for accessing and modifying the fields
     public Long getId() {
         return id;
     }
@@ -74,6 +73,15 @@ public class Portfolio {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @JsonProperty("isFavorite")
+    public boolean isFavorite() {
+        return isFavorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        isFavorite = favorite;
     }
 
     public LocalDateTime getCreatedAt() {

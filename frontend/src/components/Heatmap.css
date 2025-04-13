@@ -15,7 +15,7 @@
 
 .heatmap-main {
   flex: 1;
-  margin-left: 18%; /* Use percentage instead of fixed pixels */
+  margin-left: 160px;
   margin-right: 4%; /* Use percentage instead of fixed pixels */
   padding: 20px;
   padding-top: 50px; /* Space for header */

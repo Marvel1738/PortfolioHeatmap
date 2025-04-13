@@ -119,7 +119,7 @@ public class SecurityConfig {
         // Specify allowed origins (React frontend running on localhost:3000)
         config.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
         // Define allowed HTTP methods for frontend requests
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         // Allow all headers in requests (e.g., Authorization, Content-Type)
         config.setAllowedHeaders(Arrays.asList("*"));
         // Enable credentials (e.g., cookies, Authorization headers) to support JWT
