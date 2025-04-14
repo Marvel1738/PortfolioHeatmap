@@ -7,6 +7,7 @@ import Register from './components/Register';
 import Heatmap from './components/Heatmap';
 import Header from './components/Header';
 import Predictions from './components/Predictions';
+import About from './components/About';
 import './App.css';
 
 /**
@@ -27,6 +28,7 @@ function App() {
             <Route path="/heatmap" element={<Heatmap />} />
             <Route path="/predictions" element={<Predictions />} />
             <Route path="/" element={<Navigate to="/heatmap" replace />} />
+            <Route path="/about" element={<About/>} />
           </Routes>
         </main>
       </div>

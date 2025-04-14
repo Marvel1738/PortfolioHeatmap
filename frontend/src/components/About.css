@@ -1,0 +1,89 @@
+/* src/pages/About.css */
+.about-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  min-height: calc(100vh - var(--header-height));
+}
+
+.about-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.about-image {
+  display: block;
+  max-width: 250px;
+  height: auto;
+  margin: 0 auto 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.about-quote {
+  font-size: 1.5rem;
+  font-style: italic;
+  text-align: center;
+  margin: 20px 0;
+  color: var(--text-primary);
+  padding: 10px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.about-section {
+  margin: 40px 0;
+}
+
+.about-section h2 {
+  font-size: 1.8rem;
+  color: var(--text-primary);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.about-section p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.about-founder {
+  font-style: italic;
+  font-weight: bold;
+  text-align: right;
+  color: var(--text-secondary);
+  margin-top: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .about-title {
+    font-size: 2rem;
+  }
+
+  .about-image {
+    max-width: 200px;
+  }
+
+  .about-quote {
+    font-size: 1.2rem;
+  }
+
+  .about-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .about-section p {
+    font-size: 1rem;
+  }
+}
