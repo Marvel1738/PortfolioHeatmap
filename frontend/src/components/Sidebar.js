@@ -428,7 +428,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                       value={renameValue}
                       onChange={(e) => setRenameValue(e.target.value)}
                       className="rename-input"
-                      placeholder="Enter new name"
+                      placeholder="Name"
                     />
                     <button
                       onClick={() => handleRenamePortfolio(portfolio.id, renameValue)}
@@ -685,7 +685,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                 type="button"
                 className="submit-button random"
                 onClick={handleGenerateRandomPortfolio}
-                style={{ marginTop: '10px', width: '100%' }}
+                style={{ marginTop: '0px', width: '100%' }}
               >
                 Generate Random Portfolio
               </button>
