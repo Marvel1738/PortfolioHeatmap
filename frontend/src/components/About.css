@@ -2,6 +2,7 @@
 .about-container {
   max-width: 900px;
   margin: 0 auto;
+  padding: 40px 20px;
   background-color: var(--background-primary);
   color: var(--text-primary);
   min-height: calc(100vh - var(--header-height));
@@ -54,7 +55,9 @@
   line-height: 1.6;
   color: var(--text-primary);
   margin-bottom: 15px;
-  text-align: left;
+  text-align: justify;
+  letter-spacing: 1px;
+  padding: 0 20px;
 }
 
 .about-founder {

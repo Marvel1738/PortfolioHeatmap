@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
 import axios from 'axios';
 import debounce from 'lodash.debounce';
+// Import icons from react-icons
+import { FaPencilAlt, FaTrash, FaStar } from 'react-icons/fa';
 
 function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings }) {
   const [editingHolding, setEditingHolding] = useState(null);
@@ -61,7 +63,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   }, 300);
 
   useEffect(() => {
-    if (ticker.length >= 2) {
+    if (ticker.length >= 1) {
       fetchStockSuggestions(ticker);
     } else {
       setStockSuggestions([]);
@@ -403,97 +405,28 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   return (
     <div className="sidebar">
       <button
-        className="new-portfolio-button"
-        onClick={() => setShowNewPortfolioModal(true)}
-      >
-        NEW PORTFOLIO
-      </button>
+    className="new-portfolio-button"
+    onClick={() => setShowNewPortfolioModal(true)}
+  >
+    NEW PORTFOLIO
+  </button>
 
-      <div className="portfolio-selector">
-        <div
-          className="portfolio-toggle"
-          onClick={togglePortfolioList}
-          style={{ cursor: 'pointer', fontWeight: 'bold', marginBottom: '10px' }}
-        >
-          Select Portfolio {isPortfolioListOpen ? '∨' : '>'}
-        </div>
-        {isPortfolioListOpen && (
-          <div className="portfolio-list">
-            {localPortfolios.map((portfolio) => (
-              <div key={portfolio.id} className="portfolio-item">
-                {renamePortfolioId === portfolio.id ? (
-                  <div className="rename-container">
-                    <input
-                      type="text"
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      className="rename-input"
-                      placeholder="Name"
-                    />
-                    <button
-                      onClick={() => handleRenamePortfolio(portfolio.id, renameValue)}
-                      className="action-button save"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setRenamePortfolioId(null)}
-                      className="action-button cancel"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div className="portfolio-row">
-                    <span
-                      onClick={() => onPortfolioSelect(portfolio.id)}
-                      className="portfolio-name"
-                      style={{
-                        fontWeight: selectedPortfolioId === portfolio.id ? 'bold' : 'normal',
-                      }}
-                    >
-                      {selectedPortfolioId === portfolio.id && '✔ '}
-                      {portfolio.name}
-                    </span>
-                    <div className="portfolio-actions">
-                      <button
-                        onClick={() => {
-                          setRenamePortfolioId(portfolio.id);
-                          setRenameValue(portfolio.name);
-                        }}
-                        className="action-button"
-                        title="Rename"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => handleToggleFavorite(portfolio.id, portfolio.isFavorite)}
-                        className="action-button"
-                        title={portfolio.isFavorite ? 'Unfavorite' : 'Favorite'}
-                      >
-                        <span
-                          style={{
-                            color: portfolio.isFavorite ? '#FFD700' : '#ccc',
-                          }}
-                        >
-                          ★
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleDeletePortfolio(portfolio.id)}
-                        className="action-button"
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+  <div className="portfolio-selector">
+    <select
+      className="portfolio-dropdown"
+      value={selectedPortfolioId || ''}
+      onChange={(e) => onPortfolioSelect(e.target.value)}
+    >
+      <option value="" disabled>
+        Select Portfolio
+      </option>
+      {localPortfolios.map((portfolio) => (
+        <option key={portfolio.id} value={portfolio.id}>
+          {portfolio.name}
+        </option>
+      ))}
+    </select>
+  </div>
 
       <button className="add-button" onClick={() => setShowAddModal(true)}>
         ADD STOCK

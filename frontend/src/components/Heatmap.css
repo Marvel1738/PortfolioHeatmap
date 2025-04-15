@@ -29,25 +29,23 @@
   display: flex;
   justify-content: center; /* Center the controls */
   gap: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 5px;
   width: 100%;
   max-width: 1200px;
 }
 
-.portfolio-selector,
 .timeframe-selector {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.portfolio-selector label,
+
 .timeframe-selector label {
   color: var(--text-primary);
   font-family: Arial, sans-serif;
 }
 
-.portfolio-selector select,
 .timeframe-selector select {
   padding: 5px 10px;
   border-radius: 4px;
