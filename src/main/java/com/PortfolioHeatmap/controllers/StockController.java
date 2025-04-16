@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -371,6 +372,133 @@ public class StockController {
         } catch (RuntimeException e) {
             log.error("Error populating stocks table: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body("Error populating stocks table: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Handles GET requests to retrieve stock info by ticker symbol.
+     * Returns basic information about the stock including its current price and
+     * daily change.
+     * 
+     * @param ticker The ticker symbol of the stock (e.g., "AAPL")
+     * @return ResponseEntity containing stock information or error status
+     */
+    @GetMapping("/info/{ticker}")
+    public ResponseEntity<Map<String, Object>> getStockInfo(@PathVariable String ticker) {
+        log.info("Fetching stock info for ticker: {}", ticker);
+        try {
+            Stock stock = stockService.getStockById(ticker);
+            if (stock == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            StockPrice stockPrice = stockDataService.getStockPrice(ticker);
+
+            Map<String, Object> stockInfo = new HashMap<>();
+            stockInfo.put("ticker", ticker);
+            stockInfo.put("companyName", stock.getCompanyName());
+            stockInfo.put("price", stockPrice.getPrice());
+
+            // Calculate change based on previous close and current price
+            double previousClose = stockPrice.getPreviousClose();
+            double currentPrice = stockPrice.getPrice();
+            double change = currentPrice - previousClose;
+            double changePercent = previousClose > 0 ? (change / previousClose) * 100 : 0;
+
+            stockInfo.put("change", change);
+            stockInfo.put("changePercent", changePercent);
+            stockInfo.put("marketCap", stockPrice.getMarketCap());
+
+            // Add additional available information
+            stockInfo.put("open", stockPrice.getOpen());
+            stockInfo.put("high", stockPrice.getHigh());
+            stockInfo.put("low", stockPrice.getLow());
+            stockInfo.put("peRatio", stockPrice.getPeRatio());
+
+            return ResponseEntity.ok(stockInfo);
+        } catch (Exception e) {
+            log.error("Error fetching stock info for {}: {}", ticker, e.getMessage(), e);
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    /**
+     * Handles GET requests to retrieve historical stock data based on ticker symbol
+     * and timeframe.
+     * Returns a list of historical price data points for the specified timeframe.
+     * 
+     * @param ticker    The ticker symbol of the stock (e.g., "AAPL")
+     * @param timeframe The time period to retrieve data for (e.g., "1d", "1w",
+     *                  "1m", "3m", "6m", "1y", "5y")
+     * @return ResponseEntity containing a list of historical price data or error
+     *         status
+     */
+    @GetMapping("/history/{ticker}")
+    public ResponseEntity<List<Map<String, Object>>> getStockHistory(
+            @PathVariable String ticker,
+            @RequestParam(defaultValue = "1m") String timeframe) {
+
+        log.info("Fetching stock history for ticker: {} with timeframe: {}", ticker, timeframe);
+        try {
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate;
+
+            // Determine the start date based on the timeframe
+            switch (timeframe) {
+                case "1d":
+                    startDate = endDate.minusDays(1);
+                    break;
+                case "5d":
+                    startDate = endDate.minusDays(5);
+                    break;
+                case "1w":
+                    startDate = endDate.minusWeeks(1);
+                    break;
+                case "1m":
+                    startDate = endDate.minusMonths(1);
+                    break;
+                case "3m":
+                    startDate = endDate.minusMonths(3);
+                    break;
+                case "6m":
+                    startDate = endDate.minusMonths(6);
+                    break;
+                case "1y":
+                    startDate = endDate.minusYears(1);
+                    break;
+                case "5y":
+                    startDate = endDate.minusYears(5);
+                    break;
+                default:
+                    startDate = endDate.minusMonths(1); // Default to 1 month
+            }
+
+            // Get historical prices from the service
+            List<HistoricalPrice> historicalPrices = stockDataService.getHistoricalPrices(ticker, startDate, endDate);
+
+            // Convert to format expected by frontend
+            List<Map<String, Object>> formattedHistory = historicalPrices.stream()
+                    .map(price -> {
+                        Map<String, Object> dataPoint = new HashMap<>();
+                        dataPoint.put("date", price.getDate());
+                        dataPoint.put("close", price.getClose());
+
+                        // HistoricalPrice model doesn't have these fields based on the model definition
+                        // If they're needed, they should be added to the HistoricalPrice class
+                        // For now, we'll put null values
+                        dataPoint.put("open", null);
+                        dataPoint.put("high", null);
+                        dataPoint.put("low", null);
+                        dataPoint.put("volume", null);
+
+                        return dataPoint;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(formattedHistory);
+        } catch (Exception e) {
+            log.error("Error fetching stock history for {}: {}", ticker, e.getMessage(), e);
+            return ResponseEntity.status(500).body(null);
         }
     }
 }

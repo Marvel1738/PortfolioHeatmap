@@ -15,6 +15,7 @@ import {
   Legend,
 } from 'chart.js';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 // Register Chart.js components
 ChartJS.register(
@@ -32,6 +33,7 @@ ChartJS.register(
  * @returns {JSX.Element} The rendered heatmap UI
  */
 function Heatmap() {
+  const navigate = useNavigate();
   const [portfolios, setPortfolios] = useState([]);
   const [selectedPortfolioId, setSelectedPortfolioId] = useState(null);
   const [portfolioData, setPortfolioData] = useState(null);
@@ -436,16 +438,19 @@ function Heatmap() {
     }));
   };
 
-const handlePortfolioSelect = (portfolioId) => {
-  const numericId = parseInt(portfolioId, 10);
-  setSelectedPortfolioId(numericId || null);
+  const handlePortfolioSelect = (portfolioId) => {
+    const numericId = parseInt(portfolioId, 10);
+    setSelectedPortfolioId(numericId || null);
 
-  const selectedPortfolio = portfolios.find((p) => p.id === numericId);
-  setRenamePortfolioId(null);
-  setRenameValue(selectedPortfolio ? selectedPortfolio.name : '');
-};
+    const selectedPortfolio = portfolios.find((p) => p.id === numericId);
+    setRenamePortfolioId(null);
+    setRenameValue(selectedPortfolio ? selectedPortfolio.name : '');
+  };
 
-
+  // Handle double click to navigate to detailed chart
+  const handleStockDoubleClick = (ticker) => {
+    navigate(`/chart/${ticker}`);
+  };
 
   // Generate percentage markers for the color scale
   const getColorScaleMarkers = (timeframe) => {
@@ -479,61 +484,61 @@ const handlePortfolioSelect = (portfolioId) => {
         setPortfolios={setPortfolios}
       />
       <div className="heatmap-main">
-<div className="portfolio-header">
-  {renamePortfolioId === selectedPortfolioId ? (
-    <div className="rename-container">
-      <input
-        type="text"
-        value={renameValue}
-        onChange={(e) => setRenameValue(e.target.value)}
-        className="rename-input"
-        placeholder="Portfolio Name"
-      />
-      <button
-        onClick={() => handleRenamePortfolio(selectedPortfolioId, renameValue)}
-        className="action-button save"
-      >
-        Save
-      </button>
-      <button
-        onClick={() => {
-          setRenamePortfolioId(null);
-          setRenameValue(portfolios.find((p) => p.id === selectedPortfolioId)?.name || '');
-        }}
-        className="action-button cancel"
-      >
-        Cancel
-      </button>
-    </div>
-  ) : (
-    <div className="portfolio-title">
-<h2>
-  {selectedPortfolioId ? (portfolios.find((p) => p.id === selectedPortfolioId)?.name || 'Loading...') : 'No Portfolio Selected'}
-</h2>
+        <div className="portfolio-header">
+          {renamePortfolioId === selectedPortfolioId ? (
+            <div className="rename-container">
+              <input
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                className="rename-input"
+                placeholder="Portfolio Name"
+              />
+              <button
+                onClick={() => handleRenamePortfolio(selectedPortfolioId, renameValue)}
+                className="action-button save"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setRenamePortfolioId(null);
+                  setRenameValue(portfolios.find((p) => p.id === selectedPortfolioId)?.name || '');
+                }}
+                className="action-button cancel"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="portfolio-title">
+              <h2>
+                {selectedPortfolioId ? (portfolios.find((p) => p.id === selectedPortfolioId)?.name || 'Loading...') : 'No Portfolio Selected'}
+              </h2>
 
-      {selectedPortfolioId && (
-        <div className="portfolio-actions">
-          <button
-            onClick={() => {
-              const selectedPortfolio = portfolios.find((p) => p.id === selectedPortfolioId);
-              setRenamePortfolioId(selectedPortfolioId);
-              setRenameValue(selectedPortfolio ? selectedPortfolio.name : '');
-            }}
-            className="action-button rename"
-          >
-            <FaPencilAlt size={16} />
-          </button>
-          <button
-            onClick={() => handleDeletePortfolio(selectedPortfolioId)}
-            className="action-button delete"
-          >
-            <FaTrash size={16} />
-          </button>
+              {selectedPortfolioId && (
+                <div className="portfolio-actions">
+                  <button
+                    onClick={() => {
+                      const selectedPortfolio = portfolios.find((p) => p.id === selectedPortfolioId);
+                      setRenamePortfolioId(selectedPortfolioId);
+                      setRenameValue(selectedPortfolio ? selectedPortfolio.name : '');
+                    }}
+                    className="action-button rename"
+                  >
+                    <FaPencilAlt size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleDeletePortfolio(selectedPortfolioId)}
+                    className="action-button delete"
+                  >
+                    <FaTrash size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  )}
-</div>
         <div className="heatmap-controls">
           <div className="timeframe-selector">
             <label>Timeframe: </label>
@@ -628,10 +633,7 @@ const handlePortfolioSelect = (portfolioId) => {
                       onMouseEnter={(e) => handleMouseEnter(e, holding)}
                       onMouseMove={handleMouseMove}
                       onMouseLeave={handleMouseLeave}
-                      onDoubleClick={() => {
-                        const ticker = holding.stock.ticker;
-                        window.open(`https://finviz.com/quote.ashx?t=${ticker}&p=d`, '_blank');
-                      }}
+                      onDoubleClick={() => handleStockDoubleClick(holding.stock.ticker)}
                     >
                       <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
                         {holding.stock.ticker}

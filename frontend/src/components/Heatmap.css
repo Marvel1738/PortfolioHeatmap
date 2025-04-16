@@ -49,9 +49,9 @@
 .timeframe-selector select {
   padding: 5px 10px;
   border-radius: 4px;
-  border: 1px solid var(--border-color);
-  background-color: var(--background-secondary);
-  color: var(--text-primary);
+  border: 1px solid var(--border-color) !important;
+  background-color: var(--background-secondary) !important;
+  color: var(--text-primary) !important;
 }
 
 .error-message {
