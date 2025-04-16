@@ -260,3 +260,81 @@ label {
   margin-bottom: 10px;
   font-style: italic;
 }
+
+.portfolio-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin-bottom: 20px;
+}
+
+.portfolio-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portfolio-title h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 24px;
+  font-family: Arial, sans-serif;
+}
+
+.portfolio-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-button.delete :hover {
+  color: red;
+}
+
+.action-button.delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, transform 0.2s;
+  color: var(--text-primary);
+}
+
+.action-button.rename :hover{
+  color: #007bff;
+}
+
+.rename-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 200px !important;
+}
+
+.rename-input {
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  width: 50px !important;
+}
+
+.action-button.save,
+.action-button.cancel {
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.action-button.cancel {
+  background-color: #6c757d;
+}

@@ -1,5 +1,3 @@
-// frontend/src/components/Heatmap.js
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as d3 from 'd3';
@@ -16,7 +14,7 @@ import {
   Tooltip as ChartTooltip,
   Legend,
 } from 'chart.js';
-
+import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 
 // Register Chart.js components
 ChartJS.register(
@@ -28,8 +26,6 @@ ChartJS.register(
   Legend
 );
 
-
-
 /**
  * Heatmap component for displaying portfolio visualizations with a tooltip on hover.
  * 
@@ -38,7 +34,7 @@ ChartJS.register(
 function Heatmap() {
   const [portfolios, setPortfolios] = useState([]);
   const [selectedPortfolioId, setSelectedPortfolioId] = useState(null);
-  const [portfolioData, setPortfolioData] = useState(null); // Changed to store full response
+  const [portfolioData, setPortfolioData] = useState(null);
   const [holdings, setHoldings] = useState([]);
   const [timeframe, setTimeframe] = useState('1d');
   const [error, setError] = useState('');
@@ -49,10 +45,12 @@ function Heatmap() {
     x: 0,
     y: 0,
     data: null,
-chartData: null, // New field for chart data
-    chartError: '', // New field for chart errors
+    chartData: null,
+    chartError: '',
   });
-  const [chartCache, setChartCache] = useState({}); // Cache for intraday data
+  const [chartCache, setChartCache] = useState({});
+  const [renamePortfolioId, setRenamePortfolioId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 800;
@@ -71,16 +69,15 @@ chartData: null, // New field for chart data
     { value: 'total', label: 'Total Gain/Loss' },
   ];
 
-  // Define max percentage ranges for each timeframe (Finviz style)
   const timeframeRanges = {
-    '1d': 3,    // ±3%
-    '1w': 6,    // ±6%
-    '1m': 9,   // ±9%
-    '3m': 15,   // ±15%
-    '6m': 24,   // ±24%
-    'ytd': 30,  // ±30% 
-    '1y': 30,   // ±30%
-    'total': 60 // ±60% (for lifetime performance)
+    '1d': 3,
+    '1w': 6,
+    '1m': 9,
+    '3m': 15,
+    '6m': 24,
+    'ytd': 30,
+    '1y': 30,
+    'total': 60,
   };
 
   // Handle window resize
@@ -120,11 +117,11 @@ chartData: null, // New field for chart data
         if (response.data.length > 0) {
           setSelectedPortfolioId(response.data[0].id);
         } else {
-        setError('Click NEW PORTFOLIO to create a portfolio!');
+          setError('Click NEW PORTFOLIO to create a portfolio!');
+        }
+      } catch (err) {
+        setError('Failed to fetch portfolios: ' + err.message);
       }
-    } catch (err) {
-      setError('Failed to fetch portfolios: ' + err.message);
-    }
     };
 
     fetchPortfolios();
@@ -148,7 +145,7 @@ chartData: null, // New field for chart data
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
 
-        setPortfolioData(response.data); // Store full response
+        setPortfolioData(response.data);
 
         let holdingsData = response.data.openPositions || [];
 
@@ -234,19 +231,77 @@ chartData: null, // New field for chart data
     fetchHoldings();
   }, [selectedPortfolioId, timeframe]);
 
-// Get color based on percentage change (Finviz style with dynamic scaling)
+  // Handle rename portfolio
+  const handleRenamePortfolio = async (portfolioId, newName) => {
+    if (!newName.trim()) {
+      alert('Portfolio name is required');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You are not authenticated. Please log in.');
+        return;
+      }
+
+      const response = await axios.patch(
+        `http://localhost:8080/portfolios/${portfolioId}/rename`,
+        null,
+        {
+          params: { name: newName },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setPortfolios(
+        portfolios.map((p) =>
+          p.id === portfolioId ? { ...p, name: response.data.name } : p
+        )
+      );
+      setRenamePortfolioId(null);
+      setRenameValue('');
+    } catch (err) {
+      console.error('Failed to rename portfolio:', err.response?.data || err.message);
+      alert('Failed to rename portfolio. Please try again.');
+    }
+  };
+
+  // Handle delete portfolio
+  const handleDeletePortfolio = async (portfolioId) => {
+    if (!window.confirm('Are you sure you want to delete this portfolio?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You are not authenticated. Please log in.');
+        return;
+      }
+
+      await axios.delete(`http://localhost:8080/portfolios/${portfolioId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const updatedPortfolios = portfolios.filter((p) => p.id !== portfolioId);
+      setPortfolios(updatedPortfolios);
+
+      if (selectedPortfolioId === portfolioId) {
+        setSelectedPortfolioId(updatedPortfolios[0]?.id || null);
+      }
+    } catch (err) {
+      console.error('Failed to delete portfolio:', err);
+      alert('Failed to delete portfolio. Please try again.');
+    }
+  };
+
+  // Get color based on percentage change (Finviz style with dynamic scaling)
   const getColor = (percentChange, timeframe) => {
     const pc = Number(percentChange) || 0;
     const baseGray = { r: 43, g: 49, b: 58 };
     const green = { r: 0, g: 153, b: 51 };
     const red = { r: 204, g: 51, b: 51 };
 
-    // Get the max range for the current timeframe
-    const maxRange = timeframeRanges[timeframe]
-
-    // Cap the percentage change at the max range for color scaling
+    const maxRange = timeframeRanges[timeframe];
     const cappedPC = Math.min(Math.abs(pc), maxRange);
-    const factor = cappedPC / maxRange; // Scale factor based on the timeframe's range
+    const factor = cappedPC / maxRange;
 
     let targetColor;
     if (pc > 0) {
@@ -261,7 +316,7 @@ chartData: null, // New field for chart data
     const g = Math.round(baseGray.g + (targetColor.g - baseGray.g) * factor);
     const b = Math.round(baseGray.b + (targetColor.b - baseGray.b) * factor);
 
-    const opacity = 0.7 + factor * (0.95 - 0.7); // Adjust opacity from 0.7 to 0.95
+    const opacity = 0.7 + factor * (0.95 - 0.7);
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
@@ -311,7 +366,6 @@ chartData: null, // New field for chart data
     let chartData = null;
     let chartError = '';
 
-    // Check cache first
     if (chartCache[holding.stock.ticker]) {
       chartData = chartCache[holding.stock.ticker];
     } else {
@@ -325,11 +379,11 @@ chartData: null, // New field for chart data
         if (!response.data || response.data.length === 0) {
           chartError = 'No intraday data available';
         } else {
-          const labels = response.data.map((point) => point.date.slice(11, 16)); // HH:MM
+          const labels = response.data.map((point) => point.date.slice(11, 16));
           const prices = response.data.map((point) => point.close);
 
           chartData = {
-            labels: labels.reverse(), // Latest on right
+            labels: labels.reverse(),
             datasets: [
               {
                 label: 'Close Price',
@@ -338,12 +392,11 @@ chartData: null, // New field for chart data
                 backgroundColor: 'rgba(75, 192, 192, 0.2)',
                 fill: false,
                 tension: 0.1,
-                pointRadius: 0, // No points for subtle look
+                pointRadius: 0,
               },
             ],
           };
 
-          // Cache the data
           setChartCache((prev) => ({
             ...prev,
             [holding.stock.ticker]: chartData,
@@ -365,32 +418,38 @@ chartData: null, // New field for chart data
     });
   };
 
-const handleMouseLeave = () => {
-  setTooltip((prev) => ({
-    ...prev,
-    visible: false,
-    data: null,
-    chartData: null,
-    chartError: '',
-  }));
-};
-
-const handleMouseMove = (e) => {
-  setTooltip((prev) => ({
-    ...prev,
-    x: e.clientX,
-    y: e.clientY,
-  }));
-};
-
-  const handlePortfolioSelect = (portfolioId) => {
-    setSelectedPortfolioId(portfolioId);
+  const handleMouseLeave = () => {
+    setTooltip((prev) => ({
+      ...prev,
+      visible: false,
+      data: null,
+      chartData: null,
+      chartError: '',
+    }));
   };
+
+  const handleMouseMove = (e) => {
+    setTooltip((prev) => ({
+      ...prev,
+      x: e.clientX,
+      y: e.clientY,
+    }));
+  };
+
+const handlePortfolioSelect = (portfolioId) => {
+  const numericId = parseInt(portfolioId, 10);
+  setSelectedPortfolioId(numericId || null);
+
+  const selectedPortfolio = portfolios.find((p) => p.id === numericId);
+  setRenamePortfolioId(null);
+  setRenameValue(selectedPortfolio ? selectedPortfolio.name : '');
+};
+
+
 
   // Generate percentage markers for the color scale
   const getColorScaleMarkers = (timeframe) => {
     const maxRange = timeframeRanges[timeframe] || 10;
-    // Finviz uses 7 markers: -max, -2/3*max, -1/3*max, 0, +1/3*max, +2/3*max, +max
     const steps = [
       -maxRange,
       -(maxRange * 2) / 3,
@@ -406,6 +465,10 @@ const handleMouseMove = (e) => {
     }));
   };
 
+  // Get the current portfolio name
+  const selectedPortfolio = portfolios.find((p) => p.id === selectedPortfolioId);
+  const portfolioName = selectedPortfolio ? selectedPortfolio.name : 'No Portfolio Selected';
+
   return (
     <div className="heatmap-container">
       <Sidebar
@@ -413,8 +476,64 @@ const handleMouseMove = (e) => {
         selectedPortfolioId={selectedPortfolioId}
         onPortfolioSelect={handlePortfolioSelect}
         holdings={holdings}
+        setPortfolios={setPortfolios}
       />
       <div className="heatmap-main">
+<div className="portfolio-header">
+  {renamePortfolioId === selectedPortfolioId ? (
+    <div className="rename-container">
+      <input
+        type="text"
+        value={renameValue}
+        onChange={(e) => setRenameValue(e.target.value)}
+        className="rename-input"
+        placeholder="Portfolio Name"
+      />
+      <button
+        onClick={() => handleRenamePortfolio(selectedPortfolioId, renameValue)}
+        className="action-button save"
+      >
+        Save
+      </button>
+      <button
+        onClick={() => {
+          setRenamePortfolioId(null);
+          setRenameValue(portfolios.find((p) => p.id === selectedPortfolioId)?.name || '');
+        }}
+        className="action-button cancel"
+      >
+        Cancel
+      </button>
+    </div>
+  ) : (
+    <div className="portfolio-title">
+<h2>
+  {selectedPortfolioId ? (portfolios.find((p) => p.id === selectedPortfolioId)?.name || 'Loading...') : 'No Portfolio Selected'}
+</h2>
+
+      {selectedPortfolioId && (
+        <div className="portfolio-actions">
+          <button
+            onClick={() => {
+              const selectedPortfolio = portfolios.find((p) => p.id === selectedPortfolioId);
+              setRenamePortfolioId(selectedPortfolioId);
+              setRenameValue(selectedPortfolio ? selectedPortfolio.name : '');
+            }}
+            className="action-button rename"
+          >
+            <FaPencilAlt size={16} />
+          </button>
+          <button
+            onClick={() => handleDeletePortfolio(selectedPortfolioId)}
+            className="action-button delete"
+          >
+            <FaTrash size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  )}
+</div>
         <div className="heatmap-controls">
           <div className="timeframe-selector">
             <label>Timeframe: </label>
@@ -445,167 +564,167 @@ const handleMouseMove = (e) => {
             </label>
           </div>
         </div>
-<div className="heatmap">
-  {portfolios.length > 0 && holdings.length > 0 && (
-    <div className="heatmap-message">
-      *Double click stock to see detailed chart
-    </div>
-  )}
-  <div className="heatmap-and-scale" style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '1200px' }}>
-    <div className="heatmap-visualization">
-      <div
-        className="heatmap-content"
-        style={{
-          position: 'absolute',
-          width: `${BASE_WIDTH}px`,
-          height: `${BASE_HEIGHT}px`,
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-        }}
-      >
-        {holdings.length === 0 && error && (
-          <div className="error-message">{error}</div>
-        )}
-        {treeMapData.map((d, i) => {
-          const holding = d.data.holding;
-          const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
-          const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
-          const percentChange = holding.percentChange;
-
-          let dollarChange;
-          if (timeframe === 'total') {
-            dollarChange = (holding.currentValue * percentChange) / 100;
-          } else {
-            dollarChange = (holding.currentPrice * percentChange) / 100;
-          }
-
-          const fontSize = Math.min(width, height) * 0.12;
-
-          return (
-            <div
-              key={i}
-              className="heatmap-rect"
-              style={{
-                position: 'absolute',
-                left: `${d.x0}px`,
-                top: `${d.y0}px`,
-                width: `${width}px`,
-                height: `${height}px`,
-                backgroundColor: getColor(percentChange, timeframe),
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '5px',
-                boxSizing: 'border-box',
-                color: '#ffffff',
-                fontSize: `${fontSize}px`,
-                textAlign: 'center',
-                overflow: 'hidden',
-                fontFamily: 'Arial, sans-serif',
-                textShadow: '1px 1px 1px rgba(0, 0, 0, 0.9)',
-                cursor: 'default',
-              }}
-              onMouseEnter={(e) => handleMouseEnter(e, holding)}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              onDoubleClick={() => {
-                const ticker = holding.stock.ticker;
-                window.open(`https://finviz.com/quote.ashx?t=${ticker}&p=d`, '_blank');
-              }}
-            >
-              <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
-                {holding.stock.ticker}
-              </div>
-              {showPercentChange && (
-                <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                  {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
-                </div>
-              )}
-              {showDollarChange && (
-                <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                  {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2)}$
-                </div>
-              )}
+        <div className="heatmap">
+          {portfolios.length > 0 && holdings.length > 0 && (
+            <div className="heatmap-message">
+              *Double click stock to see detailed chart
             </div>
-          );
-        })}
-      </div>
-    </div>
-    {portfolioData && holdings.length > 0 && (
-      <div
-        className="color-scale"
-        style={{
-          fontFamily: 'Arial, sans-serif',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          gap: '1px',
-          marginLeft: '20px',
-          height: `${BASE_HEIGHT * 0.75 * scale}px`,
-          width: `${BASE_WIDTH * 0.06 * scale}px`,
-          minWidth: '40px',
-        }}
-      >
-        {getColorScaleMarkers(timeframe).map((marker, index) => (
-          <div
-            key={index}
-            style={{
-              backgroundColor: getColor(marker.value, timeframe),
-              color: '#fff',
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              minHeight: '0',
-            }}
-          >
-            {marker.label}
+          )}
+          <div className="heatmap-and-scale" style={{ display: 'flex', alignItems: 'center', width: '100%', maxWidth: '1200px' }}>
+            <div className="heatmap-visualization">
+              <div
+                className="heatmap-content"
+                style={{
+                  position: 'absolute',
+                  width: `${BASE_WIDTH}px`,
+                  height: `${BASE_HEIGHT}px`,
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top left',
+                }}
+              >
+                {holdings.length === 0 && error && (
+                  <div className="error-message">{error}</div>
+                )}
+                {treeMapData.map((d, i) => {
+                  const holding = d.data.holding;
+                  const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
+                  const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
+                  const percentChange = holding.percentChange;
+
+                  let dollarChange;
+                  if (timeframe === 'total') {
+                    dollarChange = (holding.currentValue * percentChange) / 100;
+                  } else {
+                    dollarChange = (holding.currentPrice * percentChange) / 100;
+                  }
+
+                  const fontSize = Math.min(width, height) * 0.12;
+
+                  return (
+                    <div
+                      key={i}
+                      className="heatmap-rect"
+                      style={{
+                        position: 'absolute',
+                        left: `${d.x0}px`,
+                        top: `${d.y0}px`,
+                        width: `${width}px`,
+                        height: `${height}px`,
+                        backgroundColor: getColor(percentChange, timeframe),
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: '5px',
+                        boxSizing: 'border-box',
+                        color: '#ffffff',
+                        fontSize: `${fontSize}px`,
+                        textAlign: 'center',
+                        overflow: 'hidden',
+                        fontFamily: 'Arial, sans-serif',
+                        textShadow: '1px 1px 1px rgba(0, 0, 0, 0.9)',
+                        cursor: 'default',
+                      }}
+                      onMouseEnter={(e) => handleMouseEnter(e, holding)}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
+                      onDoubleClick={() => {
+                        const ticker = holding.stock.ticker;
+                        window.open(`https://finviz.com/quote.ashx?t=${ticker}&p=d`, '_blank');
+                      }}
+                    >
+                      <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
+                        {holding.stock.ticker}
+                      </div>
+                      {showPercentChange && (
+                        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+                          {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
+                        </div>
+                      )}
+                      {showDollarChange && (
+                        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+                          {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2)}$
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {portfolioData && holdings.length > 0 && (
+              <div
+                className="color-scale"
+                style={{
+                  fontFamily: 'Arial, sans-serif',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  gap: '1px',
+                  marginLeft: '20px',
+                  height: `${BASE_HEIGHT * 0.75 * scale}px`,
+                  width: `${BASE_WIDTH * 0.06 * scale}px`,
+                  minWidth: '40px',
+                }}
+              >
+                {getColorScaleMarkers(timeframe).map((marker, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      backgroundColor: getColor(marker.value, timeframe),
+                      color: '#fff',
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      minHeight: '0',
+                    }}
+                  >
+                    {marker.label}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ))}
-      </div>
-    )}
-  </div>
-  {portfolioData && holdings.length > 0 && (
-    <div className="portfolio-summary" style={{ textAlign: 'left', fontFamily: 'Arial, sans-serif', width: '100%' }}>
-      <h3>Portfolio Summary</h3>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%</li>
-        <li><strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}</li>
-        <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}</li>
-      </ul>
-    </div>
-  )}
-</div>
+          {portfolioData && holdings.length > 0 && (
+            <div className="portfolio-summary" style={{ textAlign: 'left', fontFamily: 'Arial, sans-serif', width: '100%' }}>
+              <h3>Portfolio Summary</h3>
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%</li>
+                <li><strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}</li>
+                <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}</li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
       {tooltip.visible && tooltip.data &&
-  ReactDOM.createPortal(
-    <div
-      className="heatmap-tooltip"
-      style={{
-        position: 'fixed',
-        left: `${tooltip.x - 1}px`,
-        top: `${tooltip.y - 249}px`,
-        backgroundColor: 'black',
-        color: '#ffffff',
-        borderRadius: '6px',
-        fontSize: '14px',
-        pointerEvents: 'none',
-        width: '300px',
-        whiteSpace: 'nowrap',
-        transition: 'none', // remove lag
-        cursor: 'pointer'
-      }}
-    >
-      <div style={{marginBottom: '8px' }}><strong>{tooltip.data.stock.ticker}</strong></div>
-      <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
-      <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
-      <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
-      <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
-      <div>Current Price: ${tooltip.data.currentPrice}</div>
-      {tooltip.chartError ? (
+        ReactDOM.createPortal(
+          <div
+            className="heatmap-tooltip"
+            style={{
+              position: 'fixed',
+              left: `${tooltip.x - 1}px`,
+              top: `${tooltip.y - 249}px`,
+              backgroundColor: 'black',
+              color: '#ffffff',
+              borderRadius: '6px',
+              fontSize: '14px',
+              pointerEvents: 'none',
+              width: '300px',
+              whiteSpace: 'nowrap',
+              transition: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{marginBottom: '8px' }}><strong>{tooltip.data.stock.ticker}</strong></div>
+            <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
+            <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
+            <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
+            <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
+            <div>Current Price: ${tooltip.data.currentPrice}</div>
+            {tooltip.chartError ? (
               <div style={{ fontSize: '12px', color: '#ff6666', marginTop: '8px' }}>
                 {tooltip.chartError}
               </div>
@@ -618,20 +737,20 @@ const handleMouseMove = (e) => {
                     maintainAspectRatio: false,
                     plugins: {
                       legend: { display: false },
-                      tooltip: { enabled: false }, // Disable Chart.js tooltip to avoid conflict
+                      tooltip: { enabled: false },
                     },
                     scales: {
                       x: {
-                        display: false, // Hide x-axis for subtle look
+                        display: false,
                         grid: { display: false },
                       },
                       y: {
-                        display: false, // Hide y-axis
+                        display: false,
                         grid: { display: false },
                       },
                     },
                     elements: {
-                      line: { borderWidth: 1 }, // Thin line
+                      line: { borderWidth: 1 },
                       point: { radius: 0 },
                     },
                   }}
@@ -643,10 +762,9 @@ const handleMouseMove = (e) => {
               </div>
             )}
           </div>,
-    document.body
-  )
-}
-
+          document.body
+        )
+      }
     </div>
   );
 }

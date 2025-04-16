@@ -20,22 +20,10 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   const [isPortfolioListOpen, setIsPortfolioListOpen] = useState(false);
   const [renamePortfolioId, setRenamePortfolioId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
-  const [localPortfolios, setLocalPortfolios] = useState(portfolios);
 
-  // Sync localPortfolios with portfolios, but preserve local updates
-  useEffect(() => {
-    setLocalPortfolios((prev) => {
-      // Merge portfolios with local changes to avoid overwriting isFavorite
-      return portfolios.map((newP) => {
-        const existing = prev.find((p) => p.id === newP.id);
-        return existing ? { ...newP, isFavorite: existing.isFavorite } : newP;
-      });
-    });
-  }, [portfolios]);
 
   // Log portfolios for debugging
   console.log('Portfolios:', portfolios);
-  console.log('LocalPortfolios:', localPortfolios);
 
   // Filter holdings based on search query
   const filteredHoldings = holdings.filter((holding) =>
@@ -248,7 +236,6 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
         }
       );
 
-      setLocalPortfolios([...localPortfolios, response.data]);
       setNewPortfolioName('');
       setShowNewPortfolioModal(false);
 
@@ -283,7 +270,6 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
         }
       );
 
-      setLocalPortfolios([...localPortfolios, response.data]);
       setNewPortfolioName('');
       setShowNewPortfolioModal(false);
 
@@ -309,10 +295,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setLocalPortfolios(localPortfolios.filter((p) => p.id !== portfolioId));
-
       if (onPortfolioSelect && selectedPortfolioId === portfolioId) {
-        const remainingPortfolios = localPortfolios.filter((p) => p.id !== portfolioId);
+        const remainingPortfolios = portfolios.filter((p) => p.id !== portfolioId);
         onPortfolioSelect(remainingPortfolios[0]?.id || '');
       }
     } catch (err) {
@@ -344,11 +328,6 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
 
       console.log('Rename response:', response.data); // Debug
 
-      setLocalPortfolios(
-        localPortfolios.map((p) =>
-          p.id === portfolioId ? { ...p, name: response.data.name } : p
-        )
-      );
       setRenamePortfolioId(null);
       setRenameValue('');
 
@@ -379,15 +358,6 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
       );
 
       console.log('Favorite response:', response.data); // Debug
-
-      // Update local portfolios with response
-      setLocalPortfolios(
-        localPortfolios.map((p) =>
-          p.id === portfolioId
-            ? { ...p, isFavorite: response.data.isFavorite }
-            : p
-        )
-      );
 
       if (onPortfolioSelect) {
         onPortfolioSelect(portfolioId);
@@ -420,7 +390,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
       <option value="" disabled>
         Select Portfolio
       </option>
-      {localPortfolios.map((portfolio) => (
+      {portfolios.map((portfolio) => (
         <option key={portfolio.id} value={portfolio.id}>
           {portfolio.name}
         </option>
