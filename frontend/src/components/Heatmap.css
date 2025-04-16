@@ -261,80 +261,72 @@ label {
   font-style: italic;
 }
 
+/* Container for the whole title area */
 .portfolio-header {
   display: flex;
-  justify-content: center;
   align-items: center;
-  width: 100%;
-  max-width: 1200px;
+  justify-content: space-between;
   margin-bottom: 20px;
 }
 
+/* Title text and buttons row */
 .portfolio-title {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+/* The actual <h2> title */
 .portfolio-title h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffffff;
   margin: 0;
-  color: var(--text-primary);
-  font-size: 24px;
-  font-family: Arial, sans-serif;
+  padding-right: 10px;
 }
 
+/* Button container (edit/delete) */
 .portfolio-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
-.action-button.delete :hover {
-  color: red;
-}
-
-.action-button.delete {
-  background: none;
+/* Shared button styles */
+.action-button {
+  background: #333;
   border: none;
+  color: white;
+  padding: 6px 8px;
+  border-radius: 5px;
   cursor: pointer;
-  padding: 4px;
+  transition: background 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s, transform 0.2s;
-  color: var(--text-primary);
 }
 
-.action-button.rename :hover{
-  color: #007bff;
+.action-button:hover {
+  background: #555;
 }
 
+.action-button.rename {
+  background-color: #007bff;
+}
+
+.action-button.delete {
+  background-color: #dc3545;
+}
+
+/* Rename input + save/cancel container */
 .rename-container {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 200px !important;
+  padding: 10px 20px;
+  width: 300px !important;
 }
 
 .rename-input {
-  padding: 6px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 14px;
-  background-color: var(--background-secondary);
-  color: var(--text-primary);
-  width: 50px !important;
-}
-
-.action-button.save,
-.action-button.cancel {
-  background-color: #007bff;
-  color: #fff;
-  border-radius: 4px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.action-button.cancel {
-  background-color: #6c757d;
+  padding: 6px 10px;
+  font-size: 1rem;
 }
