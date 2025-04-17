@@ -99,6 +99,20 @@ function DetailedChart() {
   const [error, setError] = useState('');
   const [priceRange, setPriceRange] = useState({ min: 0, max: 0 });
   const [timeframe, setTimeframe] = useState('1y');
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // Track window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Fetch stock data
   useEffect(() => {
@@ -209,6 +223,14 @@ function DetailedChart() {
     };
   };
 
+  // Adjust max ticks based on screen width
+  const getMaxTicks = () => {
+    if (windowWidth < 600) return 6;
+    if (windowWidth < 960) return 8;
+    if (windowWidth < 1280) return 10;
+    return 12;
+  };
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -236,13 +258,18 @@ function DetailedChart() {
             ];
           }
         },
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(69, 79, 86, 1)',
         titleFont: {
-          size: 14
+          size: 14,
+          family: 'Arial, sans-serif'
         },
         bodyFont: {
-          size: 14
-        }
+          size: 14,
+          family: 'Arial, sans-serif'
+        },
+        titleColor: 'rgb(98, 111, 126)',
+        bodyColor: 'rgb(98, 111, 126)',
+        borderColor: 'rgb(98, 111, 126)'
       }
     },
     scales: {
@@ -250,18 +277,23 @@ function DetailedChart() {
         grid: {
           display: true, // Show vertical gridlines for month ticks
           drawBorder: false,
-          color: 'rgba(255, 255, 255, 0.1)', // Light vertical grid
+          color: function() {
+            return 'rgba(98, 111, 126, 0.25)';
+          },
           tickLength: 8, // Shorter tick marks
         },
         ticks: {
           font: {
-            size: 12
+            size: windowWidth < 768 ? 10 : 12,
+            family: 'Arial, sans-serif'
           },
-          color: '#666',
+          color: function() {
+            return 'rgb(98, 111, 126)';
+          },
           padding: 10, // Add padding below labels
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: 12 // Limit the number of x-axis labels
+          maxTicksLimit: getMaxTicks() // Adaptive number of ticks based on screen width
         },
         border: {
           display: false
@@ -277,14 +309,19 @@ function DetailedChart() {
             return '$' + value;
           },
           font: {
-            size: 12
+            size: windowWidth < 768 ? 10 : 12,
+            family: 'Arial, sans-serif'
           },
-          color: '#666',
+          color: function() {
+            return 'rgb(98, 111, 126)';
+          },
           stepSize: Math.ceil((getYAxisRange().max - getYAxisRange().min) / 8 / 10) * 10,
-          count: 8 // About 8 tick marks for clean display
+          count: windowWidth < 768 ? 6 : 8 // Fewer ticks on mobile
         },
         grid: {
-          color: 'rgba(255, 255, 255, 0.05)', // Very light horizontal gridlines
+          color: function() {
+            return 'rgba(98, 111, 126, 0.15)';
+          },
           drawBorder: false,
         },
         border: {
@@ -299,10 +336,10 @@ function DetailedChart() {
     },
     layout: {
       padding: {
-        left: 20, // More padding on left for price scale
-        right: 10,
-        top: 20,
-        bottom: 10
+        left: windowWidth < 768 ? 10 : 20, // Less padding on mobile
+        right: windowWidth < 768 ? 5 : 10,
+        top: windowWidth < 768 ? 10 : 20,
+        bottom: windowWidth < 768 ? 5 : 10
       }
     }
   };
@@ -319,30 +356,36 @@ function DetailedChart() {
     <div className="detailed-chart-container dark-theme">
       <div className="chart-header">
         <button className="back-button" onClick={handleGoBack}>
-          ← Back to Heatmap
+          ← Back
         </button>
-        <h1>{ticker} - Candlestick Chart</h1>
-        <div className="timeframe-selector">
-          <select value={timeframe} onChange={handleTimeframeChange}>
-            {timeframeOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </div>
-        {stockInfo && (
-          <div className="stock-info">
-            <h2>{stockInfo.companyName}</h2>
-            <div className="price-info">
-              <p className="current-price">${stockInfo.price?.toFixed(2) || 'N/A'}</p>
-              <p className={`price-change ${stockInfo.change >= 0 ? 'positive' : 'negative'}`}>
-                {stockInfo.change > 0 ? '+' : ''}
-                {stockInfo.change?.toFixed(2) || 'N/A'} (
-                {stockInfo.changePercent > 0 ? '+' : ''}
-                {stockInfo.changePercent?.toFixed(2) || 'N/A'}%)
-              </p>
-            </div>
+        
+        <div className="header-content">
+          {stockInfo && (
+            <>
+              <div className="stock-name-ticker">
+                <h2 className="ticker-symbol">{ticker}</h2>
+                <span className="company-name">{stockInfo.companyName}</span>
+                          </div>
+                                    <div className="timeframe-selector">
+            <select value={timeframe} onChange={handleTimeframeChange}>
+              {timeframeOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
           </div>
-        )}
+              <div className="price-info">
+                <p className="current-price">${stockInfo.price?.toFixed(2) || 'N/A'}</p>
+                <p className={`price-change ${stockInfo.change >= 0 ? 'positive' : 'negative'}`}>
+                  {stockInfo.change > 0 ? '+' : ''}
+                  {stockInfo.change?.toFixed(2) || 'N/A'} (
+                  {stockInfo.changePercent > 0 ? '+' : ''}
+                  {stockInfo.changePercent?.toFixed(2) || 'N/A'}%)
+                </p>
+              </div>
+            </>
+          )}
+        
+        </div>
       </div>
 
       <div className="chart-container">
