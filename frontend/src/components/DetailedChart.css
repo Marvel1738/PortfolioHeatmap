@@ -130,11 +130,11 @@ h2.ticker-symbol {
 }
 
 .chart-container {
-  height: 70vh;
-  width: 100%;
+  height: 60vh;
+  width: 90%;
+  margin: 10px auto;
   border-radius: 8px;
   padding: 10px;
-  margin-top: 10px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -143,7 +143,6 @@ h2.ticker-symbol {
 .chart-container canvas {
   background-color: var(--background-secondary) !important;
   width: 100% !important;
-  max-width: 100%;
   border: 1px solid var(--chart-secondary) !important;
   border-radius: 6px;
 }
@@ -151,8 +150,7 @@ h2.ticker-symbol {
 /* Hide any leftover axis scales */
 .stock-chart {
   width: 100% !important;
-  height: 100% !important;
-  max-width: 100%;
+  max-width: 100% !important;
 }
 
 /* Ensure only price labels are shown on left */
@@ -189,7 +187,8 @@ h2.ticker-symbol {
   }
   
   .chart-container {
-    height: 60vh;
+    height: 45vh;
+    width: 95%;
     padding: 5px;
   }
   
@@ -233,6 +232,21 @@ h2.ticker-symbol {
   }
   
   .chart-container {
-    height: 75vh;
+    height: 60vh;
+    width: 95%;
   }
+}
+
+/* Ad space container */
+.ad-space {
+  width: 100%;
+  height: 90px;
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--background-secondary);
+  border-radius: 6px;
+  color: var(--chart-secondary);
+  font-size: 14px;
 } 

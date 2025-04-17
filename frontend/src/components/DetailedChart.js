@@ -209,18 +209,80 @@ function DetailedChart() {
   const getYAxisRange = () => {
     if (priceRange.min === priceRange.max) return { min: 0, max: 100 };
     
-    // Add 10% padding to the top and bottom
+    // Add padding to the top and bottom
     const range = priceRange.max - priceRange.min;
     const padding = range * 0.1;
     
-    const min = Math.floor(priceRange.min - padding);
-    const max = Math.ceil(priceRange.max + padding);
+    let min = priceRange.min - padding;
+    let max = priceRange.max + padding;
     
-    // Generate nice round numbers
-    return {
-      min: Math.floor(min / 10) * 10,
-      max: Math.ceil(max / 10) * 10
-    };
+    // Clean up the range to nice round numbers
+    if (max < 1) {
+      // For penny stocks - round to nearest 0.05 or 0.01
+      const precision = max < 0.1 ? 0.01 : 0.05;
+      min = Math.floor(min / precision) * precision;
+      max = Math.ceil(max / precision) * precision;
+    } else if (max < 10) {
+      // For stocks under $10 - round to nearest 0.5
+      min = Math.floor(min * 2) / 2;
+      max = Math.ceil(max * 2) / 2;
+    } else if (max < 100) {
+      // For stocks under $100 - round to nearest 5
+      min = Math.floor(min / 5) * 5;
+      max = Math.ceil(max / 5) * 5;
+    } else if (max < 1000) {
+      // For stocks under $1000 - round to nearest 10
+      min = Math.floor(min / 10) * 10;
+      max = Math.ceil(max / 10) * 10;
+    } else {
+      // For very high-priced stocks - round to nearest 50
+      min = Math.floor(min / 50) * 50;
+      max = Math.ceil(max / 50) * 50;
+    }
+    
+    return { min, max };
+  };
+
+  // Calculate appropriate tick values
+  const getTickValues = () => {
+    const range = getYAxisRange();
+    const min = range.min;
+    const max = range.max;
+    const diff = max - min;
+    
+    // Determine how many ticks based on screen size
+    const tickCount = windowWidth < 768 ? 5 : 7;
+    
+    // Calculate clean step size
+    let stepSize;
+    if (max < 1) {
+      // Penny stocks
+      stepSize = max < 0.1 ? 0.01 : 0.05;
+    } else if (max < 10) {
+      // Low price
+      stepSize = 0.5;
+    } else if (max < 100) {
+      // Medium price
+      stepSize = 5;
+    } else if (max < 1000) {
+      // High price
+      stepSize = 10;
+    } else {
+      // Very high price
+      stepSize = 50;
+    }
+    
+    // Generate equally spaced values
+    const values = [];
+    for (let i = 0; i <= tickCount; i++) {
+      const value = min + (diff / tickCount) * i;
+      // Round to the nearest step
+      const roundedValue = Math.round(value / stepSize) * stepSize;
+      values.push(roundedValue);
+    }
+    
+    // Remove duplicates
+    return [...new Set(values)];
   };
 
   // Adjust max ticks based on screen width
@@ -306,7 +368,22 @@ function DetailedChart() {
         max: getYAxisRange().max,
         ticks: {
           callback: function(value) {
-            return '$' + value;
+            // Format long decimal numbers intelligently
+            if (Math.abs(value) < 0.01) {
+              return '$' + value.toFixed(4);
+            } else if (Math.abs(value) < 1) {
+              return '$' + value.toFixed(2);
+            } else if (Math.abs(value) >= 1000) {
+              return '$' + value.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+              });
+            } else {
+              return '$' + value.toLocaleString('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+              });
+            }
           },
           font: {
             size: windowWidth < 768 ? 10 : 12,
@@ -315,8 +392,10 @@ function DetailedChart() {
           color: function() {
             return 'rgb(98, 111, 126)';
           },
-          stepSize: Math.ceil((getYAxisRange().max - getYAxisRange().min) / 8 / 10) * 10,
-          count: windowWidth < 768 ? 6 : 8 // Fewer ticks on mobile
+          stepSize: undefined,
+          count: undefined,
+          autoSkip: false,
+          values: getTickValues()
         },
         grid: {
           color: function() {
@@ -336,10 +415,10 @@ function DetailedChart() {
     },
     layout: {
       padding: {
-        left: windowWidth < 768 ? 10 : 20, // Less padding on mobile
-        right: windowWidth < 768 ? 5 : 10,
-        top: windowWidth < 768 ? 10 : 20,
-        bottom: windowWidth < 768 ? 5 : 10
+        left: windowWidth < 768 ? 20 : 40, // Increased padding for better centering
+        right: windowWidth < 768 ? 20 : 40,
+        top: windowWidth < 768 ? 15 : 25,
+        bottom: windowWidth < 768 ? 15 : 25
       }
     }
   };
@@ -404,6 +483,10 @@ function DetailedChart() {
         ) : (
           <div>No data available</div>
         )}
+      </div>
+      
+      <div className="ad-space">
+        Advertisement Space
       </div>
     </div>
   );
