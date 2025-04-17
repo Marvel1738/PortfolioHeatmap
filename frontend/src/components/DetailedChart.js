@@ -9,7 +9,8 @@ import { Chart as ChartJS,
   Title, 
   Tooltip, 
   Legend,
-  Filler } from 'chart.js';
+  Filler,
+  BarElement } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import './DetailedChart.css';
 
@@ -19,11 +20,75 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
   Filler
 );
+
+// Custom candlestick chart plugin
+const candlestickPlugin = {
+  id: 'candlestick',
+  beforeDatasetsDraw(chart, args, options) {
+    const { ctx, data, chartArea, scales } = chart;
+    const { top, bottom, left, right, width, height } = chartArea;
+    const { x, y } = scales;
+
+    // Calculate appropriate candlestick width based on the number of data points
+    const dataPoints = data.datasets[0].data.length;
+    // Width calculations: more data points = thinner candles
+    const wickWidth = dataPoints > 180 ? 0.5 : 1;
+    
+    // Dynamic candleWidth based on data density
+    let candleWidth;
+    if (dataPoints > 500) {
+      candleWidth = 2; // 5-year data
+    } else if (dataPoints > 250) {
+      candleWidth = 3; // 1-year data
+    } else if (dataPoints > 120) {
+      candleWidth = 4; // 6-month data
+    } else if (dataPoints > 60) {
+      candleWidth = 6; // 3-month data
+    } else {
+      candleWidth = 8; // 1-month data or less
+    }
+    
+    // Scale candleWidth if chart is too narrow
+    const availableWidthPerCandle = width / dataPoints;
+    if (availableWidthPerCandle < candleWidth) {
+      candleWidth = Math.max(1, availableWidthPerCandle - 1);
+    }
+
+    // For each data point in our dataset
+    data.datasets[0].data.forEach((dataPoint, index) => {
+      const xValue = x.getPixelForValue(index);
+      const yOpen = y.getPixelForValue(dataPoint.open);
+      const yClose = y.getPixelForValue(dataPoint.close);
+      const yHigh = y.getPixelForValue(dataPoint.high);
+      const yLow = y.getPixelForValue(dataPoint.low);
+
+      const isGreen = dataPoint.close >= dataPoint.open;
+      
+      // Draw the wick (high to low vertical line)
+      ctx.beginPath();
+      ctx.strokeStyle = isGreen ? '#26a69a' : '#ef5350';
+      ctx.lineWidth = wickWidth;
+      ctx.moveTo(xValue, yHigh);
+      ctx.lineTo(xValue, yLow);
+      ctx.stroke();
+      
+      // Draw the candle body (open to close rectangle)
+      ctx.fillStyle = isGreen ? '#26a69a' : '#ef5350';
+      ctx.fillRect(
+        xValue - candleWidth / 2,
+        yOpen,
+        candleWidth,
+        yClose - yOpen
+      );
+    });
+  }
+};
 
 function DetailedChart() {
   const { ticker } = useParams();
@@ -33,6 +98,7 @@ function DetailedChart() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [priceRange, setPriceRange] = useState({ min: 0, max: 0 });
+  const [timeframe, setTimeframe] = useState('1y');
 
   // Fetch stock data
   useEffect(() => {
@@ -53,77 +119,57 @@ function DetailedChart() {
         );
         setStockInfo(infoResponse.data);
 
-        // Fetch historical data for 1 year
-        const historyResponse = await axios.get(
-          `http://localhost:8080/stocks/history/${ticker}?timeframe=1y`,
+        // Fetch candlestick data instead of historical data
+        const candlestickResponse = await axios.get(
+          `http://localhost:8080/stocks/candlestick/${ticker}?timeframe=${timeframe}`,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
 
-        if (!historyResponse.data || historyResponse.data.length === 0) {
-          setError('No historical data available');
+        if (!candlestickResponse.data || candlestickResponse.data.length === 0) {
+          setError('No candlestick data available');
           setIsLoading(false);
           return;
         }
 
-        // Format data for Chart.js
-        const data = historyResponse.data;
+        // Format data for Chart.js with candlestick plugin
+        const data = candlestickResponse.data;
         
         // Sort data chronologically (oldest to newest)
         data.sort((a, b) => new Date(a.date) - new Date(b.date));
         
-        // Find price range
-        const prices = data.map(point => point.close);
-        const minPrice = Math.min(...prices);
-        const maxPrice = Math.max(...prices);
+        console.log(`Received ${data.length} candlestick data points for timeframe: ${timeframe}`);
+        
+        // Find price range for y-axis
+        const highPrices = data.map(point => point.high);
+        const lowPrices = data.map(point => point.low);
+        const minPrice = Math.min(...lowPrices);
+        const maxPrice = Math.max(...highPrices);
         setPriceRange({ min: minPrice, max: maxPrice });
         
-        // Format dates to show month and year
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
-        // Group data by month
-        const monthlyData = {};
-        
-        data.forEach(point => {
+        // Format dates for display
+        const formattedData = data.map(point => {
           const date = new Date(point.date);
-          const monthYearKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-          
-          if (!monthlyData[monthYearKey]) {
-            monthlyData[monthYearKey] = {
-              prices: [],
-              date: date
-            };
-          }
-          
-          monthlyData[monthYearKey].prices.push(point.close);
+          return {
+            x: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            open: point.open,
+            high: point.high,
+            low: point.low,
+            close: point.close,
+            date: date
+          };
         });
-        
-        // Sort by date from oldest to newest (left to right)
-        const sortedMonths = Object.entries(monthlyData)
-          .sort((a, b) => a[1].date - b[1].date) // Chronological order - oldest first
-          .map(([monthYear, data]) => {
-            return {
-              label: monthYear,
-              price: data.prices.reduce((sum, price) => sum + price, 0) / data.prices.length
-            };
-          });
 
-        const labels = sortedMonths.map(month => month.label);
-        const avgPrices = sortedMonths.map(month => month.price);
-
-        // Create chart data
+        // Create chart data - the visible element is just a placeholder
+        // The actual candlesticks are drawn by our plugin
         setChartData({
-          labels: labels,
+          labels: formattedData.map(point => point.x),
           datasets: [
             {
-              label: 'Price',
-              data: avgPrices,
-              borderColor: '#26a69a', // Teal color like in example
-              backgroundColor: 'rgba(38, 166, 154, 0.1)', // Light teal for fill
-              fill: true,
-              tension: 0.4,
-              pointRadius: 3, // Add small points
-              pointBackgroundColor: '#26a69a',
-              borderWidth: 2,
+              data: formattedData,
+              borderColor: 'rgba(0, 0, 0, 0)',
+              backgroundColor: 'rgba(0, 0, 0, 0)',
+              pointRadius: 0,
+              tension: 0
             }
           ],
         });
@@ -136,10 +182,14 @@ function DetailedChart() {
     };
 
     fetchStockData();
-  }, [ticker]);
+  }, [ticker, timeframe]);
 
   const handleGoBack = () => {
     navigate('/heatmap');
+  };
+
+  const handleTimeframeChange = (event) => {
+    setTimeframe(event.target.value);
   };
 
   const getYAxisRange = () => {
@@ -163,6 +213,7 @@ function DetailedChart() {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
+      candlestick: {}, // Enable our candlestick plugin
       legend: {
         display: false, // Hide legend
       },
@@ -170,8 +221,19 @@ function DetailedChart() {
         mode: 'index',
         intersect: false,
         callbacks: {
+          title: function(tooltipItems) {
+            const item = tooltipItems[0];
+            const dataPoint = chartData.datasets[0].data[item.dataIndex];
+            return dataPoint.x;
+          },
           label: function(context) {
-            return `$${context.parsed.y.toFixed(2)}`;
+            const dataPoint = chartData.datasets[0].data[context.dataIndex];
+            return [
+              `Open: $${dataPoint.open.toFixed(2)}`,
+              `High: $${dataPoint.high.toFixed(2)}`,
+              `Low: $${dataPoint.low.toFixed(2)}`,
+              `Close: $${dataPoint.close.toFixed(2)}`
+            ];
           }
         },
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -197,6 +259,9 @@ function DetailedChart() {
           },
           color: '#666',
           padding: 10, // Add padding below labels
+          maxRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 12 // Limit the number of x-axis labels
         },
         border: {
           display: false
@@ -227,13 +292,9 @@ function DetailedChart() {
         }
       }
     },
-    // Important - disable all other scales and extra decimals
-    parsing: {
-      yAxisKey: 'price'
-    },
     elements: {
       line: {
-        tension: 0.4 // Smoother curve
+        tension: 0 // No curve for candlesticks
       }
     },
     layout: {
@@ -246,13 +307,28 @@ function DetailedChart() {
     }
   };
 
+  const timeframeOptions = [
+    { value: '1m', label: '1 Month' },
+    { value: '3m', label: '3 Months' },
+    { value: '6m', label: '6 Months' },
+    { value: '1y', label: '1 Year' },
+    { value: '5y', label: '5 Years' }
+  ];
+
   return (
     <div className="detailed-chart-container dark-theme">
       <div className="chart-header">
         <button className="back-button" onClick={handleGoBack}>
           ← Back to Heatmap
         </button>
-        <h1>{ticker} - 1 Year Performance</h1>
+        <h1>{ticker} - Candlestick Chart</h1>
+        <div className="timeframe-selector">
+          <select value={timeframe} onChange={handleTimeframeChange}>
+            {timeframeOptions.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
         {stockInfo && (
           <div className="stock-info">
             <h2>{stockInfo.companyName}</h2>
@@ -278,6 +354,7 @@ function DetailedChart() {
           <Line 
             data={chartData} 
             options={chartOptions} 
+            plugins={[candlestickPlugin]}
             id="stockChart" 
             className="stock-chart"
           />

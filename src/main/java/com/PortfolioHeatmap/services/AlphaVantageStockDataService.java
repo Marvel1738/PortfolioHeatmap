@@ -12,7 +12,9 @@ import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
 import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.AlphaVantageHistoricalPriceResponse;
+import com.PortfolioHeatmap.models.AlphaVantageHistoricalPriceResponse.DailyPrice;
 import com.PortfolioHeatmap.models.HistoricalPrice;
+import com.PortfolioHeatmap.models.CandlestickData;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
@@ -158,7 +160,8 @@ public class AlphaVantageStockDataService implements StockDataService {
         // and collect into a list.
         List<HistoricalPrice> historicalPrices = response.getTimeSeries().entrySet().stream()
                 .filter(entry -> !entry.getKey().isBefore(from) && !entry.getKey().isAfter(to))
-                .map(entry -> new HistoricalPrice(String .valueOf(entry.getKey()), parseDouble(entry.getValue().getClose(), "close")))
+                .map(entry -> new HistoricalPrice(String.valueOf(entry.getKey()),
+                        parseDouble(entry.getValue().getClose(), "close")))
                 .collect(Collectors.toList());
         log.info("Returning historical prices for {}: {}", symbol, historicalPrices);
         return historicalPrices;
@@ -176,6 +179,7 @@ public class AlphaVantageStockDataService implements StockDataService {
             throw e;
         }
     }
+
     @Override
     public List<FMPStockListResponse> getStockList() {
         throw new UnsupportedOperationException("Alpha Vantage does not support fetching a stock list");
@@ -197,5 +201,10 @@ public class AlphaVantageStockDataService implements StockDataService {
     public List<FMPSP500ConstituentResponse> getSP500Constituents() {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'getSP500Constituents'");
+    }
+
+    @Override
+    public List<CandlestickData> getCandlestickData(String symbol, LocalDate from, LocalDate to) {
+        throw new UnsupportedOperationException("Alpha Vantage implementation does not support candlestick data");
     }
 }

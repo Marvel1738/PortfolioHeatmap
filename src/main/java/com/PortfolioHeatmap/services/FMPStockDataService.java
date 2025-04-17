@@ -12,7 +12,9 @@ import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
 import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.FMPHistoricalPriceResponse;
+import com.PortfolioHeatmap.models.FMPCandlestickResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
+import com.PortfolioHeatmap.models.CandlestickData;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -281,5 +283,70 @@ public class FMPStockDataService implements StockDataService {
                 .forEach(stock -> log.info("Deserialized Stock: {}, Market Cap: {}", stock.getSymbol(),
                         stock.getMarketCap()));
         return Arrays.asList(stockList);
+    }
+
+    @Cacheable(value = "candlestickData", key = "#symbol + '-' + #from + '-' + #to")
+    @Override
+    public List<CandlestickData> getCandlestickData(String symbol, LocalDate from, LocalDate to) {
+        String url = String.format(
+                "https://financialmodelingprep.com/api/v3/historical-price-full/%s?from=%s&to=%s&apikey=%s",
+                symbol, from, to, apiKey);
+        log.info("Requesting candlestick data URL: {}", url);
+
+        String rawResponse;
+        try {
+            rawResponse = restTemplate.getForObject(url, String.class);
+        } catch (Exception e) {
+            log.error("Failed to fetch candlestick data from FMP for symbol {}: {}", symbol, e.getMessage(), e);
+            throw new RuntimeException("Error fetching candlestick data from FMP for " + symbol, e);
+        }
+
+        if (rawResponse == null || rawResponse.trim().isEmpty()) {
+            log.error("Empty response from FMP for symbol: {}", symbol);
+            throw new RuntimeException("Empty response from FMP for " + symbol);
+        }
+
+        try {
+            JsonNode rootNode = objectMapper.readTree(rawResponse);
+            if (rootNode.has("error")) {
+                String errorMessage = rootNode.get("error").asText();
+                log.error("FMP API returned an error for symbol {}: {}", symbol, errorMessage);
+                throw new RuntimeException("FMP API error: " + errorMessage);
+            }
+        } catch (Exception e) {
+            log.error("Failed to parse raw response as JSON for symbol {}: {}", symbol, e.getMessage(), e);
+            throw new RuntimeException("Error parsing FMP response for " + symbol, e);
+        }
+
+        FMPCandlestickResponse response;
+        try {
+            response = objectMapper.readValue(rawResponse, FMPCandlestickResponse.class);
+            log.info("Deserialized Candlestick Response for symbol {}", symbol);
+        } catch (Exception e) {
+            log.error("Failed to deserialize candlestick response for symbol {}: {}. Raw response: {}", symbol,
+                    e.getMessage(), rawResponse, e);
+            throw new RuntimeException("Error parsing FMP candlestick response for " + symbol, e);
+        }
+
+        if (response == null || response.getHistorical() == null || response.getHistorical().isEmpty()) {
+            log.warn("No candlestick data found for symbol: {}. Raw response: {}", symbol, rawResponse);
+            return List.of();
+        }
+
+        List<CandlestickData> candlestickDataList = response.getHistorical()
+                .stream()
+                .filter(entry -> entry.getDate() != null && entry.getOpen() != null && entry.getHigh() != null
+                        && entry.getLow() != null && entry.getClose() != null)
+                .map(entry -> new CandlestickData(
+                        entry.getDate(),
+                        entry.getOpen(),
+                        entry.getHigh(),
+                        entry.getLow(),
+                        entry.getClose(),
+                        entry.getVolume()))
+                .collect(Collectors.toList());
+
+        log.info("Returning {} candlestick data points for {}", candlestickDataList.size(), symbol);
+        return candlestickDataList;
     }
 }

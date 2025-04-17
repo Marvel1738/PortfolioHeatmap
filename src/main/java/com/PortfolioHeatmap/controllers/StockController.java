@@ -12,6 +12,7 @@ import com.PortfolioHeatmap.models.Stock;
 import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
+import com.PortfolioHeatmap.models.CandlestickData;
 import com.PortfolioHeatmap.repositories.PriceHistoryRepository;
 import com.PortfolioHeatmap.services.StockDataService;
 import com.PortfolioHeatmap.services.StockDataServiceFactory;
@@ -498,6 +499,71 @@ public class StockController {
             return ResponseEntity.ok(formattedHistory);
         } catch (Exception e) {
             log.error("Error fetching stock history for {}: {}", ticker, e.getMessage(), e);
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    /**
+     * Handles GET requests to retrieve candlestick chart data for a stock symbol.
+     * Returns OHLC (Open, High, Low, Close) data for the specified timeframe.
+     * 
+     * @param ticker    The ticker symbol of the stock (e.g., "AAPL")
+     * @param timeframe The time period to retrieve data for (e.g., "1d", "1w",
+     *                  "1m", "3m", "6m", "1y", "5y")
+     * @return ResponseEntity containing a list of candlestick data points or error
+     *         status
+     */
+    @GetMapping("/candlestick/{ticker}")
+    public ResponseEntity<List<CandlestickData>> getCandlestickData(
+            @PathVariable String ticker,
+            @RequestParam(defaultValue = "1y") String timeframe) {
+
+        log.info("Fetching candlestick data for ticker: {} with timeframe: {}", ticker, timeframe);
+        try {
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate;
+
+            // Determine the start date based on the timeframe
+            switch (timeframe) {
+                case "1d":
+                    startDate = endDate.minusDays(1);
+                    break;
+                case "5d":
+                    startDate = endDate.minusDays(5);
+                    break;
+                case "1w":
+                    startDate = endDate.minusWeeks(1);
+                    break;
+                case "1m":
+                    startDate = endDate.minusMonths(1);
+                    break;
+                case "3m":
+                    startDate = endDate.minusMonths(3);
+                    break;
+                case "6m":
+                    startDate = endDate.minusMonths(6);
+                    break;
+                case "1y":
+                    startDate = endDate.minusYears(1);
+                    break;
+                case "5y":
+                    startDate = endDate.minusYears(5);
+                    break;
+                default:
+                    startDate = endDate.minusYears(1); // Default to 1 year
+            }
+
+            // Get candlestick data from the service
+            List<CandlestickData> candlestickData = stockDataService.getCandlestickData(ticker, startDate, endDate);
+
+            if (candlestickData.isEmpty()) {
+                log.warn("No candlestick data found for ticker: {}", ticker);
+                return ResponseEntity.noContent().build();
+            }
+
+            return ResponseEntity.ok(candlestickData);
+        } catch (Exception e) {
+            log.error("Error fetching candlestick data for {}: {}", ticker, e.getMessage(), e);
             return ResponseEntity.status(500).body(null);
         }
     }

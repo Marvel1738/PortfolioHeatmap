@@ -14,6 +14,7 @@ import com.PortfolioHeatmap.models.StockPrice;
 import com.PortfolioHeatmap.models.FMPSP500ConstituentResponse;
 import com.PortfolioHeatmap.models.FMPStockListResponse;
 import com.PortfolioHeatmap.models.HistoricalPrice;
+import com.PortfolioHeatmap.models.CandlestickData;
 
 public interface StockDataService {
     // Fetches the current stock price for a given symbol.
@@ -26,6 +27,12 @@ public interface StockDataService {
     // range.
     // Returns a list of HistoricalPrice objects representing daily prices.
     List<HistoricalPrice> getHistoricalPrices(String symbol, LocalDate from, LocalDate to);
+
+    // Fetches candlestick data (OHLC) for a given symbol within the specified date
+    // range.
+    // Returns a list of CandlestickData objects representing daily candlestick
+    // data.
+    List<CandlestickData> getCandlestickData(String symbol, LocalDate from, LocalDate to);
 
     // Fetches a list of stock symbols available for trading.
     List<FMPStockListResponse> getStockList();
