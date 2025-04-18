@@ -24,28 +24,19 @@
   width: 100%;
 }
 
-.top-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  position: relative;
-  height: 40px;
-  margin-bottom: 10px;
-}
-
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 10px;
+  margin-top: 25px;
   width: 100%;
-  margin-top: 10px;
 }
 
 .back-button {
   position: absolute;
-  left: 20px;
+  top: 0;
+  left: 0;
   padding: 4px 8px;
   margin: 0;
   background-color: var(--background-secondary);
@@ -69,7 +60,6 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  min-width: 200px;
 }
 
 h2.ticker-symbol {
@@ -83,20 +73,7 @@ h2.ticker-symbol {
 .company-name {
   font-size: 15px;
   font-weight: bold;
-  color: #0077cc !important;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  margin-top: 2px;
-  text-align: left;
-  align-self: flex-start;
-}
-
-.company-name-text {
-  font-size: 15px;
-  font-weight: bold;
-  color: #717a82 !important;
+  color: lightblue !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -110,9 +87,8 @@ h2.ticker-symbol {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  min-width: 200px;
-  gap: 2px;
-  margin-right: 30px;
+  margin-left: auto;
+  margin-right: 20px;
 }
 
 .current-price {
@@ -135,7 +111,12 @@ h2.ticker-symbol {
 }
 
 .timeframe-selector {
-  margin: 0 40px;
+    margin: auto !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100%;
+    margin-left: 15px !important;
 }
 
 .timeframe-selector select {
@@ -210,42 +191,51 @@ h2.ticker-symbol {
 }
 
 @media (max-width: 768px) {
+  .detailed-chart-container {
+    padding: 10px 5px;
+    max-width: 100%;
+  }
+  
+  .chart-container {
+    height: 45vh;
+    width: 95%;
+    padding: 5px;
+  }
+  
   .header-content {
     flex-direction: column;
     align-items: center;
-    gap: 15px;
-    padding: 0 10px;
+    gap: 10px;
   }
-
-  .search-container {
-    width: 200px;
-  }
-
+  
   .stock-name-ticker {
+    flex-direction: column;
     align-items: center;
-    min-width: unset;
+    gap: 2px;
   }
-
+  
+  .company-name {
+    text-align: center;
+    align-self: center;
+    font-size: 14px;
+    color: rgb(5, 163, 255) !important;
+  }
+  
+  .price-info {
+    align-items: center;
+  }
+  
   .timeframe-selector {
-    margin: 10px 0;
     width: 100%;
     display: flex;
     justify-content: center;
+    margin: auto !important;
   }
-
-  .price-info {
-    align-items: center;
-    min-width: unset;
-    margin: 0;
-  }
-
-  .top-row {
-    height: 35px;
-    margin-bottom: 5px;
-  }
-
-  .back-button {
-    left: 10px;
+  
+  .timeframe-selector select {
+    padding: 6px 10px;
+    font-size: 12px;
+    margin: auto !important;
   }
 }
 
@@ -272,81 +262,4 @@ h2.ticker-symbol {
   border-radius: 6px;
   color: var(--chart-secondary);
   font-size: 14px;
-}
-
-.search-container {
-  position: relative;
-  width: 300px;
-  margin: 0 auto;
-}
-
-.ticker-input-container {
-  position: relative;
-  width: 100%;
-}
-
-.search-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--chart-secondary);
-  border-radius: 4px;
-  background-color: var(--background-secondary);
-  color: white;
-  font-size: 14px;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.search-input:focus {
-  border-color: #0784ea;
-  box-shadow: 0 0 0 2px rgba(7, 132, 234, 0.2);
-}
-
-.search-input::placeholder {
-  color: #717a82;
-}
-
-.ticker-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  max-height: 200px;
-  overflow-y: auto;
-  background-color: var(--background-secondary);
-  border: 1px solid var(--chart-secondary);
-  border-radius: 4px;
-  margin-top: 4px;
-  padding: 0;
-  list-style: none;
-  z-index: 1000;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.ticker-dropdown li {
-  padding: 8px 12px;
-  cursor: pointer;
-  color: white;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-
-.ticker-dropdown li:hover {
-  background-color: rgba(7, 132, 234, 0.2);
-}
-
-@media (max-width: 768px) {
-  .search-container {
-    width: 200px;
-  }
-
-  .search-input {
-    font-size: 13px;
-    padding: 6px 10px;
-  }
-
-  .ticker-dropdown li {
-    padding: 6px 10px;
-    font-size: 13px;
-  }
 } 

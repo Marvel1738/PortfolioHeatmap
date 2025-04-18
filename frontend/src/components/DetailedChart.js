@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Chart as ChartJS, 
@@ -104,6 +104,8 @@ function DetailedChart() {
   const [searchTicker, setSearchTicker] = useState('');
   const [stockSuggestions, setStockSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const searchRef = useRef(null);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   // Track window resize
   useEffect(() => {
@@ -115,6 +117,20 @@ function DetailedChart() {
     
     return () => {
       window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  // Add click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -153,13 +169,25 @@ function DetailedChart() {
     navigate(`/chart/${selectedTicker}`);
   };
 
-  // Fetch stock data
-  useEffect(() => {
-    // Reset chart and data when ticker changes
-    setChartData(null);
+  // Update price change calculation based on timeframe
+  const calculatePriceChange = (data) => {
+    if (!data || data.length === 0) return { dollarChange: 0, percentChange: 0 };
     
-    const fetchStockData = async () => {
-      setIsLoading(true);
+    const firstPrice = data[0].close;
+    const lastPrice = data[data.length - 1].close;
+    const dollarChange = lastPrice - firstPrice;
+    const percentChange = (dollarChange / firstPrice) * 100;
+    
+    return {
+      dollarChange,
+      percentChange
+    };
+  };
+
+  // Update useEffect for candlestick data
+  useEffect(() => {
+    const fetchCandlestickData = async () => {
+      if (!ticker) return;
       
       try {
         const token = localStorage.getItem('token');
@@ -188,19 +216,19 @@ function DetailedChart() {
         const data = candlestickResponse.data;
         
         // Sort data chronologically (oldest to newest)
-        data.sort((a, b) => new Date(a.date) - new Date(b.date));
+        const sortedData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
         
-        console.log(`Received ${data.length} candlestick data points for timeframe: ${timeframe}`);
+        console.log(`Received ${sortedData.length} candlestick data points for timeframe: ${timeframe}`);
         
         // Find price range for y-axis
-        const highPrices = data.map(point => point.high);
-        const lowPrices = data.map(point => point.low);
+        const highPrices = sortedData.map(point => point.high);
+        const lowPrices = sortedData.map(point => point.low);
         const minPrice = Math.min(...lowPrices);
         const maxPrice = Math.max(...highPrices);
         setPriceRange({ min: minPrice, max: maxPrice });
         
         // Format dates for display
-        const formattedData = data.map(point => {
+        const formattedData = sortedData.map(point => {
           const date = new Date(point.date);
           return {
             x: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -226,6 +254,15 @@ function DetailedChart() {
             }
           ],
         });
+
+        // Calculate price changes based on the timeframe
+        const { dollarChange, percentChange } = calculatePriceChange(sortedData);
+        setStockInfo(prevInfo => ({
+          ...prevInfo,
+          price: sortedData[sortedData.length - 1].close,
+          change: dollarChange,
+          changePercent: percentChange
+        }));
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching stock data:', err);
@@ -234,7 +271,7 @@ function DetailedChart() {
       }
     };
 
-    fetchStockData();
+    fetchCandlestickData();
   }, [ticker, timeframe]);
 
   const handleGoBack = () => {
@@ -496,6 +533,7 @@ function DetailedChart() {
                 placeholder="Search ticker..."
                 className="search-input"
                 autoComplete="off"
+                ref={searchRef}
               />
               {showDropdown && stockSuggestions.length > 0 && (
                 <ul className="ticker-dropdown">
@@ -558,10 +596,6 @@ function DetailedChart() {
         ) : (
           <div>No data available</div>
         )}
-      </div>
-      
-      <div className="ad-space">
-        Advertisement Space
       </div>
     </div>
   );
