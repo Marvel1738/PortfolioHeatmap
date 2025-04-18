@@ -590,67 +590,78 @@ function Heatmap() {
                 {holdings.length === 0 && error && (
                   <div className="error-message">{error}</div>
                 )}
-                {treeMapData.map((d, i) => {
-                  const holding = d.data.holding;
-                  const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
-                  const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
-                  const percentChange = holding.percentChange;
+{treeMapData.map((d, i) => {
+  const holding = d.data.holding;
+  const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
+  const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
+  const percentChange = holding.percentChange;
 
-                  let dollarChange;
-                  if (timeframe === 'total') {
-                    dollarChange = (holding.currentValue * percentChange) / 100;
-                  } else {
-                    dollarChange = (holding.currentPrice * percentChange) / 100;
-                  }
+  let dollarChange;
+  if (timeframe === 'total') {
+    dollarChange = (holding.currentValue * percentChange) / 100;
+  } else {
+    dollarChange = (holding.currentPrice * percentChange) / 100;
+  }
 
-                  const fontSize = Math.min(width, height) * 0.12;
+  const fontSize = Math.min(width, height) * 0.12;
 
-                  return (
-                    <div
-                      key={i}
-                      className="heatmap-rect"
-                      style={{
-                        position: 'absolute',
-                        left: `${d.x0}px`,
-                        top: `${d.y0}px`,
-                        width: `${width}px`,
-                        height: `${height}px`,
-                        backgroundColor: getColor(percentChange, timeframe),
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        padding: '5px',
-                        boxSizing: 'border-box',
-                        color: '#ffffff',
-                        fontSize: `${fontSize}px`,
-                        textAlign: 'center',
-                        overflow: 'hidden',
-                        fontFamily: 'Arial, sans-serif',
-                        textShadow: '1px 1px 1px rgba(0, 0, 0, 0.9)',
-                        cursor: 'default',
-                      }}
-                      onMouseEnter={(e) => handleMouseEnter(e, holding)}
-                      onMouseMove={handleMouseMove}
-                      onMouseLeave={handleMouseLeave}
-                      onDoubleClick={() => handleStockDoubleClick(holding.stock.ticker)}
-                    >
-                      <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
-                        {holding.stock.ticker}
-                      </div>
-                      {showPercentChange && (
-                        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                          {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
-                        </div>
-                      )}
-                      {showDollarChange && (
-                        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                          {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2)}$
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+  // Determine if we should show N/A for percentChange
+  const isTotalTimeframe = timeframe === 'total';
+  const isPurchasePriceNull = holding.purchasePrice === null;
+  const showNA = isTotalTimeframe && isPurchasePriceNull;
+
+  return (
+    <div
+      key={i}
+      className="heatmap-rect"
+      style={{
+        position: 'absolute',
+        left: `${d.x0}px`,
+        top: `${d.y0}px`,
+        width: `${width}px`,
+        height: `${height}px`,
+        backgroundColor: showNA 
+          ? 'rgb(43, 49, 58)' // Neutral gray for N/A
+          : getColor(percentChange, timeframe),
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '5px',
+        boxSizing: 'border-box',
+        color: '#ffffff',
+        fontSize: `${fontSize}px`,
+        textAlign: 'center',
+        overflow: 'hidden',
+        fontFamily: 'Arial, sans-serif',
+        textShadow: '1px 1px 1px rgba(0, 0, 0, 0.9)',
+        cursor: 'default',
+      }}
+      onMouseEnter={(e) => handleMouseEnter(e, holding)}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onDoubleClick={() => handleStockDoubleClick(holding.stock.ticker)}
+    >
+      <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
+        {holding.stock.ticker}
+      </div>
+      {showPercentChange && (
+        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+          {showNA 
+            ? 'N/A' 
+            : `${percentChange > 0 ? '+' : ''}${percentChange.toFixed(2)}%`}
+        </div>
+      )}
+      {showDollarChange && (
+        <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
+          {showNA 
+            ? 'N/A' 
+            : `${dollarChange >= 0 ? '+' : ''}${dollarChange.toFixed(2)}$`}
+        </div>
+      )}
+    </div>
+  );
+})}
               </div>
             </div>
             {portfolioData && holdings.length > 0 && (
@@ -693,8 +704,12 @@ function Heatmap() {
             <div className="portfolio-summary" style={{ textAlign: 'left', fontFamily: 'Arial, sans-serif', width: '100%' }}>
               <h3>Portfolio Summary</h3>
               <ul style={{ listStyle: 'none', padding: 0 }}>
-                <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn.toFixed(2)}%</li>
-                <li><strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn.toFixed(2)}</li>
+                <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn !== null 
+                  ? `${portfolioData.totalPercentageReturn.toFixed(2)}%` 
+                  : 'N/A'}</li>
+                <li><strong>Total $ Return:</strong> {portfolioData.totalDollarReturn !== null 
+                  ? `$${portfolioData.totalDollarReturn.toFixed(2)}` 
+                  : 'N/A'}</li>
                 <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue.toFixed(2)}</li>
               </ul>
             </div>
@@ -724,8 +739,16 @@ function Heatmap() {
             <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
             <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
             <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
-            <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
+            <div>Performance Rank: {tooltip.data.purchasePrice === null 
+              ? 'N/A' 
+              : `${getPerformanceRank(tooltip.data)} of ${holdings.length}`}</div>
             <div>Current Price: ${tooltip.data.currentPrice}</div>
+            {tooltip.data.purchasePrice !== null && (
+              <div>Purchase Price: ${tooltip.data.purchasePrice}</div>
+            )}
+            {tooltip.data.purchasePrice === null && (
+              <div>Purchase Price: N/A</div>
+            )}
             {tooltip.chartError ? (
               <div style={{ fontSize: '12px', color: '#ff6666', marginTop: '8px' }}>
                 {tooltip.chartError}

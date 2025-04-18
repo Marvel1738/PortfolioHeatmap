@@ -72,14 +72,14 @@ const candlestickPlugin = {
       
       // Draw the wick (high to low vertical line)
       ctx.beginPath();
-      ctx.strokeStyle = isGreen ? '#26a69a' : '#ef5350';
+      ctx.strokeStyle = isGreen ? '#00FF44' : '#FF3333';
       ctx.lineWidth = wickWidth;
       ctx.moveTo(xValue, yHigh);
       ctx.lineTo(xValue, yLow);
       ctx.stroke();
       
       // Draw the candle body (open to close rectangle)
-      ctx.fillStyle = isGreen ? '#26a69a' : '#ef5350';
+      ctx.fillStyle = isGreen ? '#00FF44' : '#FF3333';
       ctx.fillRect(
         xValue - candleWidth / 2,
         yOpen,
@@ -312,15 +312,23 @@ function DetailedChart() {
           },
           label: function(context) {
             const dataPoint = chartData.datasets[0].data[context.dataIndex];
+            const isGreen = dataPoint.close >= dataPoint.open;
+            const colorUp = '#00FF44';
+            const colorDown = '#FF3333';
+            
             return [
               `Open: $${dataPoint.open.toFixed(2)}`,
               `High: $${dataPoint.high.toFixed(2)}`,
               `Low: $${dataPoint.low.toFixed(2)}`,
-              `Close: $${dataPoint.close.toFixed(2)}`
+              `Close: ${isGreen ? '📈' : '📉'} $${dataPoint.close.toFixed(2)}`
             ];
+          },
+          labelTextColor: function(context) {
+            const dataPoint = chartData.datasets[0].data[context.dataIndex];
+            return dataPoint.close >= dataPoint.open ? '#00FF44' : '#FF3333';
           }
         },
-        backgroundColor: 'rgba(69, 79, 86, 1)',
+        backgroundColor: 'rgba(25, 30, 36, 0.9)',
         titleFont: {
           size: 14,
           family: 'Arial, sans-serif'
@@ -329,9 +337,10 @@ function DetailedChart() {
           size: 14,
           family: 'Arial, sans-serif'
         },
-        titleColor: 'rgb(98, 111, 126)',
-        bodyColor: 'rgb(98, 111, 126)',
-        borderColor: 'rgb(98, 111, 126)'
+        titleColor: 'rgb(190, 210, 230)',
+        bodyColor: 'rgb(190, 210, 230)',
+        borderColor: 'rgb(81, 89, 97)',
+        padding: 10
       }
     },
     scales: {
@@ -340,7 +349,7 @@ function DetailedChart() {
           display: true, // Show vertical gridlines for month ticks
           drawBorder: false,
           color: function() {
-            return 'rgba(98, 111, 126, 0.25)';
+            return ' rgb(190, 210, 230, 0.10)';
           },
           tickLength: 8, // Shorter tick marks
         },
@@ -350,7 +359,7 @@ function DetailedChart() {
             family: 'Arial, sans-serif'
           },
           color: function() {
-            return 'rgb(98, 111, 126)';
+            return 'rgb(190, 210, 230)';
           },
           padding: 10, // Add padding below labels
           maxRotation: 0,
@@ -390,7 +399,7 @@ function DetailedChart() {
             family: 'Arial, sans-serif'
           },
           color: function() {
-            return 'rgb(98, 111, 126)';
+            return 'rgb(190, 210, 230)';
           },
           stepSize: undefined,
           count: undefined,
@@ -399,7 +408,7 @@ function DetailedChart() {
         },
         grid: {
           color: function() {
-            return 'rgba(98, 111, 126, 0.15)';
+            return 'rgba(190, 210, 230, 0.10)';
           },
           drawBorder: false,
         },
@@ -443,15 +452,15 @@ function DetailedChart() {
             <>
               <div className="stock-name-ticker">
                 <h2 className="ticker-symbol">{ticker}</h2>
-                <span className="company-name">{stockInfo.companyName}</span>
-                          </div>
-                                    <div className="timeframe-selector">
-            <select value={timeframe} onChange={handleTimeframeChange}>
-              {timeframeOptions.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
+                <span className="company-name-text">{stockInfo.companyName}</span>
+              </div>
+              <div className="timeframe-selector">
+                <select value={timeframe} onChange={handleTimeframeChange}>
+                  {timeframeOptions.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
               <div className="price-info">
                 <p className="current-price">${stockInfo.price?.toFixed(2) || 'N/A'}</p>
                 <p className={`price-change ${stockInfo.change >= 0 ? 'positive' : 'negative'}`}>

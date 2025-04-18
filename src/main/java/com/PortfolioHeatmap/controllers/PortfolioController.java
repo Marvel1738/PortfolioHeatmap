@@ -36,7 +36,8 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/portfolios")
-@CrossOrigin(origins = "http://localhost:3000", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.DELETE,
+@CrossOrigin(origins = "http://localhost:3000", methods = { RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH,
+        RequestMethod.DELETE,
         RequestMethod.OPTIONS }, allowedHeaders = { "Authorization", "Content-Type" }, allowCredentials = "true")
 public class PortfolioController {
     private static final Logger log = LoggerFactory.getLogger(PortfolioController.class);
@@ -164,7 +165,7 @@ public class PortfolioController {
                 log.warn("Access denied - User {} attempted to access portfolio {} owned by user {}",
                         currentUserId, id, portfolio.getUserId());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("You do not have permission to access this portfolio");
+                        .body("You do not have permission to access this portfolio");
             }
             List<PortfolioHolding> openPositions = portfolioHoldingService.getOpenPositions(id);
             List<PortfolioHolding> closedPositions = portfolioHoldingService.getClosedPositions(id);
@@ -177,21 +178,35 @@ public class PortfolioController {
             Map<Long, Double> timeframePercentageChanges = new HashMap<>();
             double totalPortfolioValue = 0.0;
             double totalInitialValue = 0.0;
+            boolean hasHoldingsWithPurchasePrices = false;
             for (PortfolioHolding holding : openPositions) {
                 String ticker = holding.getStock().getTicker();
-                Double currentPrice = currentPriceMap.getOrDefault(ticker, holding.getPurchasePrice());
+                Double currentPrice = currentPriceMap.getOrDefault(ticker,
+                        holding.getPurchasePrice() != null ? holding.getPurchasePrice() : 0.0);
                 double currentValue = holding.getShares() * currentPrice;
-                double initialValue = holding.getShares() * holding.getPurchasePrice();
+                double initialValue = holding.getPurchasePrice() != null
+                        ? holding.getShares() * holding.getPurchasePrice()
+                        : 0;
                 totalPortfolioValue += currentValue;
                 totalInitialValue += initialValue;
                 double startPrice;
                 LocalDate effectiveStartDate;
                 boolean usedPurchasePriceFallback = false;
+
                 if (timeframe.equals("total")) {
-                    startPrice = holding.getPurchasePrice();
+                    startPrice = holding.getPurchasePrice() != null ? holding.getPurchasePrice() : 0.0;
                     effectiveStartDate = null;
                     log.info("Ticker: {}, timeframe: total, date: N/A (purchase), oldPrice: ${}, currentPrice: ${}",
                             ticker, startPrice, currentPrice);
+
+                    // Skip calculation only for total timeframe when purchase price is null
+                    if (holding.getPurchasePrice() == null) {
+                        log.warn(
+                                "Ticker: {}, timeframe: total, skipping calculation as purchase price is null and required for total timeframe",
+                                ticker);
+                        timeframePercentageChanges.put(holding.getId(), null);
+                        continue;
+                    }
                 } else {
                     LocalDate initialStartDate = getStartDateForTimeframe(timeframe);
                     Optional<PriceHistory> startPriceOpt = Optional.empty();
@@ -207,16 +222,35 @@ public class PortfolioController {
                         log.info("Ticker: {}, timeframe: {}, date: {}, oldPrice: ${}, currentPrice: ${}",
                                 ticker, timeframe, effectiveStartDate, startPrice, currentPrice);
                     } else {
-                        startPrice = holding.getPurchasePrice();
-                        usedPurchasePriceFallback = true;
+                        // For timeframes other than "total", when no price history is found:
+                        // - Use purchase price as fallback if available
+                        // - Use 0.0 as fallback if purchase price is null (this will result in a 0%
+                        // change for new holdings)
+                        startPrice = holding.getPurchasePrice() != null ? holding.getPurchasePrice() : 0.0;
+                        // Only mark as using purchase price fallback if purchase price is not null
+                        usedPurchasePriceFallback = (holding.getPurchasePrice() != null);
+                        String fallbackType = holding.getPurchasePrice() != null
+                                ? "purchasePrice: $" + String.format("%.2f", startPrice)
+                                : "default value of 0.0 (will calculate change from zero)";
+
                         log.warn(
-                                "Ticker: {}, timeframe: {}, date: {} - No data after 3 days back from {}, falling back to purchasePrice: ${}, currentPrice: ${}",
-                                ticker, timeframe, effectiveStartDate, initialStartDate, startPrice, currentPrice);
+                                "Ticker: {}, timeframe: {}, date: {} - No data after 3 days back from {}, falling back to {}",
+                                ticker, timeframe, effectiveStartDate, initialStartDate, fallbackType);
                     }
                 }
-                double timeframeChange = startPrice != 0
-                        ? ((currentPrice - startPrice) / startPrice) * 100
-                        : 0;
+
+                double timeframeChange;
+                if (startPrice == 0.0 && holding.getPurchasePrice() == null && !timeframe.equals("total")) {
+                    // For non-total timeframes with null purchase price and no history, show 0%
+                    // change
+                    // rather than infinity (from dividing by zero)
+                    timeframeChange = 0.0;
+                    log.info("Using 0% change for ticker {} with no purchase price and no history data", ticker);
+                } else {
+                    timeframeChange = startPrice != 0
+                            ? ((currentPrice - startPrice) / startPrice) * 100
+                            : 0;
+                }
                 timeframePercentageChanges.put(holding.getId(), timeframeChange);
                 String changeSign = timeframeChange >= 0 ? "+" : "-";
                 log.info(
@@ -226,29 +260,103 @@ public class PortfolioController {
                         changeSign, String.format("%.2f", Math.abs(timeframeChange)),
                         usedPurchasePriceFallback ? " (using purchase price)" : "");
             }
-            double totalPercentageReturn = totalInitialValue != 0
-                    ? ((totalPortfolioValue - totalInitialValue) / totalInitialValue) * 100
-                    : 0.0;
+            double totalPortfolioValueWithPrices = 0;
+            double totalInitialValueWithPrices = 0;
+            hasHoldingsWithPurchasePrices = false;
+
+            for (PortfolioHolding holding : openPositions) {
+                if (holding.getPurchasePrice() != null) {
+                    double currentPrice = priceHistoryService
+                            .findTopByStockTickerOrderByDateDesc(holding.getStock().getTicker())
+                            .map(PriceHistory::getClosingPrice)
+                            .orElse(holding.getPurchasePrice());
+                    totalPortfolioValueWithPrices += holding.getShares() * currentPrice;
+                    totalInitialValueWithPrices += holding.getShares() * holding.getPurchasePrice();
+                    hasHoldingsWithPurchasePrices = true;
+                } else {
+                    double currentPrice = currentPriceMap.getOrDefault(holding.getStock().getTicker(), 0.0);
+                    totalPortfolioValue += holding.getShares() * currentPrice;
+                }
+            }
+
             Map<Long, Double> closedGainsLosses = new HashMap<>();
             Map<Long, Double> closedPercentageReturns = new HashMap<>();
+
             for (PortfolioHolding holding : closedPositions) {
-                double gainLoss = (holding.getSellingPrice() - holding.getPurchasePrice()) * holding.getShares();
-                double percentageReturn = holding.getPurchasePrice() != 0
-                        ? ((holding.getSellingPrice() - holding.getPurchasePrice()) / holding.getPurchasePrice()) * 100
-                        : 0;
-                closedGainsLosses.put(holding.getId(), gainLoss);
-                closedPercentageReturns.put(holding.getId(), percentageReturn);
-                totalPortfolioValue += gainLoss;
-                totalInitialValue += holding.getShares() * holding.getPurchasePrice();
+                if (holding.getPurchasePrice() != null) {
+                    double gainLoss = (holding.getSellingPrice() - holding.getPurchasePrice()) * holding.getShares();
+                    double percentageReturn = holding.getPurchasePrice() != 0
+                            ? ((holding.getSellingPrice() - holding.getPurchasePrice()) / holding.getPurchasePrice())
+                                    * 100
+                            : 0;
+                    closedGainsLosses.put(holding.getId(), gainLoss);
+                    closedPercentageReturns.put(holding.getId(), percentageReturn);
+                    totalPortfolioValueWithPrices += holding.getShares() * holding.getSellingPrice();
+                    totalInitialValueWithPrices += holding.getShares() * holding.getPurchasePrice();
+                    hasHoldingsWithPurchasePrices = true;
+                } else {
+                    closedGainsLosses.put(holding.getId(), null);
+                    closedPercentageReturns.put(holding.getId(), null);
+
+                    totalPortfolioValue += holding.getShares() * holding.getSellingPrice();
+                }
             }
-            totalPercentageReturn = totalInitialValue != 0
-                    ? ((totalPortfolioValue - totalInitialValue) / totalInitialValue) * 100
-                    : 0.0;
-            double totalDollarReturn = totalPortfolioValue - totalInitialValue;
+
+            totalPortfolioValue = openPositions.stream()
+                    .mapToDouble(h -> h.getShares() * currentPriceMap.getOrDefault(h.getStock().getTicker(), 0.0))
+                    .sum();
+
+            Double totalPercentageReturn = null;
+            Double totalDollarReturn = null;
+
+            log.debug("Initial value calculation:");
+            openPositions.stream()
+                    .filter(h -> h.getPurchasePrice() != null && h.getPurchasePrice() > 0)
+                    .forEach(h -> {
+                        log.debug("  Holding {}: {} shares × ${} = ${}",
+                                h.getStock().getTicker(),
+                                h.getShares(),
+                                String.format("%.2f", h.getPurchasePrice()),
+                                String.format("%.2f", h.getShares() * h.getPurchasePrice()));
+                    });
+
+            log.debug("Total initial value with valid prices: ${}", String.format("%.2f", totalInitialValueWithPrices));
+
+            log.debug("Current value calculation:");
+            openPositions.forEach(h -> {
+                Double currentPrice = currentPriceMap.getOrDefault(h.getStock().getTicker(), 0.0);
+                log.debug("  Holding {}: {} shares × ${} = ${}",
+                        h.getStock().getTicker(),
+                        h.getShares(),
+                        String.format("%.2f", currentPrice),
+                        String.format("%.2f", h.getShares() * currentPrice));
+            });
+
+            log.debug("Total current portfolio value: ${}", String.format("%.2f", totalPortfolioValue));
+
+            if (totalInitialValueWithPrices > 0) {
+                totalDollarReturn = totalPortfolioValue - totalInitialValueWithPrices;
+                totalPercentageReturn = (totalDollarReturn / totalInitialValueWithPrices) * 100;
+
+                log.debug("Return calculation:");
+                log.debug("  Dollar return: ${} - ${} = ${}",
+                        String.format("%.2f", totalPortfolioValue),
+                        String.format("%.2f", totalInitialValueWithPrices),
+                        String.format("%.2f", totalDollarReturn));
+                log.debug("  Percentage return: ({} / {}) × 100 = {}%",
+                        String.format("%.2f", totalDollarReturn),
+                        String.format("%.2f", totalInitialValueWithPrices),
+                        String.format("%.2f", totalPercentageReturn));
+            } else {
+                log.debug("Total initial value is zero or negative ({}), skipping return calculation",
+                        totalInitialValueWithPrices);
+            }
+
             Map<String, Object> response = new HashMap<>();
             response.put("openPositions", openPositions);
             response.put("closedPositions", closedPositions);
             response.put("totalPortfolioValue", totalPortfolioValue);
+            response.put("portfolioHoldings", openPositions);
             response.put("totalPercentageReturn", totalPercentageReturn);
             response.put("totalDollarReturn", totalDollarReturn);
             response.put("timeframePercentageChanges", timeframePercentageChanges);
@@ -256,14 +364,49 @@ public class PortfolioController {
             response.put("closedPercentageReturns", closedPercentageReturns);
             response.put("timeframe", timeframe);
             log.info(
-                    "Portfolio {} response prepared - totalValue: ${}, totalPercentageReturn: {}%, timeframeChanges: {}, totalDollarReturn: ${}",
-                    id, String.format("%.2f", totalPortfolioValue), String.format("%.2f", totalPercentageReturn),
-                    timeframePercentageChanges, String.format("%.2f", totalDollarReturn));
+                    "Returning portfolio response with {} holdings, totalValue: ${}, percentReturn: {}%, dollarReturn: ${}",
+                    openPositions.size(),
+                    String.format("%.2f", totalPortfolioValue),
+                    totalPercentageReturn != null ? String.format("%.2f", totalPercentageReturn) : "null",
+                    totalDollarReturn != null ? String.format("%.2f", totalDollarReturn) : "null");
+
+            log.debug("Portfolio response details - ID: {}, Name: {}, OpenPositions: {}, ClosedPositions: {}, " +
+                    "TotalValue: {}, HasValidInitialValue: {}, TotalInitialValue: {}, " +
+                    "PercentReturn: {}, DollarReturn: {}",
+                    portfolio.getId(),
+                    portfolio.getName(),
+                    openPositions.size(),
+                    closedPositions.size(),
+                    totalPortfolioValue > 0 ? String.format("$%.2f", totalPortfolioValue) : "$0.00",
+                    hasHoldingsWithPurchasePrices,
+                    totalInitialValueWithPrices > 0 ? String.format("$%.2f", totalInitialValueWithPrices) : "$0.00",
+                    totalPercentageReturn != null ? String.format("%.2f%%", totalPercentageReturn) : "null",
+                    totalDollarReturn != null ? String.format("$%.2f", totalDollarReturn) : "null");
+
+            openPositions.forEach(holding -> {
+                String ticker = holding.getStock().getTicker();
+                Double currentPrice = currentPriceMap.getOrDefault(ticker, 0.0);
+                log.debug(
+                        "Holding: {} - Ticker: {}, Shares: {}, PurchasePrice: {}, CurrentPrice: {}, CurrentValue: {}, "
+                                +
+                                "TimeframeChange: {}",
+                        holding.getId(),
+                        ticker,
+                        holding.getShares(),
+                        holding.getPurchasePrice() != null ? String.format("$%.2f", holding.getPurchasePrice())
+                                : "null",
+                        String.format("$%.2f", currentPrice),
+                        String.format("$%.2f", holding.getShares() * currentPrice),
+                        timeframePercentageChanges.get(holding.getId()) != null
+                                ? String.format("%.2f%%", timeframePercentageChanges.get(holding.getId()))
+                                : "null");
+            });
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error fetching portfolio details", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error fetching portfolio details: " + e.getMessage());
+                    .body("Error fetching portfolio details: " + e.getMessage());
         }
     }
 
@@ -332,7 +475,7 @@ public class PortfolioController {
             @PathVariable Long portfolioId,
             @RequestParam String ticker,
             @RequestParam Double shares,
-            @RequestParam Double purchasePrice,
+            @RequestParam(required = false) Double purchasePrice,
             @RequestParam String purchaseDate,
             @RequestParam(required = false) Double sellingPrice,
             @RequestParam(required = false) String sellingDate) {

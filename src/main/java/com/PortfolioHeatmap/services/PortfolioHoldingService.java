@@ -110,6 +110,11 @@ public class PortfolioHoldingService {
     // Calculates the gain or loss for a holding based on its status (open or
     // closed)
     public Double calculateGainLoss(PortfolioHolding holding) {
+        // If purchase price is null, we can't calculate gain/loss
+        if (holding.getPurchasePrice() == null) {
+            return null;
+        }
+
         if (holding.getSellingDate() != null) {
             // Closed position: Gain/loss = (selling price - purchase price) * shares
             return (holding.getSellingPrice() - holding.getPurchasePrice()) * holding.getShares();
@@ -128,7 +133,18 @@ public class PortfolioHoldingService {
     // Calculates the percentage return for a holding based on gain/loss and
     // purchase value
     public Double calculatePercentageReturn(PortfolioHolding holding) {
+        // If purchase price is null, we can't calculate percentage return
+        if (holding.getPurchasePrice() == null) {
+            return null;
+        }
+
         Double gainLoss = calculateGainLoss(holding);
+        // If gainLoss is null (which could happen if purchase price is null), return
+        // null
+        if (gainLoss == null) {
+            return null;
+        }
+
         Double purchaseValue = holding.getPurchasePrice() * holding.getShares();
         if (purchaseValue == 0) {
             return 0.0;

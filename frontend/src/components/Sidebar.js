@@ -66,8 +66,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
 
   const handleAddNewHolding = async (e) => {
     e.preventDefault();
-    if (!ticker || !shares || !price) {
-      alert('Please fill in all required fields');
+    if (!ticker || !shares) {
+      alert('Please fill in the required fields');
       return;
     }
 
@@ -79,10 +79,10 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
       }
 
       const sharesNum = Number(shares);
-      const priceNum = Number(price);
+      const priceNum = price ? Number(price) : null;
 
-      if (isNaN(sharesNum) || sharesNum <= 0 || isNaN(priceNum) || priceNum <= 0) {
-        alert('Shares and price must be positive numbers');
+      if (isNaN(sharesNum) || sharesNum <= 0 || (price && (isNaN(priceNum) || priceNum <= 0))) {
+        alert('Shares must be a positive number and price (if provided) must be a positive number');
         return;
       }
 
@@ -131,8 +131,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!editingHolding || !shares || !price) {
-      alert('Please fill in all required fields');
+    if (!editingHolding || !shares) {
+      alert('Please fill in the required fields');
       return;
     }
 
@@ -144,10 +144,10 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
       }
 
       const sharesNum = Number(shares);
-      const priceNum = Number(price);
+      const priceNum = price ? Number(price) : null;
 
-      if (isNaN(sharesNum) || sharesNum <= 0 || isNaN(priceNum) || priceNum <= 0) {
-        alert('Shares and price must be positive numbers');
+      if (isNaN(sharesNum) || sharesNum <= 0 || (price && (isNaN(priceNum) || priceNum <= 0))) {
+        alert('Shares must be a positive number and price (if provided) must be a positive number');
         return;
       }
 
@@ -485,15 +485,13 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                 />
               </div>
               <div className="input-group">
-                <label>Price:</label>
+                <label>{isBuying ? "Purchase Price / Average Cost Basis (optional):" : "Selling Price (optional):"}</label>
                 <input
                   type="number"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="Enter price per share"
+                  placeholder="Enter price per share (optional)"
                   step="0.01"
-                  min="0.01"
-                  required
                 />
               </div>
               <div className="modal-actions">
@@ -535,18 +533,16 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                   value={shares}
                   onChange={(e) => setShares(e.target.value)}
                   placeholder="Enter number of shares"
-                  required
                 />
               </div>
               <div className="input-group">
-                <label>Price:</label>
+                <label>{isBuying ? 'Purchase Price / Average Cost Basis: (optional)' : 'Selling Price: (optional)'}</label>
                 <input
                   type="number"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="Enter price per share"
+                  placeholder="Enter price per share (optional)"
                   step="0.01"
-                  required
                 />
               </div>
               <div className="modal-actions">

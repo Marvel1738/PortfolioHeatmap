@@ -33,7 +33,7 @@ public class PortfolioHolding {
     @Column(nullable = false)
     private Double shares;
 
-    @Column(name = "purchase_price", nullable = false)
+    @Column(name = "purchase_price", nullable = true)
     private Double purchasePrice;
 
     @Column(name = "purchase_date", nullable = false)
