@@ -57,18 +57,6 @@ const Header = () => {
           />
         </Link>
       </div>
-
-      {/* Navigation Links (Right) */}
-      <div className="nav-links">
-        <Link to="/about" className="nav-link">
-          <FaQuestionCircle className="nav-icon" />
-          <span>About</span>
-        </Link>
-        <Link to="/predictions" className="nav-link">
-          <FaRobot className="nav-icon" />
-          <span>AI Stock Predictions</span>
-        </Link>
-      </div>
     </header>
   );
 };

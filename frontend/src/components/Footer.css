@@ -1,0 +1,83 @@
+.footer {
+  width: 100%;
+  padding: 20px 0;
+  background-color: var(--background-primary);
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+}
+
+/* Add margin for sidebar when on heatmap page */
+.heatmap-page .footer {
+  margin-left: 160px; /* Match sidebar width */
+  width: calc(100% - 160px);
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0 20px;
+}
+
+.mission {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.footer-link {
+  color: #0784ea;
+  text-decoration: none;
+  font-size: 12px;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: #1976D2;
+  text-decoration: underline;
+}
+
+.separator {
+  color: var(--text-secondary);
+  font-size: 8px;
+  opacity: 0.6;
+}
+
+@media (max-width: 768px) {
+  .footer {
+    padding: 15px 0;
+  }
+
+  .heatmap-page .footer {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .footer-content {
+    padding: 0 10px;
+  }
+
+  .footer-links {
+    gap: 6px;
+  }
+
+  .footer-link {
+    font-size: 11px;
+  }
+
+  .separator {
+    font-size: 7px;
+  }
+} 
