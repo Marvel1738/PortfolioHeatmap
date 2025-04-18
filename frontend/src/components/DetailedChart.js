@@ -13,6 +13,7 @@ import { Chart as ChartJS,
   BarElement } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import './DetailedChart.css';
+import { debounce } from 'lodash';
 
 // Register required Chart.js components
 ChartJS.register(
@@ -100,6 +101,9 @@ function DetailedChart() {
   const [priceRange, setPriceRange] = useState({ min: 0, max: 0 });
   const [timeframe, setTimeframe] = useState('1y');
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [searchTicker, setSearchTicker] = useState('');
+  const [stockSuggestions, setStockSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // Track window resize
   useEffect(() => {
@@ -113,6 +117,41 @@ function DetailedChart() {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Fetch stock suggestions based on ticker prefix
+  const fetchStockSuggestions = debounce(async (prefix) => {
+    if (prefix.length === 0) {
+      setStockSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+    try {
+      const response = await axios.get('http://localhost:8080/stocks/search', {
+        params: { prefix },
+      });
+      setStockSuggestions(response.data);
+      setShowDropdown(true);
+    } catch (err) {
+      console.error('Error fetching stock suggestions:', err);
+      setStockSuggestions([]);
+      setShowDropdown(false);
+    }
+  }, 300);
+
+  useEffect(() => {
+    if (searchTicker.length >= 1) {
+      fetchStockSuggestions(searchTicker);
+    } else {
+      setStockSuggestions([]);
+      setShowDropdown(false);
+    }
+  }, [searchTicker]);
+
+  const handleTickerSelect = (selectedTicker) => {
+    setSearchTicker('');
+    setShowDropdown(false);
+    navigate(`/chart/${selectedTicker}`);
+  };
 
   // Fetch stock data
   useEffect(() => {
@@ -443,9 +482,36 @@ function DetailedChart() {
   return (
     <div className="detailed-chart-container dark-theme">
       <div className="chart-header">
-        <button className="back-button" onClick={handleGoBack}>
-          ← Back
-        </button>
+        <div className="top-row">
+          <button className="back-button" onClick={handleGoBack}>
+            ← Back
+          </button>
+          
+          <div className="search-container">
+            <div className="ticker-input-container">
+              <input
+                type="text"
+                value={searchTicker}
+                onChange={(e) => setSearchTicker(e.target.value.toUpperCase())}
+                placeholder="Search ticker..."
+                className="search-input"
+                autoComplete="off"
+              />
+              {showDropdown && stockSuggestions.length > 0 && (
+                <ul className="ticker-dropdown">
+                  {stockSuggestions.map((stock) => (
+                    <li
+                      key={stock.ticker}
+                      onClick={() => handleTickerSelect(stock.ticker)}
+                    >
+                      {stock.ticker} - {stock.companyName}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
         
         <div className="header-content">
           {stockInfo && (
@@ -454,6 +520,7 @@ function DetailedChart() {
                 <h2 className="ticker-symbol">{ticker}</h2>
                 <span className="company-name-text">{stockInfo.companyName}</span>
               </div>
+
               <div className="timeframe-selector">
                 <select value={timeframe} onChange={handleTimeframeChange}>
                   {timeframeOptions.map(option => (
@@ -472,7 +539,6 @@ function DetailedChart() {
               </div>
             </>
           )}
-        
         </div>
       </div>
 
