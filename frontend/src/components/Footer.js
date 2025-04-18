@@ -2,34 +2,25 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './Footer.css';
 
-function Footer() {
+const Footer = () => {
   return (
     <footer className="footer">
       <div className="footer-content">
-        <div className="mission">
-          Elite Asset Allocation
-        </div>
         <div className="footer-links">
-          <Link to="/privacy" className="footer-link">Privacy Policy</Link>
+          <Link to="/about" target="_blank" className="footer-link">About</Link>
           <span className="separator">•</span>
-          <Link to="/terms" className="footer-link">Terms of Service</Link>
+          <Link to="/privacy" target="_blank" className="footer-link">Privacy Policy</Link>
           <span className="separator">•</span>
-          <Link to="/about" className="footer-link">About</Link>
+          <Link to="/terms" target="_blank" className="footer-link">Terms of Service</Link>
           <span className="separator">•</span>
-          <Link to="/help" className="footer-link">Help</Link>
+          <Link to="/help" target="_blank" className="footer-link">Help</Link>
           <span className="separator">•</span>
-          <a 
-            href="mailto:support@portfolioheatmap.com" 
-            className="footer-link" 
-            target="_blank" 
-            rel="noopener noreferrer"
-          >
-            Contact
-          </a>
+          <Link to="/contact" target="_blank" className="footer-link">Contact</Link>
         </div>
+        <p className="copyright">© {new Date().getFullYear()} Portfolio Heatmap. All rights reserved.</p>
       </div>
     </footer>
   );
-}
+};
 
 export default Footer; 

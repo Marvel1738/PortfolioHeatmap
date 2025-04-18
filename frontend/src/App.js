@@ -1,43 +1,17 @@
 // frontend/src/App.js
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import Login from './components/Login';
-import Register from './components/Register';
-import Heatmap from './components/Heatmap';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
-import About from './components/About';
-import DetailedChart from './components/DetailedChart';
 import Footer from './components/Footer';
+import Heatmap from './components/Heatmap';
+import DetailedChart from './components/DetailedChart';
+import About from './components/About';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfService from './components/TermsOfService';
+import Help from './components/Help';
+import Contact from './components/Contact';
 import './App.css';
-
-/**
- * App content component to handle location-based class names
- */
-function AppContent() {
-  const location = useLocation();
-  const isHeatmapPage = location.pathname === '/heatmap';
-
-  return (
-    <div className={`App ${isHeatmapPage ? 'heatmap-page' : ''}`}>
-      <Header />
-      <main className="main-content">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/heatmap" element={<Heatmap />} />
-          <Route path="/chart/:ticker" element={<DetailedChart />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/privacy" element={<About />} /> {/* Placeholder until Privacy page is created */}
-          <Route path="/terms" element={<About />} /> {/* Placeholder until Terms page is created */}
-          <Route path="/help" element={<About />} /> {/* Placeholder until Help page is created */}
-          <Route path="/" element={<Navigate to="/heatmap" replace />} />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
-  );
-}
 
 /**
  * App component serves as the root of the React frontend.
@@ -48,7 +22,22 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AppContent />
+      <div className="App">
+        <Header />
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<Navigate to="/heatmap" replace />} />
+            <Route path="/heatmap" element={<Heatmap />} />
+            <Route path="/chart/:ticker" element={<DetailedChart />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/contact" element={<Contact />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
     </Router>
   );
 }
