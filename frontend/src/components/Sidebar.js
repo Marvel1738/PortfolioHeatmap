@@ -20,6 +20,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   const [isPortfolioListOpen, setIsPortfolioListOpen] = useState(false);
   const [renamePortfolioId, setRenamePortfolioId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
+  const [errorModal, setErrorModal] = useState({ show: false, message: '' });
 
 
   // Log portfolios for debugging
@@ -67,14 +68,30 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   const handleAddNewHolding = async (e) => {
     e.preventDefault();
     if (!ticker || !shares) {
-      alert('Please fill in the required fields');
+      setErrorModal({
+        show: true,
+        message: 'Please fill in all required fields (ticker and shares)'
+      });
+      return;
+    }
+
+    // Check if the stock already exists in the portfolio
+    const existingHolding = holdings.find(h => h.stock.ticker.toUpperCase() === ticker.toUpperCase());
+    if (existingHolding) {
+      setErrorModal({
+        show: true,
+        message: 'This stock is already in your portfolio. To add more shares, use the + button next to the existing holding.'
+      });
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('You are not authenticated. Please log in.');
+        setErrorModal({
+          show: true,
+          message: 'You are not authenticated. Please log in.'
+        });
         return;
       }
 
@@ -82,7 +99,10 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
       const priceNum = price ? Number(price) : null;
 
       if (isNaN(sharesNum) || sharesNum <= 0 || (price && (isNaN(priceNum) || priceNum <= 0))) {
-        alert('Shares must be a positive number and price (if provided) must be a positive number');
+        setErrorModal({
+          show: true,
+          message: 'Shares must be a positive number and price (if provided) must be a positive number'
+        });
         return;
       }
 
@@ -100,17 +120,18 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
         }
       );
 
+      // Reset form and close modal on success
       setTicker('');
       setShares('');
       setPrice('');
       setShowAddModal(false);
-
-      if (onPortfolioSelect) {
-        onPortfolioSelect(selectedPortfolioId);
-      }
-    } catch (err) {
-      console.error('Failed to add shares:', err);
-      alert('Failed to add holding. Please try again.');
+      window.location.reload(); // Refresh to show new holding
+    } catch (error) {
+      console.error('Error adding holding:', error);
+      setErrorModal({
+        show: true,
+        message: 'Failed to add stock. Please try again.'
+      });
     }
   };
 
@@ -485,7 +506,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                 />
               </div>
               <div className="input-group">
-                <label>{isBuying ? "Purchase Price / Average Cost Basis (optional):" : "Selling Price (optional):"}</label>
+                <label>{isBuying ? "Purchase Price / Average Cost Basis: (optional)" : "Selling Price: (optional)"}</label>
                 <input
                   type="number"
                   value={price}
@@ -604,6 +625,24 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {errorModal.show && (
+        <div className="modal-overlay">
+          <div className="error-modal">
+            <div className="error-modal-content">
+              <h3>Oops!</h3>
+              <p>{errorModal.message}</p>
+              <button 
+                className="error-modal-button"
+                onClick={() => setErrorModal({ show: false, message: '' })}
+              >
+                Got it
+              </button>
+            </div>
           </div>
         </div>
       )}

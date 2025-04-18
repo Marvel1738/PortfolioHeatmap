@@ -450,3 +450,61 @@
   outline: none;
   background-color: var(--background-hover);
 }
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.error-modal {
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  width: 90%;
+  max-width: 300px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.2s ease-out;
+}
+
+.error-modal-content {
+  text-align: center;
+}
+
+.error-modal-content h3 {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.error-modal-content p {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+.error-modal-button {
+  background-color: #0784ea;
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.error-modal-button:hover {
+  background-color: #1976D2;
+}
