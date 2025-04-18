@@ -211,6 +211,25 @@ public class PortfolioController {
                     LocalDate initialStartDate = getStartDateForTimeframe(timeframe);
                     Optional<PriceHistory> startPriceOpt = Optional.empty();
                     effectiveStartDate = initialStartDate;
+
+                    // Special handling for 1-day timeframe on market holidays
+                    if (timeframe.equals("1d")) {
+                        // First try to get yesterday's price
+                        startPriceOpt = priceHistoryService.findByStockTickerAndDate(ticker, effectiveStartDate);
+
+                        // If we found yesterday's price and it matches current price (market closed),
+                        // go back one more day
+                        if (startPriceOpt.isPresent() &&
+                                Math.abs(startPriceOpt.get().getClosingPrice() - currentPrice) < 0.0001) {
+                            log.info(
+                                    "Market appears closed - current price matches yesterday's closing price for {}. Going back one more day.",
+                                    ticker);
+                            effectiveStartDate = effectiveStartDate.minusDays(1);
+                            startPriceOpt = priceHistoryService.findByStockTickerAndDate(ticker, effectiveStartDate);
+                        }
+                    }
+
+                    // For other timeframes or if we need to look further back
                     for (int daysBack = 0; daysBack <= 3 && !startPriceOpt.isPresent(); daysBack++) {
                         effectiveStartDate = initialStartDate.minusDays(daysBack);
                         startPriceOpt = priceHistoryService.findByStockTickerAndDate(ticker, effectiveStartDate);
