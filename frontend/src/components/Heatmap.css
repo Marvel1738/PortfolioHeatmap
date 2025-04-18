@@ -49,7 +49,7 @@
 .timeframe-selector select {
   padding: 5px 10px;
   border-radius: 4px;
-  border: 1px solid var(--border-color) !important;
+  border: 1px solid rgb(77, 84, 89) !important;
   background-color: var(--background-secondary) !important;
   color: var(--text-primary) !important;
 }
@@ -267,6 +267,7 @@ label {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+  margin-top: -30px !important;
 }
 
 /* Title text and buttons row */
@@ -282,7 +283,7 @@ label {
   font-weight: bold;
   color: #ffffff;
   margin: 0;
-  padding-right: 10px;
+  padding-right: 5px;
 }
 
 /* Button container (edit/delete) */
@@ -311,6 +312,7 @@ label {
 
 .action-button.rename {
   background-color: #007bff;
+  margin-right: 5px;
 }
 
 .action-button.delete {

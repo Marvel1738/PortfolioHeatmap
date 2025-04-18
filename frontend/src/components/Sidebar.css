@@ -395,10 +395,10 @@
   max-width: 100px !important;
   background-color: var(--background-primary) !important;
   color: var(--text-primary);
-  border: none;
   border-radius: 4px;
   font-size: 12px;
   text-transform: uppercase;
+  border: 1px solid rgb(77, 84, 89) !important;
 }
 
 .search-input::placeholder {
@@ -433,7 +433,7 @@
   padding: 5px 10px;
   width: 100%;
   border-radius: 4px;
-  border: 1px solid var(--border-color);
+  border: 1px solid rgb(77, 84, 89);
   background-color: var(--background-primary);
   color: var(--text-primary);
   cursor: pointer;
