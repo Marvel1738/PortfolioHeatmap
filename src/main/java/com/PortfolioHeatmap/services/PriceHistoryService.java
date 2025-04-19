@@ -100,6 +100,19 @@ public class PriceHistoryService {
                     return 0.0;
                 }
                 double previousClose = previousDay.get().getClosingPrice();
+
+                // If current price is the same as yesterday's price, look back one more day
+                if (currentPrice == previousClose) {
+                    LocalDate previousDate = previousDay.get().getDate();
+                    Optional<PriceHistory> dayBefore = priceHistoryRepository
+                            .findFirstByStockTickerAndDateLessThanOrderByDateDesc(ticker, previousDate);
+                    if (dayBefore.isPresent()) {
+                        previousClose = dayBefore.get().getClosingPrice();
+                        log.info("Current price matches yesterday's price for {}, using price from {}: ${}",
+                                ticker, dayBefore.get().getDate(), previousClose);
+                    }
+                }
+
                 log.info("Calculating 1d change for {}: current=${}, previous=${}", ticker, currentPrice,
                         previousClose);
                 return ((currentPrice - previousClose) / previousClose) * 100;

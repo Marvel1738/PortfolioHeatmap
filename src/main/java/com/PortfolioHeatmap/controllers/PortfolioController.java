@@ -208,34 +208,29 @@ public class PortfolioController {
                         continue;
                     }
                 } else {
+                    // For timeframes other than "total", get the historical price
                     LocalDate initialStartDate = getStartDateForTimeframe(timeframe);
-                    Optional<PriceHistory> startPriceOpt = Optional.empty();
                     effectiveStartDate = initialStartDate;
+                    Optional<PriceHistory> startPriceOpt = priceHistoryService
+                            .findFirstByStockTickerAndDateLessThanOrderByDateDesc(ticker, effectiveStartDate);
 
-                    // Special handling for 1-day timeframe on market holidays
-                    if (timeframe.equals("1d")) {
-                        // First try to get yesterday's price
-                        startPriceOpt = priceHistoryService.findByStockTickerAndDate(ticker, effectiveStartDate);
-
-                        // If we found yesterday's price and it matches current price (market closed),
-                        // go back one more day
-                        if (startPriceOpt.isPresent() &&
-                                Math.abs(startPriceOpt.get().getClosingPrice() - currentPrice) < 0.0001) {
-                            log.info(
-                                    "Market appears closed - current price matches yesterday's closing price for {}. Going back one more day.",
-                                    ticker);
-                            effectiveStartDate = effectiveStartDate.minusDays(1);
-                            startPriceOpt = priceHistoryService.findByStockTickerAndDate(ticker, effectiveStartDate);
+                    // Special handling for 1-day timeframe
+                    if (timeframe.equals("1d") && startPriceOpt.isPresent()) {
+                        double previousClose = startPriceOpt.get().getClosingPrice();
+                        // If current price is the same as yesterday's price, look back one more day
+                        if (currentPrice == previousClose) {
+                            LocalDate previousDate = startPriceOpt.get().getDate();
+                            Optional<PriceHistory> dayBefore = priceHistoryService
+                                    .findFirstByStockTickerAndDateLessThanOrderByDateDesc(ticker, previousDate);
+                            if (dayBefore.isPresent()) {
+                                startPriceOpt = dayBefore;
+                                effectiveStartDate = dayBefore.get().getDate();
+                                log.info("Current price matches yesterday's price for {}, using price from {}: ${}",
+                                        ticker, effectiveStartDate, dayBefore.get().getClosingPrice());
+                            }
                         }
                     }
 
-                    // For other timeframes or if we need to look further back
-                    for (int daysBack = 0; daysBack <= 3 && !startPriceOpt.isPresent(); daysBack++) {
-                        effectiveStartDate = initialStartDate.minusDays(daysBack);
-                        startPriceOpt = priceHistoryService.findByStockTickerAndDate(ticker, effectiveStartDate);
-                        log.info("Ticker: {}, timeframe: {}, checking date: {}, found: {}",
-                                ticker, timeframe, effectiveStartDate, startPriceOpt.isPresent());
-                    }
                     if (startPriceOpt.isPresent()) {
                         startPrice = startPriceOpt.get().getClosingPrice();
                         log.info("Ticker: {}, timeframe: {}, date: {}, oldPrice: ${}, currentPrice: ${}",
