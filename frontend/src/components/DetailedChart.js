@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Chart as ChartJS, 
@@ -12,6 +12,7 @@ import { Chart as ChartJS,
   Filler,
   BarElement } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import annotationPlugin from 'chartjs-plugin-annotation';
 import './DetailedChart.css';
 import { debounce } from 'lodash';
 
@@ -25,7 +26,8 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  annotationPlugin
 );
 
 // Custom candlestick chart plugin
@@ -106,6 +108,7 @@ function DetailedChart() {
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [purchasePrice, setPurchasePrice] = useState(null);
 
   // Track window resize
   useEffect(() => {
@@ -184,7 +187,7 @@ function DetailedChart() {
     };
   };
 
-  // Update useEffect for candlestick data
+  // Fetch candlestick data
   useEffect(() => {
     const fetchCandlestickData = async () => {
       if (!ticker) return;
@@ -200,7 +203,7 @@ function DetailedChart() {
         );
         setStockInfo(infoResponse.data);
 
-        // Fetch candlestick data instead of historical data
+        // Fetch candlestick data
         const candlestickResponse = await axios.get(
           `http://localhost:8080/stocks/candlestick/${ticker}?timeframe=${timeframe}`,
           { headers: { 'Authorization': `Bearer ${token}` } }
@@ -240,8 +243,7 @@ function DetailedChart() {
           };
         });
 
-        // Create chart data - the visible element is just a placeholder
-        // The actual candlesticks are drawn by our plugin
+        // Create chart data
         setChartData({
           labels: formattedData.map(point => point.x),
           datasets: [
@@ -274,6 +276,56 @@ function DetailedChart() {
     fetchCandlestickData();
   }, [ticker, timeframe]);
 
+  // Fetch purchase price
+  useEffect(() => {
+    const fetchPurchasePrice = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.log('No token found, skipping purchase price fetch');
+          return;
+        }
+        const portfoliosResponse = await axios.get('http://localhost:8080/portfolios/user', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const portfolios = portfoliosResponse.data;
+        if (!portfolios || portfolios.length === 0) {
+          console.log('No portfolios found');
+          setPurchasePrice(null);
+          return;
+        }
+        for (const portfolio of portfolios) {
+          const portfolioResponse = await axios.get(`http://localhost:8080/portfolios/${portfolio.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          const portfolioData = portfolioResponse.data;
+          if (portfolioData && portfolioData.openPositions) {
+            const holding = portfolioData.openPositions.find(h => h.stock && h.stock.ticker === ticker);
+            if (holding) {
+              console.log('Found purchase price:', holding.purchasePrice);
+              setPurchasePrice(holding.purchasePrice);
+              return;
+            }
+          }
+        }
+        console.log('No holding found for ticker:', ticker);
+        setPurchasePrice(null);
+      } catch (error) {
+        console.error('Error fetching purchase price:', error);
+        setPurchasePrice(null);
+      }
+    };
+    if (ticker) {
+      fetchPurchasePrice();
+    }
+  }, [ticker]);
+
   const handleGoBack = () => {
     navigate('/heatmap');
   };
@@ -292,30 +344,32 @@ function DetailedChart() {
     let min = priceRange.min - padding;
     let max = priceRange.max + padding;
     
+    // Include purchasePrice in range if set
+    if (purchasePrice) {
+      min = Math.min(min, purchasePrice);
+      max = Math.max(max, purchasePrice);
+    }
+    
     // Clean up the range to nice round numbers
     if (max < 1) {
-      // For penny stocks - round to nearest 0.05 or 0.01
       const precision = max < 0.1 ? 0.01 : 0.05;
       min = Math.floor(min / precision) * precision;
       max = Math.ceil(max / precision) * precision;
     } else if (max < 10) {
-      // For stocks under $10 - round to nearest 0.5
       min = Math.floor(min * 2) / 2;
       max = Math.ceil(max * 2) / 2;
     } else if (max < 100) {
-      // For stocks under $100 - round to nearest 5
       min = Math.floor(min / 5) * 5;
       max = Math.ceil(max / 5) * 5;
     } else if (max < 1000) {
-      // For stocks under $1000 - round to nearest 10
       min = Math.floor(min / 10) * 10;
       max = Math.ceil(max / 10) * 10;
     } else {
-      // For very high-priced stocks - round to nearest 50
       min = Math.floor(min / 50) * 50;
       max = Math.ceil(max / 50) * 50;
     }
     
+    console.log('Y-axis range:', { min, max, purchasePrice });
     return { min, max };
   };
 
@@ -332,19 +386,14 @@ function DetailedChart() {
     // Calculate clean step size
     let stepSize;
     if (max < 1) {
-      // Penny stocks
       stepSize = max < 0.1 ? 0.01 : 0.05;
     } else if (max < 10) {
-      // Low price
       stepSize = 0.5;
     } else if (max < 100) {
-      // Medium price
       stepSize = 5;
     } else if (max < 1000) {
-      // High price
       stepSize = 10;
     } else {
-      // Very high price
       stepSize = 50;
     }
     
@@ -354,159 +403,208 @@ function DetailedChart() {
       const value = min + (diff / tickCount) * i;
       // Round to the nearest step
       const roundedValue = Math.round(value / stepSize) * stepSize;
-      values.push(roundedValue);
+      values.push(Number(roundedValue.toFixed(2)));
     }
     
-    // Remove duplicates
-    return [...new Set(values)];
+    // Add purchasePrice if set
+    if (purchasePrice) {
+      values.push(Number(purchasePrice.toFixed(2)));
+    }
+    
+    // Remove duplicates and sort
+    const finalValues = [...new Set(values)].sort((a, b) => a - b);
+    console.log('Generated tick values:', finalValues);
+    return finalValues;
   };
 
   // Adjust max ticks based on screen width
   const getMaxTicks = () => {
-    if (windowWidth < 600) return 6;
-    if (windowWidth < 960) return 8;
-    if (windowWidth < 1280) return 10;
-    return 12;
+    if (windowWidth < 600) return 8;
+    if (windowWidth < 960) return 10;
+    if (windowWidth < 1280) return 12;
+    return 14;
   };
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      candlestick: {}, // Enable our candlestick plugin
-      legend: {
-        display: false, // Hide legend
-      },
-      tooltip: {
-        mode: 'index',
-        intersect: false,
-        callbacks: {
-          title: function(tooltipItems) {
-            const item = tooltipItems[0];
-            const dataPoint = chartData.datasets[0].data[item.dataIndex];
-            return dataPoint.x;
-          },
-          label: function(context) {
-            const dataPoint = chartData.datasets[0].data[context.dataIndex];
-            const isGreen = dataPoint.close >= dataPoint.open;
-            const colorUp = '#00FF44';
-            const colorDown = '#FF3333';
-            
-            return [
-              `Open: $${dataPoint.open.toFixed(2)}`,
-              `High: $${dataPoint.high.toFixed(2)}`,
-              `Low: $${dataPoint.low.toFixed(2)}`,
-              `Close: ${isGreen ? '📈' : '📉'} $${dataPoint.close.toFixed(2)}`
-            ];
-          },
-          labelTextColor: function(context) {
-            const dataPoint = chartData.datasets[0].data[context.dataIndex];
-            return dataPoint.close >= dataPoint.open ? '#00FF44' : '#FF3333';
-          }
+  const chartOptions = useMemo(() => {
+    console.log('Generating chartOptions with purchasePrice:', purchasePrice);
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        candlestick: {},
+        legend: {
+          display: false,
         },
-        backgroundColor: 'rgba(25, 30, 36, 0.9)',
-        titleFont: {
-          size: 14,
-          family: 'Arial, sans-serif'
-        },
-        bodyFont: {
-          size: 14,
-          family: 'Arial, sans-serif'
-        },
-        titleColor: 'rgb(190, 210, 230)',
-        bodyColor: 'rgb(190, 210, 230)',
-        borderColor: 'rgb(81, 89, 97)',
-        padding: 10
-      }
-    },
-    scales: {
-      x: {
-        grid: {
-          display: true, // Show vertical gridlines for month ticks
-          drawBorder: false,
-          color: function() {
-            return ' rgb(190, 210, 230, 0.10)';
-          },
-          tickLength: 8, // Shorter tick marks
-        },
-        ticks: {
-          font: {
-            size: windowWidth < 768 ? 10 : 12,
-            family: 'Arial, sans-serif'
-          },
-          color: function() {
-            return 'rgb(190, 210, 230)';
-          },
-          padding: 10, // Add padding below labels
-          maxRotation: 0,
-          autoSkip: true,
-          maxTicksLimit: getMaxTicks() // Adaptive number of ticks based on screen width
-        },
-        border: {
-          display: false
-        }
-      },
-      y: {
-        display: true,
-        position: 'left', // Price scale on the left
-        min: getYAxisRange().min,
-        max: getYAxisRange().max,
-        ticks: {
-          callback: function(value) {
-            // Format long decimal numbers intelligently
-            if (Math.abs(value) < 0.01) {
-              return '$' + value.toFixed(4);
-            } else if (Math.abs(value) < 1) {
-              return '$' + value.toFixed(2);
-            } else if (Math.abs(value) >= 1000) {
-              return '$' + value.toLocaleString('en-US', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-              });
-            } else {
-              return '$' + value.toLocaleString('en-US', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2
-              });
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            title: function(tooltipItems) {
+              const item = tooltipItems[0];
+              const dataPoint = chartData.datasets[0].data[item.dataIndex];
+              return dataPoint.x;
+            },
+            label: function(context) {
+              const dataPoint = chartData.datasets[0].data[context.dataIndex];
+              const isGreen = dataPoint.close >= dataPoint.open;
+              const colorUp = '#00FF44';
+              const colorDown = '#FF3333';
+              
+              return [
+                `Open: $${dataPoint.open.toFixed(2)}`,
+                `High: $${dataPoint.high.toFixed(2)}`,
+                `Low: $${dataPoint.low.toFixed(2)}`,
+                `Close: ${isGreen ? '📈' : '📉'} $${dataPoint.close.toFixed(2)}`
+              ];
+            },
+            labelTextColor: function(context) {
+              const dataPoint = chartData.datasets[0].data[context.dataIndex];
+              return dataPoint.close >= dataPoint.open ? '#00FF44' : '#FF3333';
             }
           },
-          font: {
-            size: windowWidth < 768 ? 10 : 12,
+          backgroundColor: 'rgba(25, 30, 36, 0.9)',
+          titleFont: {
+            size: 14,
             family: 'Arial, sans-serif'
           },
-          color: function() {
-            return 'rgb(190, 210, 230)';
+          bodyFont: {
+            size: 14,
+            family: 'Arial, sans-serif'
           },
-          stepSize: undefined,
-          count: undefined,
-          autoSkip: false,
-          values: getTickValues()
+          titleColor: 'rgb(190, 210, 230)',
+          bodyColor: 'rgb(190, 210, 230)',
+          borderColor: 'rgb(81, 89, 97)',
+          padding: 10
         },
-        grid: {
-          color: function() {
-            return 'rgba(190, 210, 230, 0.10)';
+        annotation: {
+          annotations: purchasePrice ? {
+            purchaseLine: {
+              type: 'line',
+              yMin: purchasePrice,
+              yMax: purchasePrice,
+              borderColor: 'rgba(197, 239, 252, 0.8)',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              label: {
+                enabled: true,
+                content: `$${purchasePrice.toFixed(2)}`,
+                position: 'left',
+                backgroundColor: 'rgba(25, 31, 40, 0.9)',
+                color: 'rgba(197, 239, 252, 1)',
+                font: {
+                  size: 12,
+                  weight: 'bold'
+                },
+                padding: 4
+              }
+            }
+          } : {}
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: true,
+            drawBorder: false,
+            color: function() {
+              return 'rgb(190, 210, 230, 0.10)';
+            },
+            tickLength: 8,
           },
-          drawBorder: false,
+          ticks: {
+            font: {
+              size: windowWidth < 768 ? 10 : 12,
+              family: 'Arial, sans-serif'
+            },
+            color: function() {
+              return 'rgb(190, 210, 230)';
+            },
+            padding: 10,
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: getMaxTicks()
+          },
+          border: {
+            display: false
+          }
         },
-        border: {
-          display: false
+        y: {
+          display: true,
+          position: 'left',
+          min: getYAxisRange().min,
+          max: getYAxisRange().max,
+          afterBuildTicks: function(scale) {
+            console.log('afterBuildTicks called with ticks:', scale.ticks);
+            if (purchasePrice) {
+              scale.ticks.push({ value: Number(purchasePrice.toFixed(2)) });
+              scale.ticks = scale.ticks.sort((a, b) => a.value - b.value);
+            }
+            console.log('afterBuildTicks final ticks:', scale.ticks);
+          },
+          ticks: {
+            callback: function(value) {
+              console.log('Rendering tick value:', value);
+              if (purchasePrice && Math.abs(value - purchasePrice) < 0.01) {
+                return `$${purchasePrice.toFixed(2)}`;
+              }
+              if (Math.abs(value) < 0.01) {
+                return '$' + value.toFixed(4);
+              } else if (Math.abs(value) < 1) {
+                return '$' + value.toFixed(2);
+              } else if (Math.abs(value) >= 1000) {
+                return '$' + value.toLocaleString('en-US', {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0
+                });
+              } else {
+                return '$' + value.toLocaleString('en-US', {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2
+                });
+              }
+            },
+            font: {
+              size: windowWidth < 768 ? 10 : 12,
+              family: 'Arial, sans-serif'
+            },
+            color: function(context) {
+              const value = context.tick.value;
+              if (purchasePrice && Math.abs(value - purchasePrice) < 0.01) {
+                return 'rgba(197, 239, 252, 1)';
+              }
+              return 'rgb(190, 210, 230)';
+            },
+            stepSize: undefined,
+            count: undefined,
+            autoSkip: false,
+            values: getTickValues()
+          },
+          grid: {
+            color: function() {
+              return 'rgba(190, 210, 230, 0.10)';
+            },
+            drawBorder: false,
+          },
+          border: {
+            display: false
+          }
+        }
+      },
+      elements: {
+        line: {
+          tension: 0
+        }
+      },
+      layout: {
+        padding: {
+          left: windowWidth < 768 ? 20 : 40,
+          right: windowWidth < 768 ? 20 : 40,
+          top: windowWidth < 768 ? 15 : 25,
+          bottom: windowWidth < 768 ? 15 : 25
         }
       }
-    },
-    elements: {
-      line: {
-        tension: 0 // No curve for candlesticks
-      }
-    },
-    layout: {
-      padding: {
-        left: windowWidth < 768 ? 20 : 40, // Increased padding for better centering
-        right: windowWidth < 768 ? 20 : 40,
-        top: windowWidth < 768 ? 15 : 25,
-        bottom: windowWidth < 768 ? 15 : 25
-      }
-    }
-  };
+    };
+  }, [chartData, windowWidth, priceRange, timeframe, purchasePrice]);
 
   const timeframeOptions = [
     { value: '1m', label: '1 Month' },
