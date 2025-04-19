@@ -363,12 +363,6 @@ function DetailedChart() {
     let min = priceRange.min - padding;
     let max = priceRange.max + padding;
     
-    // Include purchasePrice in range if set
-    if (purchasePrice) {
-      min = Math.min(min, purchasePrice);
-      max = Math.max(max, purchasePrice);
-    }
-    
     // Clean up the range to nice round numbers
     if (max < 1) {
       const precision = max < 0.1 ? 0.01 : 0.05;
@@ -446,6 +440,25 @@ function DetailedChart() {
 
   const chartOptions = useMemo(() => {
     console.log('Generating chartOptions with purchasePrice:', purchasePrice);
+    const yAxisRange = getYAxisRange();
+    
+    // Determine if purchase price is out of range and where to position it
+    let effectivePosition = purchasePrice;
+    let labelPosition = 'start';
+    let showOutOfRange = false;
+    
+    if (purchasePrice) {
+      if (purchasePrice < yAxisRange.min) {
+        effectivePosition = yAxisRange.min;
+        labelPosition = 'start';
+        showOutOfRange = true;
+      } else if (purchasePrice > yAxisRange.max) {
+        effectivePosition = yAxisRange.max;
+        labelPosition = 'start';
+        showOutOfRange = true;
+      }
+    }
+    
     return {
       responsive: true,
       maintainAspectRatio: false,
@@ -495,30 +508,36 @@ function DetailedChart() {
           borderColor: 'rgb(81, 89, 97)',
           padding: 10
         },
-        annotation: {
-          annotations: purchasePrice ? {
+        annotation: purchasePrice ? {
+          common: {
+            drawTime: 'afterDraw'
+          },
+          annotations: {
             purchaseLine: {
               type: 'line',
-              yMin: purchasePrice,
-              yMax: purchasePrice,
+              scaleID: 'y',
+              value: effectivePosition,
               borderColor: 'rgba(197, 239, 252, 0.8)',
               borderWidth: 2,
               borderDash: [5, 5],
+              display: true,
               label: {
-                enabled: true,
-                content: `$${purchasePrice.toFixed(2)}`,
-                position: 'left',
+                display: true,
+                content: `$${purchasePrice.toFixed(2)}${showOutOfRange ? (purchasePrice > yAxisRange.max ? ' ↑' : ' ↓') : ''}`,
+                position: labelPosition,
                 backgroundColor: 'rgba(25, 31, 40, 0.9)',
                 color: 'rgba(197, 239, 252, 1)',
                 font: {
                   size: 12,
                   weight: 'bold'
                 },
-                padding: 4
+                padding: 4,
+                xAdjust: 10,
+                yAdjust: showOutOfRange ? (purchasePrice > yAxisRange.max ? -5 : 5) : 0
               }
             }
-          } : {}
-        }
+          }
+        } : {},
       },
       scales: {
         x: {
@@ -550,19 +569,10 @@ function DetailedChart() {
         y: {
           display: true,
           position: 'left',
-          min: getYAxisRange().min,
-          max: getYAxisRange().max,
-          afterBuildTicks: function(scale) {
-            console.log('afterBuildTicks called with ticks:', scale.ticks);
-            if (purchasePrice) {
-              scale.ticks.push({ value: Number(purchasePrice.toFixed(2)) });
-              scale.ticks = scale.ticks.sort((a, b) => a.value - b.value);
-            }
-            console.log('afterBuildTicks final ticks:', scale.ticks);
-          },
+          min: yAxisRange.min,
+          max: yAxisRange.max,
           ticks: {
             callback: function(value) {
-              console.log('Rendering tick value:', value);
               if (purchasePrice && Math.abs(value - purchasePrice) < 0.01) {
                 return `$${purchasePrice.toFixed(2)}`;
               }
