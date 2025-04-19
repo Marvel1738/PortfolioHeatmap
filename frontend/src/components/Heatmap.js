@@ -441,6 +441,7 @@ function Heatmap() {
   const handlePortfolioSelect = (portfolioId) => {
     const numericId = parseInt(portfolioId, 10);
     setSelectedPortfolioId(numericId || null);
+    localStorage.setItem('currentPortfolioId', numericId || '');
 
     const selectedPortfolio = portfolios.find((p) => p.id === numericId);
     setRenamePortfolioId(null);

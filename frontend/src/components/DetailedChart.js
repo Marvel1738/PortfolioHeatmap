@@ -344,7 +344,7 @@ function DetailedChart() {
     if (ticker) {
       fetchPurchasePrice();
     }
-  }, [ticker]);
+  }, [ticker, localStorage.getItem('currentPortfolioId')]);
 
   // Fetch portfolio name when currentPortfolioId changes
   useEffect(() => {

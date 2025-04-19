@@ -60,6 +60,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
+  max-width: none !important;
 }
 
 h2.ticker-symbol {
@@ -75,12 +76,10 @@ h2.ticker-symbol {
   font-weight: bold;
   color: lightblue !important;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  max-width: none !important;
   margin-top: 2px;
   text-align: left;
-  align-self: flex-start;
+  align-self: left;
 }
 
 .price-info {
