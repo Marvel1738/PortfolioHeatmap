@@ -109,6 +109,7 @@ function DetailedChart() {
   const searchRef = useRef(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [purchasePrice, setPurchasePrice] = useState(null);
+  const [portfolioName, setPortfolioName] = useState('');
 
   // Track window resize
   useEffect(() => {
@@ -344,6 +345,42 @@ function DetailedChart() {
       fetchPurchasePrice();
     }
   }, [ticker]);
+
+  // Fetch portfolio name when currentPortfolioId changes
+  useEffect(() => {
+    const fetchPortfolioName = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const currentPortfolioId = localStorage.getItem('currentPortfolioId');
+        
+        if (!token || !currentPortfolioId) {
+          setPortfolioName('');
+          return;
+        }
+
+        const portfolioId = parseInt(currentPortfolioId, 10);
+        if (isNaN(portfolioId)) {
+          setPortfolioName('');
+          return;
+        }
+
+        const response = await axios.get(`http://localhost:8080/portfolios/api/portfolio/${portfolioId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.data && response.data.name) {
+          setPortfolioName(response.data.name);
+        }
+      } catch (error) {
+        console.error('Error fetching portfolio name:', error);
+        setPortfolioName('');
+      }
+    };
+
+    fetchPortfolioName();
+  }, []);
 
   const handleGoBack = () => {
     navigate('/heatmap');
@@ -724,6 +761,15 @@ function DetailedChart() {
           <div>No data available</div>
         )}
       </div>
+      
+      {purchasePrice && (
+        <div className="chart-key">
+          <div className="key-item">
+            <div className="key-line"></div>
+            <span className="key-text">Purchase Price / Average Cost Basis for Portfolio: {portfolioName}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -595,6 +595,34 @@ public class PortfolioController {
         }
     }
 
+    @GetMapping("/api/portfolio/{id}")
+    public ResponseEntity<?> getBasicPortfolioInfo(@PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            Long currentUserId = getCurrentUserId(authHeader);
+            Portfolio portfolio = portfolioService.getPortfolioById(id);
+
+            if (portfolio == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            if (!portfolio.getUserId().equals(currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("You do not have permission to access this portfolio");
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", portfolio.getId());
+            response.put("name", portfolio.getName());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching portfolio info", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching portfolio info: " + e.getMessage());
+        }
+    }
+
     private Long getCurrentUserId() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
