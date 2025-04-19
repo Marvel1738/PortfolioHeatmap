@@ -22,4 +22,6 @@ public interface PortfolioHoldingRepository extends JpaRepository<PortfolioHoldi
 
     // Retrieves all closed positions (holdings with a selling date) for a portfolio
     List<PortfolioHolding> findByPortfolioIdAndSellingDateIsNotNull(Long portfolioId); // Closed positions
+
+    Optional<PortfolioHolding> findByPortfolioIdAndStockTicker(Long portfolioId, String ticker);
 }

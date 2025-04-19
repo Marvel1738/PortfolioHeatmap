@@ -12,6 +12,8 @@ import TermsOfService from './components/TermsOfService';
 import Help from './components/Help';
 import Contact from './components/Contact';
 import './App.css';
+import Login from './components/Login';
+import Register from './components/Register';
 
 /**
  * App component serves as the root of the React frontend.
@@ -34,6 +36,9 @@ function App() {
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/help" element={<Help />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="*" element={<Navigate to="/heatmap" replace />} />
           </Routes>
         </main>
         <Footer />

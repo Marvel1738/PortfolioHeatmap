@@ -175,4 +175,8 @@ public class PortfolioHoldingService {
         return portfolioHoldingRepository.findById(holdingId)
                 .orElseThrow(() -> new RuntimeException("Holding not found with id: " + holdingId));
     }
+
+    public Optional<PortfolioHolding> findByPortfolioIdAndStockTicker(Long portfolioId, String ticker) {
+        return portfolioHoldingRepository.findByPortfolioIdAndStockTicker(portfolioId, ticker);
+    }
 }

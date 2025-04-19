@@ -449,6 +449,10 @@ function Heatmap() {
 
   // Handle double click to navigate to detailed chart
   const handleStockDoubleClick = (ticker) => {
+    // Save the current portfolio ID to localStorage before navigating
+    if (selectedPortfolioId) {
+      localStorage.setItem('currentPortfolioId', selectedPortfolioId);
+    }
     navigate(`/chart/${ticker}`);
   };
 

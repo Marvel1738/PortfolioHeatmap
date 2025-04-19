@@ -556,6 +556,50 @@ public class PortfolioController {
         }
     }
 
+    @GetMapping("/api/portfolio/holdings/purchase-price")
+    public ResponseEntity<?> getPurchasePrice(
+            @RequestParam String ticker,
+            @RequestParam Long portfolioId,
+            @RequestHeader("Authorization") String token) {
+        try {
+            log.info("Getting purchase price for ticker: {} in portfolio: {}", ticker, portfolioId);
+
+            // Validate token and get user
+            String username = jwtUtil.extractUsername(token.replace("Bearer ", ""));
+            log.debug("Extracted username from token: {}", username);
+
+            User user = userService.getUserByUsername(username);
+            log.debug("Found user with ID: {}", user.getId());
+
+            // Get the portfolio
+            Portfolio portfolio = portfolioService.getPortfolioById(portfolioId);
+            log.debug("Found portfolio with ID: {} and user ID: {}", portfolio.getId(), portfolio.getUserId());
+
+            // Verify portfolio belongs to user
+            if (!portfolio.getUserId().equals(user.getId())) {
+                log.warn("Portfolio {} does not belong to user {}", portfolioId, user.getId());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Portfolio does not belong to user");
+            }
+
+            // Find the holding with matching ticker
+            log.debug("Searching for holding with ticker: {} in portfolio: {}", ticker, portfolioId);
+            Optional<PortfolioHolding> holding = portfolioHoldingService.findByPortfolioIdAndStockTicker(portfolioId,
+                    ticker);
+
+            if (holding.isPresent()) {
+                Double purchasePrice = holding.get().getPurchasePrice();
+                log.info("Found purchase price for {} in portfolio {}: {}", ticker, portfolioId, purchasePrice);
+                return ResponseEntity.ok(purchasePrice);
+            } else {
+                log.info("No holding found for ticker {} in portfolio {}", ticker, portfolioId);
+                return ResponseEntity.ok(null);
+            }
+        } catch (Exception e) {
+            log.error("Error getting purchase price for ticker: {} in portfolio: {}", ticker, portfolioId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error getting purchase price");
+        }
+    }
+
     private Long getCurrentUserId() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {

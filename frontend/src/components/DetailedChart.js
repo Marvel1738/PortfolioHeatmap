@@ -280,47 +280,66 @@ function DetailedChart() {
   useEffect(() => {
     const fetchPurchasePrice = async () => {
       try {
+        console.log('Starting to fetch purchase price for ticker:', ticker);
         const token = localStorage.getItem('token');
         if (!token) {
-          console.log('No token found, skipping purchase price fetch');
+          console.log('No token found in localStorage, skipping purchase price fetch');
           return;
         }
-        const portfoliosResponse = await axios.get('http://localhost:8080/portfolios/user', {
+
+        // Get the current portfolio ID from localStorage and convert to number
+        const currentPortfolioId = localStorage.getItem('currentPortfolioId');
+        console.log('Current portfolio ID from localStorage:', currentPortfolioId);
+        
+        if (!currentPortfolioId) {
+          console.log('No current portfolio selected in localStorage');
+          setPurchasePrice(null);
+          return;
+        }
+
+        // Convert portfolio ID to number
+        const portfolioId = parseInt(currentPortfolioId, 10);
+        console.log('Parsed portfolio ID:', portfolioId);
+        
+        if (isNaN(portfolioId)) {
+          console.log('Invalid portfolio ID:', currentPortfolioId);
+          setPurchasePrice(null);
+          return;
+        }
+
+        console.log('Making API request to fetch purchase price...');
+        // Fetch the purchase price using the new endpoint
+        const response = await axios.get(`http://localhost:8080/portfolios/api/portfolio/holdings/purchase-price`, {
+          params: {
+            ticker: ticker,
+            portfolioId: portfolioId
+          },
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
-        const portfolios = portfoliosResponse.data;
-        if (!portfolios || portfolios.length === 0) {
-          console.log('No portfolios found');
+
+        console.log('API response:', response.data);
+        const purchasePrice = response.data;
+        if (purchasePrice !== null) {
+          console.log(`Found purchase price for ${ticker} in portfolio ${portfolioId}:`, purchasePrice);
+          setPurchasePrice(purchasePrice);
+        } else {
+          console.log(`No purchase price found for ticker ${ticker} in portfolio ${portfolioId}`);
           setPurchasePrice(null);
-          return;
         }
-        for (const portfolio of portfolios) {
-          const portfolioResponse = await axios.get(`http://localhost:8080/portfolios/${portfolio.id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          const portfolioData = portfolioResponse.data;
-          if (portfolioData && portfolioData.openPositions) {
-            const holding = portfolioData.openPositions.find(h => h.stock && h.stock.ticker === ticker);
-            if (holding) {
-              console.log('Found purchase price:', holding.purchasePrice);
-              setPurchasePrice(holding.purchasePrice);
-              return;
-            }
-          }
-        }
-        console.log('No holding found for ticker:', ticker);
-        setPurchasePrice(null);
       } catch (error) {
         console.error('Error fetching purchase price:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
         setPurchasePrice(null);
       }
     };
+
     if (ticker) {
       fetchPurchasePrice();
     }
