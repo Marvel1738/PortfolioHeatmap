@@ -30,6 +30,10 @@ public class User implements UserDetails {
     @Column(name = "password")
     private String password;
 
+    // The email of the user, stored in the "email" column.
+    @Column(name = "email", unique = true)
+    private String email;
+
     // Getters and Setters
 
     // Getter for the user ID.
@@ -50,6 +54,16 @@ public class User implements UserDetails {
     // Setter for the password.
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    // Setter for the email.
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    // Getter for the email.
+    public String getEmail() {
+        return email;
     }
 
     // UserDetails methods

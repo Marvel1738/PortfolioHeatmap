@@ -39,12 +39,36 @@ public class UserService implements UserDetailsService {
         return user;
     }
 
-    // Registers a new user with the given username and password.
+    public User loadUserByEmail(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found with email: " + email);
+        }
+        return user;
+    }
+
+    public String getUsernameByEmail(String email) {
+        User user = loadUserByEmail(email);
+        return user.getUsername();
+    }
+
+    // Registers a new user with the given username, email, and password.
     // Encodes the password using PasswordEncoder before saving the user to the
     // database.
-    public User registerUser(String username, String password) {
+    public User registerUser(String username, String email, String password) {
+        // Check if username is already taken
+        if (userRepository.findByUsername(username) != null) {
+            throw new RuntimeException("Username already exists");
+        }
+
+        // Check if email is already taken
+        if (userRepository.findByEmail(email) != null) {
+            throw new RuntimeException("Email already exists");
+        }
+
         User user = new User();
         user.setUsername(username);
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
         return userRepository.save(user);
     }

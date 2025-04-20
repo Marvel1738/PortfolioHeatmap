@@ -117,7 +117,9 @@ function Heatmap() {
 
         setPortfolios(response.data);
         if (response.data.length > 0) {
-          setSelectedPortfolioId(response.data[0].id);
+          const initialPortfolioId = response.data[0].id;
+          setSelectedPortfolioId(initialPortfolioId);
+          localStorage.setItem('currentPortfolioId', initialPortfolioId);
         } else {
           setError('Click NEW PORTFOLIO to create a portfolio!');
         }

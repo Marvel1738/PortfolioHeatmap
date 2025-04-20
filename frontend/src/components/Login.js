@@ -18,7 +18,7 @@ import './Login.css';
  * @returns {JSX.Element} The rendered login form UI
  */
 function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ function Login() {
     try {
       // Authenticate user
       const loginResponse = await axios.post('http://localhost:8080/auth/login', {
-        username: username,
+        email: email,
         password: password,
       }, {
         headers: { 'Content-Type': 'application/json' },
@@ -60,11 +60,11 @@ function Login() {
       <h1>Portfolio Heatmap Login</h1>
       <form onSubmit={handleLogin}>
         <div className="form-group">
-          <label>Username:</label>
+          <label>Email:</label>
           <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
         </div>

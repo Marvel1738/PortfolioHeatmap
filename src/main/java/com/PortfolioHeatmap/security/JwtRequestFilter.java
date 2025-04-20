@@ -38,38 +38,30 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        // Extract the Authorization header from the request.
-        final String authorizationHeader = request.getHeader("Authorization");
+        try {
+            final String authorizationHeader = request.getHeader("Authorization");
 
-        // Variables to hold the username and JWT token.
-        String username = null;
-        String jwt = null;
+            String username = null;
+            String jwt = null;
 
-        // Check if the Authorization header exists and starts with "Bearer ".
-        // If present, extract the JWT token by removing the "Bearer " prefix.
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7);
-            username = jwtUtil.extractUsername(jwt);
-        }
-
-        // If a username is extracted and no authentication is currently set in the
-        // SecurityContext,
-        // validate the token and set the authentication.
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            // Load user details using the extracted username.
-            UserDetails userDetails = userService.loadUserByUsername(username);
-            // Validate the JWT token against the username.
-            if (jwtUtil.validateToken(jwt, userDetails.getUsername())) {
-                // Create an authentication token with the user details and authorities.
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                // Set additional request details for the authentication token.
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                // Set the authentication in the SecurityContext for the current request.
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+                jwt = authorizationHeader.substring(7);
+                username = jwtUtil.extractUsername(jwt);
             }
+
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userService.loadUserByUsername(username);
+                if (jwtUtil.validateToken(jwt, userDetails.getUsername())) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            }
+            chain.doFilter(request, response);
+        } catch (Exception e) {
+            logger.error("Cannot set user authentication: {}", e);
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
         }
-        // Continue with the filter chain to process the request.
-        chain.doFilter(request, response);
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/auth")
@@ -32,12 +33,13 @@ public class AuthController {
     }
 
     // Handles user registration via POST /auth/register.
-    // Takes a JSON request body with username and password, registers the user
+    // Takes a JSON request body with username, email, and password, registers the
+    // user
     // using UserService,
     // and returns a success message.
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody AuthRequest request) {
-        userService.registerUser(request.getUsername(), request.getPassword());
+        userService.registerUser(request.getUsername(), request.getEmail(), request.getPassword());
         return ResponseEntity.ok("User registered successfully");
     }
 
@@ -47,25 +49,34 @@ public class AuthController {
     // and returns the token for use in subsequent authenticated requests.
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody AuthRequest request) {
-        // Authenticate the user with the provided username and password.
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-        // Load user details for JWT generation.
-        final UserDetails userDetails = userService.loadUserByUsername(request.getUsername());
-        // Generate a JWT token for the authenticated user.
-        final String jwt = jwtUtil.generateToken(userDetails.getUsername());
-        // Return the JWT token in the response.
-        return ResponseEntity.ok(jwt);
+        try {
+            // Get username from email
+            String username = userService.getUsernameByEmail(request.getEmail());
+            // Authenticate the user with the username and password
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, request.getPassword()));
+            // Load user details for JWT generation
+            final UserDetails userDetails = userService.loadUserByUsername(username);
+            // Generate a JWT token for the authenticated user
+            final String jwt = jwtUtil.generateToken(userDetails.getUsername());
+            // Return the JWT token in the response
+            return ResponseEntity.ok(jwt);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
+        }
     }
 }
 
-// A simple DTO (Data Transfer Object) class to hold username and password
+// A simple DTO (Data Transfer Object) class to hold username, email, and
+// password
 // for authentication requests (used in /auth/register and /auth/login).
 class AuthRequest {
     // Username provided in the request.
     private String username;
     // Password provided in the request.
     private String password;
+    // Email provided in the request.
+    private String email;
 
     // Getter for username.
     public String getUsername() {
@@ -85,5 +96,15 @@ class AuthRequest {
     // Setter for password.
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    // Getter for email.
+    public String getEmail() {
+        return email;
+    }
+
+    // Setter for email.
+    public void setEmail(String email) {
+        this.email = email;
     }
 }

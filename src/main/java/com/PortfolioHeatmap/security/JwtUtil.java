@@ -33,7 +33,7 @@ public class JwtUtil {
     @SuppressWarnings("deprecation")
     public String generateToken(String username) {
         return Jwts.builder()
-                .setSubject(username) // Changed from .subject(username) to .setSubject(username)
+                .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey())
@@ -41,7 +41,6 @@ public class JwtUtil {
     }
 
     // Extracts the username from a given JWT token.
-    // Parses the token using the signing key and retrieves the subject (username).
     public String extractUsername(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
@@ -52,8 +51,7 @@ public class JwtUtil {
     }
 
     // Validates a JWT token by checking if the extracted username matches the
-    // provided username
-    // and if the token has not expired.
+    // provided username and if the token has not expired.
     public boolean validateToken(String token, String username) {
         final String extractedUsername = extractUsername(token);
         return (extractedUsername.equals(username) && !isTokenExpired(token));

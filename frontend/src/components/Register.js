@@ -21,6 +21,8 @@ function Register() {
   const [username, setUsername] = useState('');
   // State for password input
   const [password, setPassword] = useState('');
+  // State for email input
+  const [email, setEmail] = useState('');
   // State for error messages
   const [error, setError] = useState('');
   // State for success messages
@@ -37,23 +39,24 @@ function Register() {
     e.preventDefault();
     try {
       const response = await axios.post('http://localhost:8080/auth/register', {
-        username: username, // Send username from state
-        password: password, // Send password from state
+        username: username,
+        password: password,
+        email: email,
       }, {
         headers: { 'Content-Type': 'application/json' },
       });
-      setError(''); // Clear errors on success
-      setSuccess(response.data); // Show success message briefly
-      setUsername(''); // Clear form
+      setError('');
+      setSuccess(response.data);
+      setUsername('');
       setPassword('');
-      // Redirect to login page after a short delay to show success
-      setTimeout(() => navigate('/login'), 1000); // 1-second delay
+      setEmail('');
+      setTimeout(() => navigate('/login'), 1000);
     } catch (err) {
       const errorMessage = err.response && err.response.data
         ? err.response.data
         : err.message;
       setError('Registration failed: ' + errorMessage);
-      setSuccess(''); // Clear success on error
+      setSuccess('');
     }
   };
 
@@ -67,6 +70,15 @@ function Register() {
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>Email:</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
         </div>
