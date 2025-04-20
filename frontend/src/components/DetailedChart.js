@@ -762,14 +762,16 @@ function DetailedChart() {
         )}
       </div>
       
-      {purchasePrice && (
-        <div className="chart-key">
-          <div className="key-item">
-            <div className="key-line"></div>
-            <span className="key-text">Purchase Price / Average Cost Basis for Portfolio: {portfolioName}</span>
-          </div>
+      <div className="chart-key">
+        <div className="key-item">
+          <div className="key-line"></div>
+          <span className="key-text">
+            {purchasePrice 
+              ? `Purchase Price / Average Cost Basis for Portfolio: ${portfolioName}`
+              : `No purchase price for portfolio: ${portfolioName}`}
+          </span>
         </div>
-      )}
+      </div>
     </div>
   );
 }
