@@ -217,18 +217,23 @@ public class PortfolioController {
                     // Special handling for 1-day timeframe
                     if (timeframe.equals("1d") && startPriceOpt.isPresent()) {
                         double previousClose = startPriceOpt.get().getClosingPrice();
-                        // If current price is the same as yesterday's price, look back one more day
-                        if (currentPrice == previousClose) {
-                            LocalDate previousDate = startPriceOpt.get().getDate();
+                        LocalDate previousDate = startPriceOpt.get().getDate();
+
+                        // Keep looking back until we find a different price
+                        while (currentPrice == previousClose) {
                             Optional<PriceHistory> dayBefore = priceHistoryService
                                     .findFirstByStockTickerAndDateLessThanOrderByDateDesc(ticker, previousDate);
                             if (dayBefore.isPresent()) {
                                 startPriceOpt = dayBefore;
-                                effectiveStartDate = dayBefore.get().getDate();
-                                log.info("Current price matches yesterday's price for {}, using price from {}: ${}",
-                                        ticker, effectiveStartDate, dayBefore.get().getClosingPrice());
+                                previousDate = dayBefore.get().getDate();
+                                previousClose = dayBefore.get().getClosingPrice();
+                                log.info("Current price matches previous price for {}, looking back to {}: ${}",
+                                        ticker, previousDate, previousClose);
+                            } else {
+                                break; // No more historical data available
                             }
                         }
+                        effectiveStartDate = previousDate;
                     }
 
                     if (startPriceOpt.isPresent()) {
