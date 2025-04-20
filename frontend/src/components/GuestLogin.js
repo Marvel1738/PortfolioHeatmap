@@ -10,12 +10,20 @@ const GuestLogin = ({ updateAuthState }) => {
         try {
             const response = await axios.post('http://localhost:8080/auth/guest');
             const token = response.data;
-            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
             
+            // Parse the token to get user info
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            const username = tokenPayload.sub;
+            const userId = tokenPayload.userId; // Assuming the backend includes userId in the token
+            
+            // Save the guest user ID in localStorage
+            localStorage.setItem('guestUserId', userId);
+            
+            // Update auth state
             updateAuthState({
                 isAuthenticated: true,
                 isGuest: true,
-                username: 'Guest',
+                username: username,
                 token: token
             });
             

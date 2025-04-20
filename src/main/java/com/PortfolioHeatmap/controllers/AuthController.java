@@ -17,6 +17,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
+import java.util.List;
+import com.PortfolioHeatmap.models.Portfolio;
+import com.PortfolioHeatmap.repositories.PortfolioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/auth")
@@ -26,15 +31,18 @@ public class AuthController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
     private final GuestUserService guestUserService;
+    private final PortfolioRepository portfolioRepository;
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     // Constructor for dependency injection of AuthenticationManager, UserService,
     // and JwtUtil.
     public AuthController(AuthenticationManager authenticationManager, UserService userService, JwtUtil jwtUtil,
-            GuestUserService guestUserService) {
+            GuestUserService guestUserService, PortfolioRepository portfolioRepository) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.jwtUtil = jwtUtil;
         this.guestUserService = guestUserService;
+        this.portfolioRepository = portfolioRepository;
     }
 
     // Handles user registration via POST /auth/register.
@@ -44,8 +52,30 @@ public class AuthController {
     // and returns a success message.
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody AuthRequest request) {
-        userService.registerUser(request.getUsername(), request.getEmail(), request.getPassword());
-        return ResponseEntity.ok("User registered successfully");
+        // Register the new user
+        User newUser = userService.registerUser(request.getUsername(), request.getEmail(), request.getPassword());
+
+        // Check if there's a guest user ID in the request
+        String guestUserId = request.getGuestUserId();
+        if (guestUserId != null && !guestUserId.isEmpty()) {
+            try {
+                // Find all portfolios owned by the guest user
+                List<Portfolio> guestPortfolios = portfolioRepository.findByUserId(Long.parseLong(guestUserId));
+
+                // Transfer each portfolio to the new user
+                for (Portfolio portfolio : guestPortfolios) {
+                    portfolio.setUserId(newUser.getId());
+                    portfolioRepository.save(portfolio);
+                }
+            } catch (Exception e) {
+                log.error("Error transferring portfolios from guest user: {}", e.getMessage());
+                // Continue with registration even if transfer fails
+            }
+        }
+
+        // Generate and return JWT token for the new user
+        final String jwt = jwtUtil.generateToken(newUser.getUsername(), newUser.getId());
+        return ResponseEntity.ok(jwt);
     }
 
     // Handles user login via POST /auth/login.
@@ -62,8 +92,10 @@ public class AuthController {
                     new UsernamePasswordAuthenticationToken(username, request.getPassword()));
             // Load user details for JWT generation
             final UserDetails userDetails = userService.loadUserByUsername(username);
+            // Get the user ID
+            User user = userService.getUserByUsername(username);
             // Generate a JWT token for the authenticated user
-            final String jwt = jwtUtil.generateToken(userDetails.getUsername());
+            final String jwt = jwtUtil.generateToken(userDetails.getUsername(), user.getId());
             // Return the JWT token in the response
             return ResponseEntity.ok(jwt);
         } catch (RuntimeException e) {
@@ -77,8 +109,8 @@ public class AuthController {
             // Create a new guest user
             User guestUser = guestUserService.createGuestUser();
 
-            // Generate a JWT token for the guest user
-            final String jwt = jwtUtil.generateToken(guestUser.getUsername());
+            // Generate a JWT token for the guest user with the user ID
+            final String jwt = jwtUtil.generateToken(guestUser.getUsername(), guestUser.getId());
 
             return ResponseEntity.ok(jwt);
         } catch (Exception e) {
@@ -98,6 +130,8 @@ class AuthRequest {
     private String password;
     // Email provided in the request.
     private String email;
+    // Guest user ID provided in the request.
+    private String guestUserId;
 
     // Getter for username.
     public String getUsername() {
@@ -127,5 +161,15 @@ class AuthRequest {
     // Setter for email.
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    // Getter for guest user ID.
+    public String getGuestUserId() {
+        return guestUserId;
+    }
+
+    // Setter for guest user ID.
+    public void setGuestUserId(String guestUserId) {
+        this.guestUserId = guestUserId;
     }
 }

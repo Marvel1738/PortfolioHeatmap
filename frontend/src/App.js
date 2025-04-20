@@ -57,6 +57,13 @@ function App() {
           
           if (currentTime < expirationTime) {
             const isGuestUser = tokenPayload.roles?.includes('ROLE_GUEST');
+            const userId = tokenPayload.userId;
+            
+            // Save the user ID in localStorage
+            if (userId) {
+              localStorage.setItem('userId', userId);
+            }
+            
             updateAuthState({
               isAuthenticated: true,
               isGuest: isGuestUser,
@@ -65,6 +72,7 @@ function App() {
             });
           } else {
             console.log('Token expired');
+            localStorage.removeItem('userId');
             updateAuthState({
               isAuthenticated: false,
               isGuest: false,
@@ -74,6 +82,7 @@ function App() {
           }
         } catch (error) {
           console.error('Error parsing token:', error);
+          localStorage.removeItem('userId');
           updateAuthState({
             isAuthenticated: false,
             isGuest: false,

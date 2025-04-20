@@ -109,7 +109,19 @@ function Heatmap() {
     const fetchPortfolios = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) throw new Error('No token found');
+        if (!token) {
+          // If no token, check for guest portfolios in localStorage
+          const guestPortfolios = JSON.parse(localStorage.getItem('guestPortfolios') || '[]');
+          setPortfolios(guestPortfolios);
+          if (guestPortfolios.length > 0) {
+            const initialPortfolioId = guestPortfolios[0].id;
+            setSelectedPortfolioId(initialPortfolioId);
+            localStorage.setItem('currentPortfolioId', initialPortfolioId);
+          } else {
+            setError('Click NEW PORTFOLIO to create a portfolio!');
+          }
+          return;
+        }
 
         const response = await axios.get('http://localhost:8080/portfolios/user', {
           headers: { 'Authorization': `Bearer ${token}` },

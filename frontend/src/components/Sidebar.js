@@ -242,7 +242,20 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('You are not authenticated. Please log in.');
+        // Handle guest portfolio creation
+        const guestPortfolios = JSON.parse(localStorage.getItem('guestPortfolios') || '[]');
+        const newPortfolio = {
+          id: Date.now(), // Use timestamp as temporary ID
+          name: newPortfolioName,
+          holdings: []
+        };
+        guestPortfolios.push(newPortfolio);
+        localStorage.setItem('guestPortfolios', JSON.stringify(guestPortfolios));
+        setNewPortfolioName('');
+        setShowNewPortfolioModal(false);
+        if (onPortfolioSelect) {
+          onPortfolioSelect(newPortfolio.id);
+        }
         return;
       }
 

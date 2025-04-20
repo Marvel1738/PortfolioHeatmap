@@ -22,6 +22,8 @@ import com.PortfolioHeatmap.services.PriceHistoryService;
 import com.PortfolioHeatmap.services.StockDataService;
 import com.PortfolioHeatmap.services.StockDataServiceFactory;
 import com.PortfolioHeatmap.repositories.PriceHistoryRepository;
+import com.PortfolioHeatmap.repositories.PortfolioRepository;
+import com.PortfolioHeatmap.repositories.UserRepository;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -33,6 +35,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import org.springframework.data.domain.Pageable;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/portfolios")
@@ -49,6 +53,11 @@ public class PortfolioController {
     private final PriceHistoryService priceHistoryService;
     private final StockDataService stockDataService;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final PortfolioRepository portfolioRepository;
+    private final UserRepository userRepository;
+
+    @Autowired
+    private HttpServletRequest request;
 
     public PortfolioController(
             PortfolioService portfolioService,
@@ -57,7 +66,9 @@ public class PortfolioController {
             UserService userService,
             PriceHistoryService priceHistoryService,
             StockDataServiceFactory stockDataServiceFactory,
-            PriceHistoryRepository priceHistoryRepository) {
+            PriceHistoryRepository priceHistoryRepository,
+            PortfolioRepository portfolioRepository,
+            UserRepository userRepository) {
         this.portfolioService = portfolioService;
         this.portfolioHoldingService = portfolioHoldingService;
         this.jwtUtil = jwtUtil;
@@ -65,6 +76,8 @@ public class PortfolioController {
         this.priceHistoryService = priceHistoryService;
         this.stockDataService = stockDataServiceFactory.getService();
         this.priceHistoryRepository = priceHistoryRepository;
+        this.portfolioRepository = portfolioRepository;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/create")
@@ -628,6 +641,40 @@ public class PortfolioController {
         }
     }
 
+    @PostMapping("/transfer-guest")
+    public ResponseEntity<String> transferGuestPortfolios() {
+        log.info("Transferring guest portfolios to new user");
+        try {
+            Long currentUserId = getCurrentUserId();
+            String username = jwtUtil.extractUsername(getTokenFromHeader());
+
+            // Get the guest user's ID from the token
+            User guestUser = userService.getUserByUsername(username);
+            if (guestUser == null || !guestUser.getIsGuest()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("User is not a guest user");
+            }
+
+            // Get all portfolios for the guest user
+            List<Portfolio> guestPortfolios = portfolioService.getPortfoliosByUserId(guestUser.getId());
+
+            // Transfer each portfolio to the new user
+            for (Portfolio portfolio : guestPortfolios) {
+                portfolio.setUserId(currentUserId);
+                portfolioRepository.save(portfolio);
+            }
+
+            // Delete the guest user
+            userRepository.delete(guestUser);
+
+            return ResponseEntity.ok("Guest portfolios transferred successfully");
+        } catch (Exception e) {
+            log.error("Error transferring guest portfolios: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error transferring guest portfolios: " + e.getMessage());
+        }
+    }
+
     private Long getCurrentUserId() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
@@ -677,5 +724,13 @@ public class PortfolioController {
             default:
                 return today.minusDays(1);
         }
+    }
+
+    private String getTokenFromHeader() {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+        return null;
     }
 }

@@ -16,7 +16,7 @@ import './Login.css';
  * 
  * @returns {JSX.Element} The rendered registration form UI
  */
-function Register() {
+function Register({ updateAuthState }) {
   // State for username input
   const [username, setUsername] = useState('');
   // State for password input
@@ -38,32 +38,34 @@ function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const guestToken = localStorage.getItem('token');
-      const isGuest = guestToken ? JSON.parse(atob(guestToken.split('.')[1])).roles?.includes('ROLE_GUEST') : false;
+      // Check if user is a guest and save their ID
+      const token = localStorage.getItem('token');
+      const guestUserId = localStorage.getItem('guestUserId');
 
       // Register the new user
       const response = await axios.post('http://localhost:8080/auth/register', {
         username: username,
         password: password,
         email: email,
+        guestUserId: guestUserId // Send the guest user ID
       }, {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const newToken = response.data.token;
+      // Store the new token
+      const newToken = response.data;
       localStorage.setItem('token', newToken);
+      
+      // Clear guest user ID from localStorage after successful registration
+      localStorage.removeItem('guestUserId');
 
-      // If user was a guest, transfer their portfolios
-      if (isGuest) {
-        try {
-          await axios.post('http://localhost:8080/portfolios/transfer-guest', {}, {
-            headers: { 'Authorization': `Bearer ${newToken}` },
-          });
-        } catch (transferError) {
-          console.error('Error transferring guest portfolios:', transferError);
-          // Continue with registration even if transfer fails
-        }
-      }
+      // Update auth state
+      updateAuthState({
+        isAuthenticated: true,
+        isGuest: false,
+        username: username,
+        token: newToken
+      });
 
       setError('');
       setSuccess('Registration successful!');
