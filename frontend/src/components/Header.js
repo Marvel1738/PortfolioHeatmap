@@ -1,9 +1,21 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { FaTwitter, FaLinkedin, FaGithub, FaInstagram, FaQuestionCircle, FaRobot } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaTwitter, FaLinkedin, FaGithub, FaInstagram } from 'react-icons/fa';
 import './Header.css';
 
-const Header = () => {
+const Header = ({ authState, updateAuthState }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    updateAuthState({
+      isAuthenticated: false,
+      isGuest: false,
+      username: '',
+      token: null
+    });
+    navigate('/login');
+  };
+
   return (
     <header className="site-header">
       {/* Social Media Icons (Left) */}
@@ -56,6 +68,21 @@ const Header = () => {
             loading="lazy"
           />
         </Link>
+      </div>
+
+      {/* User Authentication (Right) */}
+      <div className="auth-buttons">
+        {authState.isAuthenticated && !authState.username.startsWith('guest_') ? (
+          <div className="user-info">
+            <span className="username">{authState.username}</span>
+            <button className="logout-button" onClick={handleLogout}>Logout</button>
+          </div>
+        ) : (
+          <div className="auth-links">
+            <Link to="/login" className="auth-link">Login</Link>
+            <Link to="/register" className="auth-link">Register</Link>
+          </div>
+        )}
       </div>
     </header>
   );

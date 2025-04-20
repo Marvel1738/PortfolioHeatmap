@@ -99,6 +99,17 @@ button:hover {
   text-decoration: underline;
 }
 
+/* Style the guest login container */
+.guest-login-container {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.guest-login-container p {
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
 .login-container {
   display: flex;
   flex-direction: column;

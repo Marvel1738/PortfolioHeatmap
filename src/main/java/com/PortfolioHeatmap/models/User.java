@@ -34,6 +34,8 @@ public class User implements UserDetails {
     @Column(name = "email", unique = true)
     private String email;
 
+    private boolean isGuest = false;
+
     // Getters and Setters
 
     // Getter for the user ID.
@@ -64,6 +66,14 @@ public class User implements UserDetails {
     // Getter for the email.
     public String getEmail() {
         return email;
+    }
+
+    public boolean getIsGuest() {
+        return isGuest;
+    }
+
+    public void setIsGuest(boolean isGuest) {
+        this.isGuest = isGuest;
     }
 
     // UserDetails methods

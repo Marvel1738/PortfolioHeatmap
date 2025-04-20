@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 // Import custom CSS
 import './Login.css';
+// Import GuestLogin component
+import GuestLogin from './GuestLogin';
 
 /**
  * Login component handles user authentication for the Portfolio Heatmap app.
@@ -17,7 +19,7 @@ import './Login.css';
  * 
  * @returns {JSX.Element} The rendered login form UI
  */
-function Login() {
+function Login({ updateAuthState }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,22 +33,25 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      // Authenticate user
       const loginResponse = await axios.post('http://localhost:8080/auth/login', {
         email: email,
         password: password,
       }, {
         headers: { 'Content-Type': 'application/json' },
       });
-      const token = loginResponse.data; // Raw token string
-      localStorage.setItem('token', token); // Store token
-      setError('');
-
-      // Check if user has portfolios
-      const portfolioResponse = await axios.get('http://localhost:8080/portfolios/user', {
-        headers: { 'Authorization': `Bearer ${token}` },
+      
+      const token = loginResponse.data;
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      
+      updateAuthState({
+        isAuthenticated: true,
+        isGuest: false,
+        username: tokenPayload.sub,
+        token: token
       });
-        navigate('/heatmap'); // Returning user with portfolios
+
+      setError('');
+      navigate('/heatmap');
     } catch (err) {
       const errorMessage = err.response && err.response.data
         ? err.response.data
@@ -83,6 +88,10 @@ function Login() {
       <p className="register-link">
         New user? <Link to="/register">Create an account</Link>
       </p>
+      <div className="guest-login-container">
+        <p>Or</p>
+        <GuestLogin updateAuthState={updateAuthState} />
+      </div>
     </div>
   );
 }

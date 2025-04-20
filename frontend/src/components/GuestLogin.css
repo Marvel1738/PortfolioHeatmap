@@ -1,0 +1,20 @@
+.guest-login-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+    margin: 10px 0;
+}
+
+.guest-login-button:hover {
+    background-color: #45a049;
+}
+
+.guest-login-button:active {
+    background-color: #3d8b40;
+} 

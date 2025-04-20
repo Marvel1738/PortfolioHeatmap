@@ -38,6 +38,10 @@ function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
+      const guestToken = localStorage.getItem('token');
+      const isGuest = guestToken ? JSON.parse(atob(guestToken.split('.')[1])).roles?.includes('ROLE_GUEST') : false;
+
+      // Register the new user
       const response = await axios.post('http://localhost:8080/auth/register', {
         username: username,
         password: password,
@@ -45,12 +49,28 @@ function Register() {
       }, {
         headers: { 'Content-Type': 'application/json' },
       });
+
+      const newToken = response.data.token;
+      localStorage.setItem('token', newToken);
+
+      // If user was a guest, transfer their portfolios
+      if (isGuest) {
+        try {
+          await axios.post('http://localhost:8080/portfolios/transfer-guest', {}, {
+            headers: { 'Authorization': `Bearer ${newToken}` },
+          });
+        } catch (transferError) {
+          console.error('Error transferring guest portfolios:', transferError);
+          // Continue with registration even if transfer fails
+        }
+      }
+
       setError('');
-      setSuccess(response.data);
+      setSuccess('Registration successful!');
       setUsername('');
       setPassword('');
       setEmail('');
-      setTimeout(() => navigate('/login'), 1000);
+      setTimeout(() => navigate('/heatmap'), 1000);
     } catch (err) {
       const errorMessage = err.response && err.response.data
         ? err.response.data

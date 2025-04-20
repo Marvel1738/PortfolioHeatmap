@@ -9,6 +9,8 @@ package com.PortfolioHeatmap.controllers;
  */
 import com.PortfolioHeatmap.security.JwtUtil;
 import com.PortfolioHeatmap.services.UserService;
+import com.PortfolioHeatmap.services.GuestUserService;
+import com.PortfolioHeatmap.models.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,13 +25,16 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final GuestUserService guestUserService;
 
     // Constructor for dependency injection of AuthenticationManager, UserService,
     // and JwtUtil.
-    public AuthController(AuthenticationManager authenticationManager, UserService userService, JwtUtil jwtUtil) {
+    public AuthController(AuthenticationManager authenticationManager, UserService userService, JwtUtil jwtUtil,
+            GuestUserService guestUserService) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.jwtUtil = jwtUtil;
+        this.guestUserService = guestUserService;
     }
 
     // Handles user registration via POST /auth/register.
@@ -63,6 +68,22 @@ public class AuthController {
             return ResponseEntity.ok(jwt);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
+        }
+    }
+
+    @PostMapping("/guest")
+    public ResponseEntity<String> createGuestToken() {
+        try {
+            // Create a new guest user
+            User guestUser = guestUserService.createGuestUser();
+
+            // Generate a JWT token for the guest user
+            final String jwt = jwtUtil.generateToken(guestUser.getUsername());
+
+            return ResponseEntity.ok(jwt);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to create guest token: " + e.getMessage());
         }
     }
 }
