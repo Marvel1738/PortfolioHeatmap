@@ -9,6 +9,8 @@ package com.PortfolioHeatmap.services;
  */
 import com.PortfolioHeatmap.models.User;
 import com.PortfolioHeatmap.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -21,11 +23,16 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     // PasswordEncoder for securely encoding user passwords during registration.
     private final PasswordEncoder passwordEncoder;
+    private final PortfolioService portfolioService;
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
-    // Constructor for dependency injection of UserRepository and PasswordEncoder.
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    // Constructor for dependency injection of UserRepository, PasswordEncoder, and
+    // PortfolioService.
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+            PortfolioService portfolioService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.portfolioService = portfolioService;
     }
 
     // Loads user details by username for Spring Security authentication.
@@ -56,21 +63,42 @@ public class UserService implements UserDetailsService {
     // Encodes the password using PasswordEncoder before saving the user to the
     // database.
     public User registerUser(String username, String email, String password) {
-        // Check if username is already taken
-        if (userRepository.findByUsername(username) != null) {
-            throw new RuntimeException("Username already exists");
-        }
+        log.info("Registering new user: {}", username);
+        try {
+            // Check if username or email already exists
+            if (userRepository.findByUsername(username) != null) {
+                log.error("Username already exists: {}", username);
+                throw new RuntimeException("Username already exists");
+            }
+            if (userRepository.findByEmail(email) != null) {
+                log.error("Email already exists: {}", email);
+                throw new RuntimeException("Email already exists");
+            }
 
-        // Check if email is already taken
-        if (userRepository.findByEmail(email) != null) {
-            throw new RuntimeException("Email already exists");
-        }
+            // Create and save the new user
+            User newUser = new User();
+            newUser.setUsername(username);
+            newUser.setEmail(email);
+            newUser.setPassword(passwordEncoder.encode(password));
+            newUser.setIsGuest(false);
 
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
-        return userRepository.save(user);
+            newUser = userRepository.save(newUser);
+            log.info("Created new user with ID: {}", newUser.getId());
+
+            // Create the default portfolio
+            try {
+                portfolioService.createDefaultPortfolio(newUser.getId());
+                log.info("Created default portfolio for new user: {}", newUser.getId());
+            } catch (Exception e) {
+                log.error("Failed to create default portfolio for new user {}: {}", newUser.getId(), e.getMessage());
+                // Continue even if portfolio creation fails
+            }
+
+            return newUser;
+        } catch (Exception e) {
+            log.error("Failed to register user {}: {}", username, e.getMessage());
+            throw e;
+        }
     }
 
     public User getUserByUsername(String username) {

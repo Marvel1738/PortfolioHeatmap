@@ -37,28 +37,36 @@ function Register({ updateAuthState }) {
    */
   const handleRegister = async (e) => {
     e.preventDefault();
+    console.log('Starting registration process');
     try {
       // Check if user is a guest and save their ID
       const token = localStorage.getItem('token');
       const guestUserId = localStorage.getItem('guestUserId');
+      console.log('Current guest state:', { hasToken: !!token, guestUserId });
 
-      // Register the new user
+      console.log('Sending registration request');
       const response = await axios.post('http://localhost:8080/auth/register', {
         username: username,
         password: password,
         email: email,
-        guestUserId: guestUserId // Send the guest user ID
+        guestUserId: guestUserId
       }, {
         headers: { 'Content-Type': 'application/json' },
       });
 
       // Store the new token
       const newToken = response.data;
+      console.log('Received new token from registration');
       localStorage.setItem('token', newToken);
       
       // Clear guest user ID from localStorage after successful registration
       localStorage.removeItem('guestUserId');
+      console.log('Cleared guest user ID from localStorage');
 
+      // Parse the new token to get user info
+      const tokenPayload = JSON.parse(atob(newToken.split('.')[1]));
+      console.log('Parsed new token payload:', tokenPayload);
+      
       // Update auth state
       updateAuthState({
         isAuthenticated: true,
@@ -66,6 +74,7 @@ function Register({ updateAuthState }) {
         username: username,
         token: newToken
       });
+      console.log('Updated auth state for registered user');
 
       setError('');
       setSuccess('Registration successful!');
@@ -74,6 +83,10 @@ function Register({ updateAuthState }) {
       setEmail('');
       setTimeout(() => navigate('/heatmap'), 1000);
     } catch (err) {
+      console.error('Registration failed:', err);
+      if (err.response) {
+        console.error('Error response:', err.response.data);
+      }
       const errorMessage = err.response && err.response.data
         ? err.response.data
         : err.message;
