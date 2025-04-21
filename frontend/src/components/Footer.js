@@ -18,6 +18,7 @@ const Footer = () => {
           <Link to="/contact" target="_blank" className="footer-link">Contact</Link>
         </div>
         <p className="copyright">© {new Date().getFullYear()} Portfolio Heatmap. All rights reserved.</p>
+        <p className="mission">Limited to S&P 500 stocks. Will add all NYSE stocks along with crypto and index funds soon.</p>
       </div>
     </footer>
   );

@@ -1,83 +1,47 @@
 .footer {
-  width: 100%;
-  padding: 20px 0;
   background-color: var(--background-primary);
-  border-top: 1px solid var(--border-color);
+  color: #ffffff;
+  padding: 2rem 0;
   margin-top: auto;
-}
-
-/* Add margin for sidebar when on heatmap page */
-.heatmap-page .footer {
-  margin-left: 160px; /* Match sidebar width */
-  width: calc(100% - 160px);
 }
 
 .footer-content {
   max-width: 1200px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 0 20px;
-}
-
-.mission {
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  margin-bottom: 2px;
+  padding: 0 1rem;
+  text-align: center;
 }
 
 .footer-links {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+  margin-bottom: 1rem;
 }
 
 .footer-link {
-  color: #0784ea;
+  color: #4073f5;
   text-decoration: none;
-  font-size: 12px;
-  transition: color 0.2s;
-}
-
-.footer-link:hover {
-  color: #1976D2;
+  margin: 0 0.5rem;
+  transition: color 0.3s ease;
   text-decoration: underline;
 }
 
-.separator {
-  color: var(--text-secondary);
-  font-size: 8px;
-  opacity: 0.6;
+.footer-link:hover {
+  color: #4a90e2;
 }
 
-@media (max-width: 768px) {
-  .footer {
-    padding: 15px 0;
-  }
+.separator {
+  color: #f9f9f9;
+  margin: 0 0.5rem;
+}
 
-  .heatmap-page .footer {
-    margin-left: 0;
-    width: 100%;
-  }
+.copyright {
+  color: #ffffff;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
 
-  .footer-content {
-    padding: 0 10px;
-  }
-
-  .footer-links {
-    gap: 6px;
-  }
-
-  .footer-link {
-    font-size: 11px;
-  }
-
-  .separator {
-    font-size: 7px;
-  }
-} 
+.mission {
+  color: #ffffff;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+  font-style: italic;
+}

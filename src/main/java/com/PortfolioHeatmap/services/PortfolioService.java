@@ -19,16 +19,36 @@ public class PortfolioService {
 
     // Default Warren Buffett portfolio holdings
     private static final String[][] DEFAULT_HOLDINGS = {
+            { "AAPL", "300000000" },
+            { "AXP", "151610700" },
             { "BAC", "680233587" },
             { "KO", "400000000" },
-            { "KHC", "325634818" },
-            { "AAPL", "300000000" },
-            { "OXY", "265026328" },
-            { "AXP", "151610700" },
             { "CVX", "118610534" },
-            { "SIRI", "119776692" },
-            { "DVA", "35892479" },
-            { "MCO", "24669778" }
+            { "MCO", "24669778" },
+            { "OXY", "264941431" },
+            { "KHC", "325634818" },
+            { "DVA", "35142479" },
+            { "VRSN", "13271457" },
+            { "V", "8297460" },
+            { "MA", "3986648" },
+            { "STZ", "5624324" },
+            { "DPZ", "2382000" },
+            { "CHTR", "1991759" },
+            { "TMUS", "4350000" },
+            { "C", "14639502" },
+            { "COF", "7450000" },
+            { "KR", "50000000" },
+            { "CHUBB", "27033784" },
+            { "AON", "4100000" },
+            { "HEI", "1049687" },
+            { "POOL", "598689" },
+            { "NVR", "11112" },
+            { "DEO", "227750" },
+            { "AMZN", "10000000" },
+            { "ALLY", "29000000" },
+            { "LEN.B", "152572" },
+            { "TMO", "1000000" },
+            { "MDT", "2000000" }
     };
 
     public PortfolioService(PortfolioRepository portfolioRepository, PortfolioHoldingService portfolioHoldingService) {
