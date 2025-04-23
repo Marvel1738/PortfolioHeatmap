@@ -206,13 +206,13 @@ label {
 
 .heatmap-tooltip {
 
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.85) !important;
   color: #ffffff;
   padding: 10px;
   border-radius: 5px;
   font-size: 30px;
-  font-family: 'Arial, sans-serif';
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  font-family: 'Helvetica';
+  box-shadow: 0 2px 5px rgb(0, 0, 0);
   z-index: 1000;
   white-space: nowrap;
   pointer-events: none; /* Prevent interaction */
