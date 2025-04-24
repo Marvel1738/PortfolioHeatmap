@@ -84,6 +84,7 @@ function Heatmap() {
 
   // Handle window resize
   useEffect(() => {
+    const container = document.querySelector('.heatmap-visualization');
     const handleResize = () => {
       const container = document.querySelector('.heatmap-visualization');
       if (container) {
@@ -98,11 +99,19 @@ function Heatmap() {
         }
       }
     };
+// Initial resize
+  handleResize();
 
-    window.addEventListener('resize', handleResize);
+  // Set up ResizeObserver
+  const resizeObserver = new ResizeObserver(() => {
     handleResize();
-    return () => window.removeEventListener('resize', handleResize);
-  }, [ASPECT_RATIO, BASE_HEIGHT, BASE_WIDTH]);
+  });
+  resizeObserver.observe(container);
+
+  return () => {
+    resizeObserver.disconnect();
+  };
+}, [ASPECT_RATIO, BASE_HEIGHT, BASE_WIDTH]);
 
   // Fetch portfolios on mount
   useEffect(() => {
