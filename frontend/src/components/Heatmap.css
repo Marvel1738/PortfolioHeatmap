@@ -85,6 +85,7 @@
   padding-bottom: 66.67%; /* This maintains 3:2 aspect ratio */
   overflow: hidden;
   margin-right: 10px;
+  margin-left: 20px !important;
 }
 
 .heatmap-content {
@@ -108,6 +109,7 @@
   padding: 0px;
   box-sizing: border-box;
   cursor: default;
+  margin-left: 0px !important;
 }
 
 .heatmap-rect:hover {
@@ -263,6 +265,7 @@ label {
   gap: 1px;
   padding-left: 0px !important;
   margin-left: 0px !important;
+  margin-right: 10px !important;
 }
 
 .heatmap-message {
