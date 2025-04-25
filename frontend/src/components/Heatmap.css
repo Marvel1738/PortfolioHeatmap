@@ -90,6 +90,8 @@
   margin-left: 20px !important;
   align-self: center !important;
   justify-self: center !important;
+  will-change: transform;
+  transition: transform 0.3s ease-out;
 }
 
 .heatmap-content {
@@ -102,6 +104,8 @@
   display: flex;
   align-self: center !important;
   justify-self: center !important;
+  will-change: transform;
+  transition: transform 0.3s ease-out;
 }
 
 .heatmap-rect {
@@ -118,6 +122,15 @@
   cursor: default;
   margin-left: 0px !important;
   justify-self: center !important;
+  will-change: transform, opacity, width, height, left, top, background-color;
+  transition: 
+    transform 0.3s ease-out,
+    opacity 0.3s ease-out,
+    width 0.3s ease-out,
+    height 0.3s ease-out,
+    left 0.3s ease-out,
+    top 0.3s ease-out,
+    background-color 0.3s ease-out;
 }
 
 .heatmap-rect:hover {
@@ -128,6 +141,8 @@
 .heatmap-rect .ticker {
   font-weight: bold;
   margin-bottom: 4px;
+  will-change: font-size;
+  transition: font-size 0.3s ease-out;
 }
 
 .heatmap-rect .allocation {
@@ -142,11 +157,25 @@
 
 .heatmap-rect .change {
   font-weight: bold;
+  will-change: font-size;
+  transition: font-size 0.3s ease-out;
 }
 
 .heatmap-rect.updating {
   opacity: 0.7;
   transform: scale(0.98);
+}
+
+.heatmap-rect.transitioning {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+/* Ensure text transitions smoothly */
+.heatmap-rect .ticker,
+.heatmap-rect .change {
+  will-change: font-size;
+  transition: font-size 0.3s ease-out;
 }
 
 .sidebar {
@@ -370,9 +399,4 @@ label {
 .rename-input {
   padding: 6px 10px;
   font-size: 1rem;
-}
-
-/* Ensure smooth color transitions */
-.heatmap-rect {
-  transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
 }

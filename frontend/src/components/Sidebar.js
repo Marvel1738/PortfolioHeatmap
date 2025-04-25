@@ -5,7 +5,7 @@ import debounce from 'lodash.debounce';
 // Import icons from react-icons
 import { FaPencilAlt, FaTrash, FaStar, FaChevronRight } from 'react-icons/fa';
 
-function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings }) {
+function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings, setPortfolios, onHoldingsChange }) {
   const [isVisible, setIsVisible] = useState(window.innerWidth >= 800);
   const [editingHolding, setEditingHolding] = useState(null);
   const [shares, setShares] = useState('');
@@ -126,7 +126,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
       setShares('');
       setPrice('');
       setShowAddModal(false);
-      window.location.reload(); // Refresh to show new holding
+      onHoldingsChange();
     } catch (error) {
       console.error('Error adding holding:', error);
       setErrorModal({
@@ -223,10 +223,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
       setEditingHolding(null);
       setShares('');
       setPrice('');
-
-      if (onPortfolioSelect) {
-        onPortfolioSelect(selectedPortfolioId);
-      }
+      onHoldingsChange();
     } catch (err) {
       console.error(`Failed to ${isBuying ? 'buy' : 'sell'} shares:`, err);
       alert(`Failed to ${isBuying ? 'buy' : 'sell'} shares. Please try again.`);
