@@ -35,20 +35,16 @@
 }
 
 /* Hover colors for each social icon */
-.social-icon:nth-child(1):hover {
-  color: #1DA1F2; /* Twitter blue */
+.social-icon.reddit:hover {
+  color: #FF4500; /* Reddit orange */
 }
 
-.social-icon:nth-child(2):hover {
-  color: #0077B5; /* LinkedIn blue */
-}
-
-.social-icon:nth-child(3):hover {
+.social-icon.github:hover {
   color: #ffffff; /* GitHub white */
 }
 
-.social-icon:nth-child(4):hover {
-  color: #E4405F; /* Instagram pink */
+.social-icon.twitter:hover {
+  color: #1DA1F2; /* Twitter blue */
 }
 
 /* Logo styling */
@@ -156,41 +152,74 @@
   font-size: 16px;
 }
 
+/* Auth elements for mobile layout */
+.auth-left,
+.auth-right {
+  display: none; /* Hidden by default (desktop view) */
+}
+
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 800px) {
   .site-header {
-    flex-direction: column;
-    height: auto;
-    padding: 10px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    padding: 0 15px;
+    height: 6vh;
   }
   
-  .social-icons, .auth-buttons {
-    margin: 5px 0;
-    justify-content: center;
+  .social-icons {
+    display: none; /* Hide social icons on mobile */
+  }
+  
+  .auth-buttons {
+    display: none; /* Hide desktop auth on mobile */
+  }
+  
+  .auth-left,
+  .auth-right {
+    display: block; /* Show on mobile */
+    padding: 0;
+    margin: 0;
   }
   
   .logo {
     position: static;
     transform: none;
-    margin: 5px 0;
+    flex: 0 0 auto;
+    margin: 0 15px;
   }
   
-  .auth-links {
-    flex-direction: column;
+  .logo-img {
+    height: 70%;
+    max-height: 30px;
+  }
+  
+  .username, .auth-link {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  
+  .logout-button {
+    font-size: 14px;
+    padding: 3px 6px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-header {
+    padding: 0 5px;
     gap: 10px;
   }
   
-  .user-info {
-    flex-direction: column;
-    gap: 10px;
+  .logo {
+    margin: 0 10px;
   }
   
-  .nav-link span {
-    display: none; /* Hide text on mobile, show only icons */
-  }
-  
-  .nav-icon {
-    font-size: 20px; /* Make icons larger on mobile */
+  .username, .auth-link, .logout-button {
+    font-size: 12px;
   }
 }
 

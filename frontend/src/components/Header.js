@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaTwitter, FaLinkedin, FaGithub, FaInstagram } from 'react-icons/fa';
+import { FaTwitter, FaGithub, FaRedditAlien } from 'react-icons/fa';
 import './Header.css';
 
 const Header = ({ authState, updateAuthState }) => {
@@ -16,47 +16,53 @@ const Header = ({ authState, updateAuthState }) => {
     navigate('/login');
   };
 
+  // Determine if user is authenticated and not a guest
+  const isAuthenticatedUser = authState.isAuthenticated && !authState.username.startsWith('guest_');
+
+  // Prepare auth elements for mobile layout
+  const leftElement = isAuthenticatedUser 
+    ? <span className="username auth-left">{authState.username}</span>
+    : <Link to="/login" className="auth-link auth-left">Login</Link>;
+    
+  const rightElement = isAuthenticatedUser
+    ? <button className="logout-button auth-right" onClick={handleLogout}>Logout</button>
+    : <Link to="/register" className="auth-link auth-right">Register</Link>;
+
   return (
     <header className="site-header">
-      {/* Social Media Icons (Left) */}
+      {/* Social Media Icons (Left on desktop, hidden on mobile) */}
       <div className="social-icons">
         <a 
-          href="https://twitter.com" 
+          href="https://reddit.com" 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="social-icon"
-          aria-label="Twitter"
+          className="social-icon reddit"
+          aria-label="Reddit"
         >
-          <FaTwitter />
-        </a>
-        <a 
-          href="https://www.linkedin.com/in/marvel-bana-7aa697317/" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="social-icon"
-          aria-label="LinkedIn"
-        >
-          <FaLinkedin />
+          <FaRedditAlien />
         </a>
         <a 
           href="https://github.com/Marvel1738" 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="social-icon"
+          className="social-icon github"
           aria-label="GitHub"
         >
           <FaGithub />
         </a>
         <a 
-          href="https://instagram.com" 
+          href="https://twitter.com" 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="social-icon"
-          aria-label="Instagram"
+          className="social-icon twitter"
+          aria-label="X (Twitter)"
         >
-          <FaInstagram />
+          <FaTwitter />
         </a>
       </div>
+
+      {/* Left Auth Element (Login or Username) - Shows on mobile */}
+      {leftElement}
 
       {/* Logo (Center) */}
       <div className="logo">
@@ -70,18 +76,21 @@ const Header = ({ authState, updateAuthState }) => {
         </Link>
       </div>
 
-      {/* User Authentication (Right) */}
+      {/* Right Auth Element (Register or Logout) - Shows on mobile */}
+      {rightElement}
+      
+      {/* Desktop Auth Buttons - Hidden on mobile */}
       <div className="auth-buttons">
-        {authState.isAuthenticated && !authState.username.startsWith('guest_') ? (
-          <div className="user-info">
+        {isAuthenticatedUser ? (
+          <>
             <span className="username">{authState.username}</span>
             <button className="logout-button" onClick={handleLogout}>Logout</button>
-          </div>
+          </>
         ) : (
-          <div className="auth-links">
+          <>
             <Link to="/login" className="auth-link">Login</Link>
             <Link to="/register" className="auth-link">Register</Link>
-          </div>
+          </>
         )}
       </div>
     </header>

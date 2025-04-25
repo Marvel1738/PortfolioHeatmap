@@ -6,7 +6,7 @@ import debounce from 'lodash.debounce';
 import { FaPencilAlt, FaTrash, FaStar, FaChevronRight } from 'react-icons/fa';
 
 function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings }) {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(window.innerWidth >= 800);
   const [editingHolding, setEditingHolding] = useState(null);
   const [shares, setShares] = useState('');
   const [price, setPrice] = useState('');
@@ -407,13 +407,29 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
     setIsPortfolioListOpen(!isPortfolioListOpen);
   };
 
-  // Handle window resize
+  // Update visibility when window is resized
   useEffect(() => {
     const handleResize = () => {
-      // Don't change visibility on resize
+      const windowWidth = window.innerWidth;
+      const newIsVisible = windowWidth >= 800;
+      setIsVisible(newIsVisible);
+      
+      // Update heatmap-main class based on sidebar visibility
+      const heatmapMain = document.querySelector('.heatmap-main');
+      if (heatmapMain) {
+        if (!newIsVisible) {
+          heatmapMain.classList.add('sidebar-hidden');
+        } else {
+          heatmapMain.classList.remove('sidebar-hidden');
+        }
+      }
     };
 
     window.addEventListener('resize', handleResize);
+    
+    // Call once to set initial state
+    handleResize();
+    
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
