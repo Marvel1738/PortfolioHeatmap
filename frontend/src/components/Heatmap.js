@@ -53,6 +53,7 @@ function Heatmap() {
   const [chartCache, setChartCache] = useState({});
   const [renamePortfolioId, setRenamePortfolioId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 800;
@@ -117,18 +118,24 @@ function Heatmap() {
   useEffect(() => {
     const fetchPortfolios = async () => {
       try {
+        setIsUpdating(true);
         const token = localStorage.getItem('token');
         if (!token) {
           // If no token, check for guest portfolios in localStorage
           const guestPortfolios = JSON.parse(localStorage.getItem('guestPortfolios') || '[]');
           setPortfolios(guestPortfolios);
-          if (guestPortfolios.length > 0) {
-            const initialPortfolioId = guestPortfolios[0].id;
-            setSelectedPortfolioId(initialPortfolioId);
-            localStorage.setItem('currentPortfolioId', initialPortfolioId);
+          
+          // Maintain the current selected portfolio if it exists in the portfolios
+          const currentPortfolioId = localStorage.getItem('currentPortfolioId');
+          if (currentPortfolioId && guestPortfolios.some(p => p.id === parseInt(currentPortfolioId))) {
+            setSelectedPortfolioId(parseInt(currentPortfolioId));
+          } else if (guestPortfolios.length > 0) {
+            setSelectedPortfolioId(guestPortfolios[0].id);
+            localStorage.setItem('currentPortfolioId', guestPortfolios[0].id);
           } else {
             setError('Click NEW PORTFOLIO to create a portfolio!');
           }
+          setTimeout(() => setIsUpdating(false), 300);
           return;
         }
 
@@ -136,16 +143,24 @@ function Heatmap() {
           headers: { 'Authorization': `Bearer ${token}` },
         });
 
-        setPortfolios(response.data);
-        if (response.data.length > 0) {
-          const initialPortfolioId = response.data[0].id;
-          setSelectedPortfolioId(initialPortfolioId);
-          localStorage.setItem('currentPortfolioId', initialPortfolioId);
+        const fetchedPortfolios = response.data;
+        setPortfolios(fetchedPortfolios);
+        
+        // Maintain the current selected portfolio if it exists in the response
+        const currentPortfolioId = localStorage.getItem('currentPortfolioId');
+        if (currentPortfolioId && fetchedPortfolios.some(p => p.id === parseInt(currentPortfolioId))) {
+          setSelectedPortfolioId(parseInt(currentPortfolioId));
+        } else if (fetchedPortfolios.length > 0) {
+          setSelectedPortfolioId(fetchedPortfolios[0].id);
+          localStorage.setItem('currentPortfolioId', fetchedPortfolios[0].id);
         } else {
           setError('Click NEW PORTFOLIO to create a portfolio!');
         }
+        setTimeout(() => setIsUpdating(false), 300);
       } catch (err) {
-        setError('Failed to fetch portfolios: ' + err.message);
+        console.error('Error fetching portfolios:', err);
+        setError('Failed to fetch portfolios');
+        setIsUpdating(false);
       }
     };
 
@@ -161,6 +176,7 @@ function Heatmap() {
     }
 
     const fetchHoldings = async () => {
+      setIsUpdating(true); // Start transition
       try {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No token found');
@@ -250,6 +266,8 @@ function Heatmap() {
       } catch (err) {
         console.error('Error fetching holdings:', err);
         setError('Failed to fetch holdings: ' + err.message);
+      } finally {
+        setTimeout(() => setIsUpdating(false), 50); // End transition after a short delay
       }
     };
 
@@ -648,7 +666,7 @@ function Heatmap() {
                   return (
                     <div
                       key={i}
-                      className="heatmap-rect"
+                      className={`heatmap-rect ${isUpdating ? 'updating' : ''}`}
                       style={{
                         position: 'absolute',
                         left: `${d.x0}px`,
@@ -669,6 +687,7 @@ function Heatmap() {
                         fontFamily: 'Arial, sans-serif',
                         textShadow: '1px 1px 1px rgba(0, 0, 0, 0.9)',
                         cursor: 'default',
+                        transition: 'all 0.3s ease-in-out',
                       }}
                       onMouseEnter={(e) => handleMouseEnter(e, holding)}
                       onMouseMove={handleMouseMove}
@@ -730,7 +749,7 @@ function Heatmap() {
             )}
           </div>
           {portfolioData && holdings.length > 0 && (
-            <div className="portfolio-summary" style={{ textAlign: 'left', fontFamily: 'Arial, sans-serif', width: '100%' }}>
+            <div className={`portfolio-summary ${isUpdating ? 'updating' : ''}`}>
               <h3>Portfolio Summary</h3>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn ? portfolioData.totalPercentageReturn.toFixed(2) + '%' : 'N/A'}</li>
