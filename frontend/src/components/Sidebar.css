@@ -277,7 +277,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000;
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -293,6 +293,8 @@
   width: 260px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   animation: slideIn 0.2s ease-out;
+  position: relative;
+  z-index: 2001;
 }
 
 @keyframes slideIn {
@@ -512,7 +514,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 2000;
 }
 
 .error-modal {
@@ -524,6 +526,8 @@
   max-width: 300px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   animation: slideIn 0.2s ease-out;
+  position: relative;
+  z-index: 2001;
 }
 
 .error-modal-content {

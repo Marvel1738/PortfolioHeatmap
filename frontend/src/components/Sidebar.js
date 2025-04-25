@@ -451,269 +451,273 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings 
   };
 
   return (
-    <div className="sidebar-container">
-      <div className={`sidebar ${isVisible ? 'visible' : ''}`}>
-        <button
-          className="new-portfolio-button"
-          onClick={() => setShowNewPortfolioModal(true)}
-        >
-          NEW PORTFOLIO
-        </button>
-        
-        <div className="portfolio-selector">
-          <select
-            className="portfolio-dropdown"
-            value={selectedPortfolioId || ''}
-            onChange={(e) => onPortfolioSelect(e.target.value)}
+    <>
+      <div className="sidebar-container">
+        <div className={`sidebar ${isVisible ? 'visible' : ''}`}>
+          <button
+            className="new-portfolio-button"
+            onClick={() => setShowNewPortfolioModal(true)}
           >
-            <option value="" disabled>
-              Select Portfolio
-            </option>
-            {portfolios.map((portfolio) => (
-              <option key={portfolio.id} value={portfolio.id}>
-                {portfolio.name}
+            NEW PORTFOLIO
+          </button>
+          
+          <div className="portfolio-selector">
+            <select
+              className="portfolio-dropdown"
+              value={selectedPortfolioId || ''}
+              onChange={(e) => onPortfolioSelect(e.target.value)}
+            >
+              <option value="" disabled>
+                Select Portfolio
               </option>
+              {portfolios.map((portfolio) => (
+                <option key={portfolio.id} value={portfolio.id}>
+                  {portfolio.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button className="add-button" onClick={() => setShowAddModal(true)}>
+            ADD STOCK
+          </button>
+
+          <div className="search-container">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search Ticker"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="holdings-list">
+            {filteredHoldings.map((holding) => (
+              <div key={holding.id} className="holding-item">
+                <div className="holding-info">
+                  <span className="ticker">{holding.stock.ticker}</span>
+                </div>
+                <div className="holding-actions">
+                  <button
+                    className="action-button add"
+                    onClick={() => handleAddShares(holding)}
+                    style={{ width: '25px', height: '25px' }}
+                  >
+                    <span className="plus-icon" style={{ fontSize: '15px' }}>
+                      +
+                    </span>
+                  </button>
+                  <button
+                    className="action-button remove"
+                    onClick={() => handleRemoveShares(holding)}
+                    style={{ width: '25px', height: '25px', marginLeft: '1px' }}
+                  >
+                    <span className="minus-icon" style={{ fontSize: '15px' }}>
+                      -
+                    </span>
+                  </button>
+                </div>
+              </div>
             ))}
-          </select>
+          </div>
         </div>
-
-        <button className="add-button" onClick={() => setShowAddModal(true)}>
-          ADD STOCK
+        
+        <button 
+          className="sidebar-toggle" 
+          onClick={toggleSidebar}
+          aria-label="Toggle sidebar"
+        >
+          <FaChevronRight className={`arrow ${isVisible ? 'left' : 'right'}`} />
         </button>
-
-        <div className="search-container">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search Ticker"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="holdings-list">
-          {filteredHoldings.map((holding) => (
-            <div key={holding.id} className="holding-item">
-              <div className="holding-info">
-                <span className="ticker">{holding.stock.ticker}</span>
-              </div>
-              <div className="holding-actions">
-                <button
-                  className="action-button add"
-                  onClick={() => handleAddShares(holding)}
-                  style={{ width: '25px', height: '25px' }}
-                >
-                  <span className="plus-icon" style={{ fontSize: '15px' }}>
-                    +
-                  </span>
-                </button>
-                <button
-                  className="action-button remove"
-                  onClick={() => handleRemoveShares(holding)}
-                  style={{ width: '25px', height: '25px', marginLeft: '1px' }}
-                >
-                  <span className="minus-icon" style={{ fontSize: '15px' }}>
-                    -
-                  </span>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {showAddModal && (
-          <div className="edit-modal">
-            <div className="edit-content">
-              <h3>Add New Holding</h3>
-              <form onSubmit={handleAddNewHolding}>
-                <div className="input-group">
-                  <label>Stock Ticker:</label>
-                  <div className="ticker-input-container">
-                    <input
-                      type="text"
-                      value={ticker}
-                      onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                      placeholder="e.g., AAPL"
-                      autoComplete="off"
-                      required
-                    />
-                    {showDropdown && stockSuggestions.length > 0 && (
-                      <ul className="ticker-dropdown">
-                        {stockSuggestions.map((stock) => (
-                          <li
-                            key={stock.ticker}
-                            onClick={() => handleTickerSelect(stock.ticker)}
-                          >
-                            {stock.ticker} - {stock.companyName}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-                <div className="input-group">
-                  <label>Shares:</label>
-                  <input
-                    type="number"
-                    value={shares}
-                    onChange={(e) => setShares(e.target.value)}
-                    placeholder="Enter number of shares"
-                    step="0.01"
-                    min="0.01"
-                    required
-                  />
-                </div>
-                <div className="input-group">
-                  <label>{isBuying ? "Purchase Price / Average Cost Basis: (optional)" : "Selling Price: (optional)"}</label>
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="Enter price per share (optional)"
-                    step="0.01"
-                  />
-                </div>
-                <div className="modal-actions">
-                  <button type="submit" className="submit-button buy">
-                    Add Holding
-                  </button>
-                  <button
-                    type="button"
-                    className="cancel-button"
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setTicker('');
-                      setShares('');
-                      setPrice('');
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {editingHolding && (
-          <div className="edit-modal">
-            <div className="edit-content">
-              <h3>
-                {isBuying ? 'Buy' : 'Sell'} {editingHolding.stock.ticker}
-              </h3>
-              <div className="current-shares">
-                Current Shares: {editingHolding.shares}
-              </div>
-              <form onSubmit={handleSubmit}>
-                <div className="input-group">
-                  <label>Shares:</label>
-                  <input
-                    type="number"
-                    value={shares}
-                    onChange={(e) => setShares(e.target.value)}
-                    placeholder="Enter number of shares"
-                  />
-                </div>
-                <div className="input-group">
-                  <label>{isBuying ? 'Purchase Price / Average Cost Basis: (optional)' : 'Selling Price: (optional)'}</label>
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="Enter price per share (optional)"
-                    step="0.01"
-                  />
-                </div>
-                <div className="modal-actions">
-                  <button
-                    type="submit"
-                    className={`submit-button ${isBuying ? 'buy' : 'sell'}`}
-                  >
-                    {isBuying ? 'Buy' : 'Sell'} Shares
-                  </button>
-                  <button
-                    type="button"
-                    className="cancel-button"
-                    onClick={() => setEditingHolding(null)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {showNewPortfolioModal && (
-          <div className="edit-modal">
-            <div className="edit-content">
-              <h3>Create New Portfolio</h3>
-              <form onSubmit={handleCreatePortfolio}>
-                <div className="input-group">
-                  <label>Portfolio Name:</label>
-                  <input
-                    type="text"
-                    value={newPortfolioName}
-                    onChange={(e) => setNewPortfolioName(e.target.value)}
-                    placeholder="Enter portfolio name"
-                    required
-                  />
-                </div>
-                <button
-                  type="button"
-                  className="submit-button random"
-                  onClick={handleGenerateRandomPortfolio}
-                  style={{ marginTop: '0px', width: '100%' }}
-                >
-                  Generate Random Portfolio
-                </button>
-                <div className="modal-actions">
-                  <button type="submit" className="submit-button buy">
-                    Create
-                  </button>
-                  <button
-                    type="button"
-                    className="cancel-button"
-                    onClick={() => {
-                      setShowNewPortfolioModal(false);
-                      setNewPortfolioName('');
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Error Modal */}
-        {errorModal.show && (
-          <div className="modal-overlay">
-            <div className="error-modal">
-              <div className="error-modal-content">
-                <h3>Oops!</h3>
-                <p>{errorModal.message}</p>
-                <button 
-                  className="error-modal-button"
-                  onClick={() => setErrorModal({ show: false, message: '' })}
-                >
-                  Got it
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
       
-      <button 
-        className="sidebar-toggle" 
-        onClick={toggleSidebar}
-        aria-label="Toggle sidebar"
-      >
-        <FaChevronRight className={`arrow ${isVisible ? 'left' : 'right'}`} />
-      </button>
-    </div>
+      {/* All modals moved outside sidebar */}
+        
+      {showAddModal && (
+        <div className="edit-modal">
+          <div className="edit-content">
+            <h3>Add New Holding</h3>
+            <form onSubmit={handleAddNewHolding}>
+              <div className="input-group">
+                <label>Stock Ticker:</label>
+                <div className="ticker-input-container">
+                  <input
+                    type="text"
+                    value={ticker}
+                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                    placeholder="e.g., AAPL"
+                    autoComplete="off"
+                    required
+                  />
+                  {showDropdown && stockSuggestions.length > 0 && (
+                    <ul className="ticker-dropdown">
+                      {stockSuggestions.map((stock) => (
+                        <li
+                          key={stock.ticker}
+                          onClick={() => handleTickerSelect(stock.ticker)}
+                        >
+                          {stock.ticker} - {stock.companyName}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <div className="input-group">
+                <label>Shares:</label>
+                <input
+                  type="number"
+                  value={shares}
+                  onChange={(e) => setShares(e.target.value)}
+                  placeholder="Enter number of shares"
+                  step="0.01"
+                  min="0.01"
+                  required
+                />
+              </div>
+              <div className="input-group">
+                <label>{isBuying ? "Purchase Price / Average Cost Basis: (optional)" : "Selling Price: (optional)"}</label>
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Enter price per share (optional)"
+                  step="0.01"
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="submit" className="submit-button buy">
+                  Add Holding
+                </button>
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setTicker('');
+                    setShares('');
+                    setPrice('');
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingHolding && (
+        <div className="edit-modal">
+          <div className="edit-content">
+            <h3>
+              {isBuying ? 'Buy' : 'Sell'} {editingHolding.stock.ticker}
+            </h3>
+            <div className="current-shares">
+              Current Shares: {editingHolding.shares}
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="input-group">
+                <label>Shares:</label>
+                <input
+                  type="number"
+                  value={shares}
+                  onChange={(e) => setShares(e.target.value)}
+                  placeholder="Enter number of shares"
+                />
+              </div>
+              <div className="input-group">
+                <label>{isBuying ? 'Purchase Price / Average Cost Basis: (optional)' : 'Selling Price: (optional)'}</label>
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Enter price per share (optional)"
+                  step="0.01"
+                />
+              </div>
+              <div className="modal-actions">
+                <button
+                  type="submit"
+                  className={`submit-button ${isBuying ? 'buy' : 'sell'}`}
+                >
+                  {isBuying ? 'Buy' : 'Sell'} Shares
+                </button>
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={() => setEditingHolding(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showNewPortfolioModal && (
+        <div className="edit-modal">
+          <div className="edit-content">
+            <h3>Create New Portfolio</h3>
+            <form onSubmit={handleCreatePortfolio}>
+              <div className="input-group">
+                <label>Portfolio Name:</label>
+                <input
+                  type="text"
+                  value={newPortfolioName}
+                  onChange={(e) => setNewPortfolioName(e.target.value)}
+                  placeholder="Enter portfolio name"
+                  required
+                />
+              </div>
+              <button
+                type="button"
+                className="submit-button random"
+                onClick={handleGenerateRandomPortfolio}
+                style={{ marginTop: '0px', width: '100%' }}
+              >
+                Generate Random Portfolio
+              </button>
+              <div className="modal-actions">
+                <button type="submit" className="submit-button buy">
+                  Create
+                </button>
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={() => {
+                    setShowNewPortfolioModal(false);
+                    setNewPortfolioName('');
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {errorModal.show && (
+        <div className="modal-overlay">
+          <div className="error-modal">
+            <div className="error-modal-content">
+              <h3>Oops!</h3>
+              <p>{errorModal.message}</p>
+              <button 
+                className="error-modal-button"
+                onClick={() => setErrorModal({ show: false, message: '' })}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
