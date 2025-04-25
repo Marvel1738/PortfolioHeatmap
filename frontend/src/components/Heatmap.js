@@ -454,11 +454,27 @@ function Heatmap() {
   };
 
   const handleMouseMove = (e) => {
-    setTooltip((prev) => ({
-      ...prev,
-      x: e.clientX,
-      y: e.clientY,
-    }));
+    // Get the heatmap container dimensions
+    const heatmapContainer = document.querySelector('.heatmap-content');
+    const containerRect = heatmapContainer?.getBoundingClientRect();
+    
+    if (containerRect) {
+      // Determine if cursor is on the right half of the heatmap
+      const isRightSide = e.clientX > (containerRect.left + containerRect.width / 2);
+      
+      setTooltip((prev) => ({
+        ...prev,
+        x: e.clientX,
+        y: e.clientY,
+        isRightSide
+      }));
+    } else {
+      setTooltip((prev) => ({
+        ...prev,
+        x: e.clientX,
+        y: e.clientY
+      }));
+    }
   };
 
   const handlePortfolioSelect = (portfolioId) => {
@@ -731,7 +747,7 @@ function Heatmap() {
             className="heatmap-tooltip"
             style={{
               position: 'fixed',
-              left: `${tooltip.x - 1}px`,
+              left: tooltip.isRightSide ? `${tooltip.x - 310}px` : `${tooltip.x + 10}px`,
               top: `${tooltip.y - 249}px`,
               backgroundColor: 'black',
               color: '#ffffff',

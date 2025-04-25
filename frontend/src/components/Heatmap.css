@@ -226,6 +226,7 @@ label {
   align-items: center;
   gap: 4px;
   color: var(--text-primary);
+  min-width: 105px;
 }
 
 .heatmap-tooltip {
