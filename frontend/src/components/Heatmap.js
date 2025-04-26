@@ -770,7 +770,7 @@ function Heatmap() {
               <h3>Portfolio Summary</h3>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn ? portfolioData.totalPercentageReturn.toFixed(2) + '%' : 'N/A'}</li>
-                <li><strong>Total $ Return:</strong> ${portfolioData.totalDollarReturn ? portfolioData.totalDollarReturn.toFixed(2) : '0.00'}</li>
+                <li><strong>Total $ Return:</strong> {portfolioData.totalDollarReturn ? '$' + portfolioData.totalDollarReturn.toFixed(2) : 'N/A'}</li>
                 <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue ? portfolioData.totalPortfolioValue.toFixed(2) : '0.00'}</li>
               </ul>
             </div>
