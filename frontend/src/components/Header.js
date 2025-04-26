@@ -33,7 +33,7 @@ const Header = ({ authState, updateAuthState }) => {
       {/* Social Media Icons (Left on desktop, hidden on mobile) */}
       <div className="social-icons">
         <a 
-          href="https://reddit.com" 
+          href="https://www.reddit.com/user/MarvBuilds//" 
           target="_blank" 
           rel="noopener noreferrer" 
           className="social-icon reddit"
@@ -42,7 +42,7 @@ const Header = ({ authState, updateAuthState }) => {
           <FaRedditAlien />
         </a>
         <a 
-          href="https://github.com/Marvel1738" 
+          href="https://github.com/Marvel1738/PortfolioHeatmap" 
           target="_blank" 
           rel="noopener noreferrer" 
           className="social-icon github"
@@ -51,7 +51,7 @@ const Header = ({ authState, updateAuthState }) => {
           <FaGithub />
         </a>
         <a 
-          href="https://twitter.com" 
+          href="https://x.com/PortfolioHeat" 
           target="_blank" 
           rel="noopener noreferrer" 
           className="social-icon twitter"

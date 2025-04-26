@@ -6,16 +6,16 @@
   flex-direction: column; 
   align-items: center; 
   justify-content: center; 
-  height: 100vh; 
   font-family: Arial, sans-serif;
   background-color: rgb(35, 41, 50);
+  margin-top: 30px
 }
 
 /* Style the heading */
 h1 {
   font-size: 2rem; 
   margin-bottom: 20px;
-  color: #333; 
+  color: #ffffff; 
 }
 
 /* Style each form group (label + input) */
