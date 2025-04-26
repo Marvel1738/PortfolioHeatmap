@@ -104,8 +104,6 @@
   display: flex;
   align-self: center !important;
   justify-self: center !important;
-  will-change: transform;
-  transition: transform 0.3s ease-out;
 }
 
 .heatmap-rect {
