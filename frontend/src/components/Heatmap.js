@@ -32,7 +32,7 @@ ChartJS.register(
  * 
  * @returns {JSX.Element} The rendered heatmap UI
  */
-function Heatmap() {
+function Heatmap({ authState }) {
   const navigate = useNavigate();
   const [portfolios, setPortfolios] = useState([]);
   const [selectedPortfolioId, setSelectedPortfolioId] = useState(null);
@@ -548,6 +548,11 @@ function Heatmap() {
   const selectedPortfolio = portfolios.find((p) => p.id === selectedPortfolioId);
   const portfolioName = selectedPortfolio ? selectedPortfolio.name : 'No Portfolio Selected';
 
+  // Add debug logs for authState
+  useEffect(() => {
+    console.log('Heatmap authState:', authState);
+  }, [authState]);
+
   return (
     <div className="heatmap-container">
       <Sidebar
@@ -557,6 +562,7 @@ function Heatmap() {
         holdings={holdings}
         setPortfolios={setPortfolios}
         onHoldingsChange={refreshHoldings}
+        authState={authState}
       />
       <div className="heatmap-main">
         <div className="portfolio-header">
@@ -719,9 +725,9 @@ function Heatmap() {
                           {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
                         </div>
                       )}
-                      {showDollarChange && (
+                      {!isCash && showDollarChange && (
                         <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                          {isCash ? 'N/A' : (dollarChange >= 0 ? '+' : '') + dollarChange.toFixed(2) + '$'}
+                          {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2) + '$'}
                         </div>
                       )}
                     </div>

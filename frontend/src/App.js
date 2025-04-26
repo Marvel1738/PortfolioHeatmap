@@ -56,7 +56,9 @@ function App() {
           const currentTime = Date.now();
           
           if (currentTime < expirationTime) {
-            const isGuestUser = tokenPayload.roles?.includes('ROLE_GUEST');
+            const username = tokenPayload.sub;
+            // Check if username starts with 'guest_' to determine if it's a guest user
+            const isGuestUser = username.startsWith('guest_');
             const userId = tokenPayload.userId;
             
             // Save the user ID in localStorage
@@ -67,12 +69,13 @@ function App() {
             updateAuthState({
               isAuthenticated: true,
               isGuest: isGuestUser,
-              username: isGuestUser ? 'Guest' : tokenPayload.sub,
+              username: username,
               token: token
             });
           } else {
             console.log('Token expired');
             localStorage.removeItem('userId');
+            localStorage.removeItem('token');
             updateAuthState({
               isAuthenticated: false,
               isGuest: false,
@@ -83,6 +86,26 @@ function App() {
         } catch (error) {
           console.error('Error parsing token:', error);
           localStorage.removeItem('userId');
+          localStorage.removeItem('token');
+          updateAuthState({
+            isAuthenticated: false,
+            isGuest: false,
+            username: '',
+            token: null
+          });
+        }
+      } else {
+        // If no token, check if we have guest portfolios in localStorage
+        const guestPortfolios = JSON.parse(localStorage.getItem('guestPortfolios') || '[]');
+        if (guestPortfolios.length > 0) {
+          // If we have guest portfolios, we should be in guest mode
+          updateAuthState({
+            isAuthenticated: true,
+            isGuest: true,
+            username: 'Guest',
+            token: null
+          });
+        } else {
           updateAuthState({
             isAuthenticated: false,
             isGuest: false,
@@ -151,11 +174,14 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Navigate to="/heatmap" replace />} />
-            <Route path="/heatmap" element={
-              <ProtectedRoute>
-                <Heatmap />
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/heatmap"
+              element={
+                <ProtectedRoute>
+                  <Heatmap authState={authState} />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/chart/:ticker" element={<DetailedChart />} />
             <Route path="/about" element={<About />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />

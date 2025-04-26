@@ -5,7 +5,7 @@ import debounce from 'lodash.debounce';
 // Import icons from react-icons
 import { FaPencilAlt, FaTrash, FaStar, FaChevronRight } from 'react-icons/fa';
 
-function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings, setPortfolios, onHoldingsChange }) {
+function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings, setPortfolios, onHoldingsChange, authState }) {
   const [isVisible, setIsVisible] = useState(window.innerWidth >= 800);
   const [editingHolding, setEditingHolding] = useState(null);
   const [shares, setShares] = useState('');
@@ -24,6 +24,11 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
   const [errorModal, setErrorModal] = useState({ show: false, message: '' });
   const [isAddingCash, setIsAddingCash] = useState(false);
 
+  // Add debug logs for authState
+  useEffect(() => {
+    console.log('Sidebar authState:', authState);
+    console.log('Is guest:', authState?.isGuest);
+  }, [authState]);
 
   // Log portfolios for debugging
   console.log('Portfolios:', portfolios);
@@ -626,6 +631,9 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
               </form>
             ) : (
               <form onSubmit={handleAddNewHolding}>
+                <div style={{ fontSize: '10px', color: 'red', marginBottom: '8px', fontStyle: 'italic' }}>
+                  *Only S&P 500 stocks adding all NYSE and Crypto soon
+                </div>
                 <div className="input-group">
                   <label>Stock Ticker:</label>
                   <div className="ticker-input-container">
@@ -779,6 +787,11 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
               >
                 Generate Random Portfolio
               </button>
+              {authState.isGuest && (
+                <div style={{ fontSize: '12px', color: '#666', marginTop: '8px', fontStyle: 'italic', textAlign: 'center' }}>
+                  You are currently not logged in, login or register to save your Portfolio
+                </div>
+              )}
               <div className="modal-actions">
                 <button type="submit" className="submit-button buy">
                   Create
