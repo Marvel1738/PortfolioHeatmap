@@ -115,7 +115,7 @@ public class PortfolioService {
                         portfolio,
                         "Cash",
                         334000000000.0,
-                        1.0, // Cash is always worth $1 per "share"
+                        null, // Set purchase price to null for cash
                         LocalDate.now(),
                         null,
                         null);
