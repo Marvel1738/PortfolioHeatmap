@@ -108,6 +108,22 @@ public class PortfolioService {
             portfolio = portfolioRepository.save(portfolio);
             log.info("Created default portfolio with ID: {}", portfolio.getId());
 
+            // Add the cash holding first
+            try {
+                log.info("Adding cash holding: 334 billion dollars");
+                portfolioHoldingService.addHolding(
+                        portfolio,
+                        "Cash",
+                        334000000000.0,
+                        1.0, // Cash is always worth $1 per "share"
+                        LocalDate.now(),
+                        null,
+                        null);
+                log.info("Successfully added cash holding");
+            } catch (Exception e) {
+                log.error("Failed to add cash holding: {}", e.getMessage());
+            }
+
             // Add the holdings
             for (String[] holding : DEFAULT_HOLDINGS) {
                 try {
