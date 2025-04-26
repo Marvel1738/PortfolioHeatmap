@@ -412,6 +412,19 @@ function Heatmap() {
     let chartData = null;
     let chartError = '';
 
+    // Skip chart data fetching for Cash holdings
+    if (holding.stock.ticker === 'Cash') {
+      setTooltip({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY + 300,
+        data: holding,
+        chartData: null,
+        chartError: ''
+      });
+      return;
+    }
+
     if (chartCache[holding.stock.ticker]) {
       chartData = chartCache[holding.stock.ticker];
     } else {
@@ -656,13 +669,14 @@ function Heatmap() {
                   const holding = d.data.holding;
                   const width = Math.max(d.x1 - d.x0, MIN_RECTANGLE_SIZE);
                   const height = Math.max(d.y1 - d.y0, MIN_RECTANGLE_SIZE);
-                  const percentChange = holding.percentChange;
+                  const percentChange = holding.stock.ticker === 'Cash' ? 0 : holding.percentChange;
+                  const isCash = holding.stock.ticker === 'Cash';
 
                   let dollarChange;
                   if (timeframe === 'total') {
-                    dollarChange = (holding.currentValue * percentChange) / 100;
+                    dollarChange = isCash ? 0 : (holding.currentValue * percentChange) / 100;
                   } else {
-                    dollarChange = (holding.currentPrice * percentChange) / 100;
+                    dollarChange = isCash ? 0 : (holding.currentPrice * percentChange) / 100;
                   }
 
                   const fontSize = Math.min(width, height) * 0.12;
@@ -670,14 +684,14 @@ function Heatmap() {
                   return (
                     <div
                       key={`${holding.stock.ticker}-${holding.id || i}`}
-                      className="heatmap-rect"
+                      className={`heatmap-rect ${isCash ? 'cash' : ''}`}
                       style={{
                         position: 'absolute',
                         left: `${d.x0}px`,
                         top: `${d.y0}px`,
                         width: `${width}px`,
                         height: `${height}px`,
-                        backgroundColor: getColor(percentChange, timeframe),
+                        backgroundColor: isCash ? '#1a237e' : getColor(percentChange, timeframe),
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'center',
@@ -695,19 +709,19 @@ function Heatmap() {
                       onMouseEnter={(e) => handleMouseEnter(e, holding)}
                       onMouseMove={handleMouseMove}
                       onMouseLeave={handleMouseLeave}
-                      onDoubleClick={() => handleStockDoubleClick(holding.stock.ticker)}
+                      onDoubleClick={() => !isCash && handleStockDoubleClick(holding.stock.ticker)}
                     >
                       <div className="ticker" style={{ fontSize: `${fontSize}px` }}>
                         {holding.stock.ticker}
                       </div>
-                      {showPercentChange && (
+                      {!isCash && showPercentChange && (
                         <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
                           {percentChange > 0 ? '+' : ''}{percentChange.toFixed(2)}%
                         </div>
                       )}
                       {showDollarChange && (
                         <div className="change" style={{ fontSize: `${fontSize * 0.9}px` }}>
-                          {dollarChange >= 0 ? '+' : ''}{dollarChange.toFixed(2)}$
+                          {isCash ? 'N/A' : (dollarChange >= 0 ? '+' : '') + dollarChange.toFixed(2) + '$'}
                         </div>
                       )}
                     </div>
@@ -763,14 +777,14 @@ function Heatmap() {
           )}
         </div>
       </div>
-      {tooltip.visible && tooltip.data &&
+      {tooltip.visible && tooltip.data && (
         ReactDOM.createPortal(
           <div
             className="heatmap-tooltip"
             style={{
               position: 'fixed',
-              left: tooltip.isRightSide ? `${tooltip.x - 310}px` : `${tooltip.x + 10}px`,
-              top: `${tooltip.y - 249}px`,
+              left: tooltip.isRightSide ? `${tooltip.x - 310}px` : `${tooltip.x + 0}px`,
+              top: tooltip.data.stock.ticker === 'Cash' ? `${tooltip.y + 0}px` : `${tooltip.y - 249}px`,
               backgroundColor: 'black',
               color: '#ffffff',
               borderRadius: '6px',
@@ -779,56 +793,61 @@ function Heatmap() {
               width: '300px',
               whiteSpace: 'nowrap',
               transition: 'none',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              padding: '10px'
             }}
           >
-            <div style={{marginBottom: '8px' }}><strong>{tooltip.data.stock.ticker}</strong></div>
+            <div style={{marginBottom: '8px'}}><strong>{tooltip.data.stock.ticker}</strong></div>
             <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
             <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
             <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
-            <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
-            <div>Current Price: ${tooltip.data.currentPrice}</div>
-            {tooltip.chartError ? (
-              <div style={{ fontSize: '12px', color: '#ff6666', marginTop: '8px' }}>
-                {tooltip.chartError}
-              </div>
-            ) : tooltip.chartData ? (
-              <div style={{ marginTop: '10px', width: '100%', height: '100px' }}>
-                <Line
-                  data={tooltip.chartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { display: false },
-                      tooltip: { enabled: false },
-                    },
-                    scales: {
-                      x: {
-                        display: false,
-                        grid: { display: false },
-                      },
-                      y: {
-                        display: false,
-                        grid: { display: false },
-                      },
-                    },
-                    elements: {
-                      line: { borderWidth: 1 },
-                      point: { radius: 0 },
-                    },
-                  }}
-                />
-              </div>
-            ) : (
-              <div style={{ fontSize: '12px', color: '#ffffff', marginTop: '8px' }}>
-                Loading chart...
-              </div>
+            {tooltip.data.stock.ticker !== 'Cash' && (
+              <>
+                <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
+                <div>Current Price: ${tooltip.data.currentPrice}</div>
+                {tooltip.chartError ? (
+                  <div style={{ fontSize: '12px', color: '#ff6666', marginTop: '8px' }}>
+                    {tooltip.chartError}
+                  </div>
+                ) : tooltip.chartData ? (
+                  <div style={{ marginTop: '10px', width: '100%', height: '100px' }}>
+                    <Line
+                      data={tooltip.chartData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: { enabled: false },
+                        },
+                        scales: {
+                          x: {
+                            display: false,
+                            grid: { display: false },
+                          },
+                          y: {
+                            display: false,
+                            grid: { display: false },
+                          },
+                        },
+                        elements: {
+                          line: { borderWidth: 1 },
+                          point: { radius: 0 },
+                        },
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '12px', color: '#ffffff', marginTop: '8px' }}>
+                    Loading chart...
+                  </div>
+                )}
+              </>
             )}
           </div>,
           document.body
         )
-      }
+      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
   const [renamePortfolioId, setRenamePortfolioId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [errorModal, setErrorModal] = useState({ show: false, message: '' });
+  const [isAddingCash, setIsAddingCash] = useState(false);
 
 
   // Log portfolios for debugging
@@ -447,6 +448,63 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
     }
   };
 
+  const handleAddCash = async (e) => {
+    e.preventDefault();
+    if (!shares) {
+      setErrorModal({
+        show: true,
+        message: 'Please enter an amount'
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setErrorModal({
+          show: true,
+          message: 'You are not authenticated. Please log in.'
+        });
+        return;
+      }
+
+      const amount = Number(shares);
+      if (isNaN(amount) || amount <= 0) {
+        setErrorModal({
+          show: true,
+          message: 'Amount must be a positive number'
+        });
+        return;
+      }
+
+      await axios.post(
+        `http://localhost:8080/portfolios/${selectedPortfolioId}/holdings/add`,
+        null,
+        {
+          params: {
+            ticker: 'CASH',
+            shares: amount,
+            purchasePrice: 1.0,
+            purchaseDate: new Date().toISOString().split('T')[0],
+          },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Reset form and close modal on success
+      setShares('');
+      setShowAddModal(false);
+      setIsAddingCash(false);
+      onHoldingsChange();
+    } catch (error) {
+      console.error('Error adding cash:', error);
+      setErrorModal({
+        show: true,
+        message: 'Failed to add cash. Please try again.'
+      });
+    }
+  };
+
   return (
     <>
       <div className="sidebar-container">
@@ -534,73 +592,117 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
       {showAddModal && (
         <div className="edit-modal">
           <div className="edit-content">
-            <h3>Add New Holding</h3>
-            <form onSubmit={handleAddNewHolding}>
-              <div className="input-group">
-                <label>Stock Ticker:</label>
-                <div className="ticker-input-container">
+            <h3>{isAddingCash ? 'Add Cash Position' : 'Add New Holding'}</h3>
+            {isAddingCash ? (
+              <form onSubmit={handleAddCash}>
+                <div className="input-group">
+                  <label>Amount ($):</label>
                   <input
-                    type="text"
-                    value={ticker}
-                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                    placeholder="e.g., AAPL"
-                    autoComplete="off"
+                    type="number"
+                    value={shares}
+                    onChange={(e) => setShares(e.target.value)}
+                    placeholder="Enter amount"
+                    step="0.01"
+                    min="0.01"
                     required
                   />
-                  {showDropdown && stockSuggestions.length > 0 && (
-                    <ul className="ticker-dropdown">
-                      {stockSuggestions.map((stock) => (
-                        <li
-                          key={stock.ticker}
-                          onClick={() => handleTickerSelect(stock.ticker)}
-                        >
-                          {stock.ticker} - {stock.companyName}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </div>
-              </div>
-              <div className="input-group">
-                <label>Shares:</label>
-                <input
-                  type="number"
-                  value={shares}
-                  onChange={(e) => setShares(e.target.value)}
-                  placeholder="Enter number of shares"
-                  step="0.01"
-                  min="0.01"
-                  required
-                />
-              </div>
-              <div className="input-group">
-                <label>{isBuying ? "Purchase Price / Average Cost Basis: (optional)" : "Selling Price: (optional)"}</label>
-                <input
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="Enter price per share (optional)"
-                  step="0.01"
-                />
-              </div>
-              <div className="modal-actions">
-                <button type="submit" className="submit-button buy">
-                  Add Holding
-                </button>
+                <div className="modal-actions">
+                  <button type="submit" className="submit-button buy">
+                    Add Cash
+                  </button>
+                  <button
+                    type="button"
+                    className="cancel-button"
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setShares('');
+                      setIsAddingCash(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleAddNewHolding}>
+                <div className="input-group">
+                  <label>Stock Ticker:</label>
+                  <div className="ticker-input-container">
+                    <input
+                      type="text"
+                      value={ticker}
+                      onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                      placeholder="e.g., AAPL"
+                      autoComplete="off"
+                      required
+                    />
+                    {showDropdown && stockSuggestions.length > 0 && (
+                      <ul className="ticker-dropdown">
+                        {stockSuggestions.map((stock) => (
+                          <li
+                            key={stock.ticker}
+                            onClick={() => handleTickerSelect(stock.ticker)}
+                          >
+                            {stock.ticker} - {stock.companyName}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+                <div className="input-group">
+                  <label>Shares:</label>
+                  <input
+                    type="number"
+                    value={shares}
+                    onChange={(e) => setShares(e.target.value)}
+                    placeholder="Enter number of shares"
+                    step="0.01"
+                    min="0.01"
+                    required
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Purchase Price (optional):</label>
+                  <input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="Enter price per share (optional)"
+                    step="0.01"
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button type="submit" className="submit-button buy">
+                    Add Holding
+                  </button>
+                  <button
+                    type="button"
+                    className="cancel-button"
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setTicker('');
+                      setShares('');
+                      setPrice('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
                 <button
                   type="button"
-                  className="cancel-button"
+                  className="add-cash-button"
                   onClick={() => {
-                    setShowAddModal(false);
+                    setIsAddingCash(true);
                     setTicker('');
-                    setShares('');
                     setPrice('');
                   }}
                 >
-                  Cancel
+                  Add Cash Position
                 </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>
       )}

@@ -400,3 +400,30 @@ label {
   padding: 6px 10px;
   font-size: 1rem;
 }
+
+.add-cash-button {
+  background-color: #1a237e;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 16px;
+  width: 100%;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.add-cash-button:hover {
+  background-color: #283593;
+}
+
+.heatmap-rect.cash {
+  background-color: #1a237e;
+  opacity: 0.9;
+}
+
+.heatmap-rect.cash:hover {
+  background-color: #283593;
+  border: 2px solid #3949ab;
+}

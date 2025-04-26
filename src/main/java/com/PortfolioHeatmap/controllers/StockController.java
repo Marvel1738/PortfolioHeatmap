@@ -393,11 +393,25 @@ public class StockController {
                 return ResponseEntity.notFound().build();
             }
 
-            StockPrice stockPrice = stockDataService.getStockPrice(ticker);
-
             Map<String, Object> stockInfo = new HashMap<>();
             stockInfo.put("ticker", ticker);
             stockInfo.put("companyName", stock.getCompanyName());
+
+            // Special handling for Cash stock
+            if (ticker.equals("Cash")) {
+                stockInfo.put("price", 1.0);
+                stockInfo.put("change", 0.0);
+                stockInfo.put("changePercent", 0.0);
+                stockInfo.put("marketCap", 0.0);
+                stockInfo.put("open", 1.0);
+                stockInfo.put("high", 1.0);
+                stockInfo.put("low", 1.0);
+                stockInfo.put("peRatio", 0.0);
+                return ResponseEntity.ok(stockInfo);
+            }
+
+            StockPrice stockPrice = stockDataService.getStockPrice(ticker);
+
             stockInfo.put("price", stockPrice.getPrice());
 
             // Calculate change based on previous close and current price
