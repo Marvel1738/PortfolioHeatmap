@@ -3,7 +3,7 @@
 // Import React and useState hook for managing component state
 import React, { useState } from 'react';
 // Import axios for HTTP requests
-import api from '../api/.js';
+import api from '../api/axios.js';
 // Import useNavigate for redirecting after login
 import { useNavigate } from 'react-router-dom';
 // Import Link for navigation to register page

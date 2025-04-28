@@ -355,7 +355,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         return;
       }
 
-      await api.put(
+      const response = await api.put(
         `/portfolios/${portfolioId}/rename`,
         null,
         {
