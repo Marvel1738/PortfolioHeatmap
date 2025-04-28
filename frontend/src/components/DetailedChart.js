@@ -311,7 +311,7 @@ function DetailedChart() {
 
         console.log('Making API request to fetch purchase price...');
         // Fetch the purchase price using the new endpoint
-        const response = await axios.get(`http://localhost:8080/portfolios/api/portfolio/holdings/purchase-price`, {
+        const response = await axios.get(`/portfolios/api/portfolio/holdings/purchase-price`, {
           params: {
             ticker: ticker,
             portfolioId: portfolioId
@@ -365,7 +365,7 @@ function DetailedChart() {
           return;
         }
 
-        const response = await axios.get(`http://localhost:8080/portfolios/api/portfolio/${portfolioId}`, {
+        const response = await axios.get(`/portfolios/api/portfolio/${portfolioId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

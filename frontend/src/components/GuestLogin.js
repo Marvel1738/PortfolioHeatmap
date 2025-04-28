@@ -10,7 +10,7 @@ const GuestLogin = ({ updateAuthState }) => {
         console.log('Starting guest login process');
         try {
             console.log('Sending guest login request');
-            const response = await axios.post('http://localhost:8080/auth/guest');
+            const response = await axios.post('/auth/guest');
             const token = response.data;
             console.log('Received token from guest login');
             

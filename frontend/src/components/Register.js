@@ -45,7 +45,7 @@ function Register({ updateAuthState }) {
       console.log('Current guest state:', { hasToken: !!token, guestUserId });
 
       console.log('Sending registration request');
-      const response = await axios.post('http://localhost:8080/auth/register', {
+      const response = await axios.post('/auth/register', {
         username: username,
         password: password,
         email: email,

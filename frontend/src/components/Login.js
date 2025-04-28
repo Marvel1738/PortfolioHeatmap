@@ -33,7 +33,7 @@ function Login({ updateAuthState }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const loginResponse = await axios.post('http://localhost:8080/auth/login', {
+      const loginResponse = await axios.post('/auth/login', {
         email: email,
         password: password,
       }, {
