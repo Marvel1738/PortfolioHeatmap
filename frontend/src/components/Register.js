@@ -2,12 +2,11 @@
 
 // Import React and useState hook for managing component state
 import React, { useState } from 'react';
-// Import axios for making HTTP requests to the Spring Boot backend
-import axios from 'axios';
 // Import useNavigate for redirecting after registration
 import { useNavigate } from 'react-router-dom';
 // Import custom CSS file (reusing Login.css)
 import './Login.css';
+import api from '../api/axios.js';
 
 /**
  * Register component handles user registration for the Portfolio Heatmap app.
@@ -45,7 +44,7 @@ function Register({ updateAuthState }) {
       console.log('Current guest state:', { hasToken: !!token, guestUserId });
 
       console.log('Sending registration request');
-      const response = await axios.post('/auth/register', {
+      const response = await api.post('/auth/register', {
         username: username,
         password: password,
         email: email,

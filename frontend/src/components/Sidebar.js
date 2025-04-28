@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
-import api from '../api/axios';
+import api from '../api/axios.js';
 import debounce from 'lodash.debounce';
 // Import icons from react-icons
 import { FaPencilAlt, FaTrash, FaStar, FaChevronRight } from 'react-icons/fa';

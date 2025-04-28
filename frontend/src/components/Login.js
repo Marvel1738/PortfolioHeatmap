@@ -3,7 +3,7 @@
 // Import React and useState hook for managing component state
 import React, { useState } from 'react';
 // Import axios for HTTP requests
-import axios from 'axios';
+import api from '../api/.js';
 // Import useNavigate for redirecting after login
 import { useNavigate } from 'react-router-dom';
 // Import Link for navigation to register page
@@ -33,7 +33,7 @@ function Login({ updateAuthState }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const loginResponse = await axios.post('/auth/login', {
+      const loginResponse = await api.post('/auth/login', {
         email: email,
         password: password,
       }, {

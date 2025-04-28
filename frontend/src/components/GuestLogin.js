@@ -1,5 +1,5 @@
-import React from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
+import api from '../api/axios.js';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
@@ -10,7 +10,7 @@ const GuestLogin = ({ updateAuthState }) => {
         console.log('Starting guest login process');
         try {
             console.log('Sending guest login request');
-            const response = await axios.post('/auth/guest');
+            const response = await api.post('/auth/guest');
             const token = response.data;
             console.log('Received token from guest login');
             

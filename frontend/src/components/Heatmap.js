@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import api from '../api/axios';
+import api from '../api/axios.js';
 import * as d3 from 'd3';
 import './Heatmap.css';
 import Sidebar from './Sidebar.js';

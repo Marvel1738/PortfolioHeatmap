@@ -15,7 +15,7 @@ import './App.css';
 import Login from './components/Login';
 import Register from './components/Register';
 import GuestLogin from './components/GuestLogin';
-import axios from 'axios';
+import api from './api/axios.js';
 
 /**
  * App component serves as the root of the React frontend.
@@ -136,7 +136,7 @@ function App() {
         const token = localStorage.getItem('token');
         if (!token) {
           try {
-            const response = await axios.post('http://localhost:8080/auth/guest');
+            const response = await api.post('/auth/guest');
             const newToken = response.data;
             const tokenPayload = JSON.parse(atob(newToken.split('.')[1]));
             updateAuthState({
