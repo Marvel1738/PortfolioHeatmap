@@ -15,6 +15,7 @@ import { Line } from 'react-chartjs-2';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import './DetailedChart.css';
 import { debounce } from 'lodash';
+import api from './api/axios'; // Adjust the path based on your file
 
 // Register required Chart.js components
 ChartJS.register(
@@ -146,7 +147,7 @@ function DetailedChart() {
       return;
     }
     try {
-      const response = await axios.get('http://localhost:8080/stocks/search', {
+      const response = await api.get('/stocks/search', {
         params: { prefix },
       });
       setStockSuggestions(response.data);
@@ -198,15 +199,15 @@ function DetailedChart() {
         if (!token) throw new Error('No token found');
 
         // Fetch stock information
-        const infoResponse = await axios.get(
-          `http://localhost:8080/stocks/info/${ticker}`,
+        const infoResponse = await api.get(
+          `/stocks/info/${ticker}`,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
         setStockInfo(infoResponse.data);
 
         // Fetch candlestick data
-        const candlestickResponse = await axios.get(
-          `http://localhost:8080/stocks/candlestick/${ticker}?timeframe=${timeframe}`,
+        const candlestickResponse = await api.get(
+          `/stocks/candlestick/${ticker}?timeframe=${timeframe}`,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
 

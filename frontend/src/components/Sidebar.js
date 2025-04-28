@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
-import axios from 'axios';
+import api from '../api/axios';
 import debounce from 'lodash.debounce';
 // Import icons from react-icons
 import { FaPencilAlt, FaTrash, FaStar, FaChevronRight } from 'react-icons/fa';
@@ -46,7 +46,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
       return;
     }
     try {
-      const response = await axios.get('http://localhost:8080/stocks/search', {
+      const response = await api.get('/stocks/search', {
         params: { prefix },
       });
       setStockSuggestions(response.data);
@@ -113,8 +113,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         return;
       }
 
-      await axios.post(
-        `http://localhost:8080/portfolios/${selectedPortfolioId}/holdings/add`,
+      await api.post(
+        `/portfolios/${selectedPortfolioId}/holdings/add`,
         null,
         {
           params: {
@@ -183,8 +183,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         const existingHolding = holdings.find((h) => h.stock.ticker === editingHolding.stock.ticker);
 
         if (existingHolding) {
-          await axios.put(
-            `http://localhost:8080/portfolios/holdings/${existingHolding.id}`,
+          await api.put(
+            `/portfolios/holdings/${existingHolding.id}`,
             null,
             {
               params: {
@@ -194,8 +194,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
             }
           );
         } else {
-          await axios.post(
-            `http://localhost:8080/portfolios/${selectedPortfolioId}/holdings/add`,
+          await api.post(
+            `/portfolios/${selectedPortfolioId}/holdings/add`,
             null,
             {
               params: {
@@ -214,8 +214,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
           return;
         }
 
-        await axios.put(
-          `http://localhost:8080/portfolios/holdings/${editingHolding.id}`,
+        await api.put(
+          `/portfolios/holdings/${editingHolding.id}`,
           null,
           {
             params: {
@@ -263,8 +263,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         return;
       }
 
-      const response = await axios.post(
-        'http://localhost:8080/portfolios/create',
+      const response = await api.post(
+        '/portfolios/create',
         null,
         {
           params: {
@@ -297,8 +297,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
       const portfolioName =
         newPortfolioName.trim() || `Random Portfolio ${new Date().toISOString().slice(0, 10)}`;
 
-      const response = await axios.post(
-        'http://localhost:8080/portfolios/create-random',
+      const response = await api.post(
+        '/portfolios/create-random',
         null,
         {
           params: {
@@ -329,7 +329,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         return;
       }
 
-      await axios.delete(`http://localhost:8080/portfolios/${portfolioId}`, {
+      await api.delete(`/portfolios/${portfolioId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -355,8 +355,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         return;
       }
 
-      const response = await axios.patch(
-        `http://localhost:8080/portfolios/${portfolioId}/rename`,
+      await api.put(
+        `/portfolios/${portfolioId}/rename`,
         null,
         {
           params: { name: newName },
@@ -386,8 +386,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         return;
       }
 
-      const response = await axios.patch(
-        `http://localhost:8080/portfolios/${portfolioId}/favorite`,
+      const response = await api.patch(
+        `/portfolios/${portfolioId}/favorite`,
         null,
         {
           params: { isFavorite: !isFavorite },
@@ -482,8 +482,8 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         return;
       }
 
-      await axios.post(
-        `http://localhost:8080/portfolios/${selectedPortfolioId}/holdings/add`,
+      await api.post(
+        `/portfolios/${selectedPortfolioId}/holdings/add`,
         null,
         {
           params: {

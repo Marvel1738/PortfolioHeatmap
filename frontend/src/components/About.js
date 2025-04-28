@@ -3,6 +3,7 @@ import React from 'react';
 import './About.css';
 import toTheMoonPic from './toTheMoon.png'; // Replace with your image path
 
+
 const About = () => {
   return (
     <div className="about-container">
