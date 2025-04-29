@@ -68,7 +68,7 @@ const Header = ({ authState, updateAuthState }) => {
       <div className="logo">
         <Link to="/heatmap">
           <img 
-            src="/ph.png" 
+            src="/PH.png" 
             alt="Portfolio Heatmap Logo" 
             className="logo-img"
             loading="lazy"

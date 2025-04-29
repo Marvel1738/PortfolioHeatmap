@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import api from '../api/axios.js';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import * as d3 from 'd3';
 import './Heatmap.css';
 import Sidebar from './Sidebar.js';
@@ -16,6 +16,7 @@ import {
 } from 'chart.js';
 import { FaPencilAlt, FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import api from '../api/axios.js';
 
 // Register Chart.js components
 ChartJS.register(
@@ -120,10 +121,51 @@ function Heatmap({ authState }) {
   useEffect(() => {
     const fetchPortfolios = async () => {
       try {
-        const response = await api.get('/api/portfolios');
+        const token = localStorage.getItem('token');
+        if (!token) {
+          // If no token, check for guest portfolios in localStorage
+          const guestPortfolios = JSON.parse(localStorage.getItem('guestPortfolios') || '[]');
+          setPortfolios(guestPortfolios);
+          if (guestPortfolios.length > 0) {
+            const initialPortfolioId = guestPortfolios[0].id;
+            setSelectedPortfolioId(initialPortfolioId);
+            localStorage.setItem('currentPortfolioId', initialPortfolioId);
+          } else {
+            setError('Click NEW PORTFOLIO to create a portfolio!');
+          }
+          return;
+        }
+
+        // Check if token is valid (not HTML)
+        if (token.includes('<!doctype html>')) {
+          console.error('Invalid token received - contains HTML');
+          setError('Authentication error. Please try logging in again.');
+          return;
+        }
+
+        console.log('Fetching portfolios with token:', token);
+        const response = await api.get('/portfolios/user', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (!response.data || !Array.isArray(response.data)) {
+          console.error('Invalid response data:', response.data);
+          setError('Invalid response from server');
+          return;
+        }
+
+        console.log('Received portfolios:', response.data);
         setPortfolios(response.data);
-      } catch (error) {
-        console.error('Error fetching portfolios:', error);
+        if (response.data.length > 0) {
+          const initialPortfolioId = response.data[0].id;
+          setSelectedPortfolioId(initialPortfolioId);
+          localStorage.setItem('currentPortfolioId', initialPortfolioId);
+        } else {
+          setError('Click NEW PORTFOLIO to create a portfolio!');
+        }
+      } catch (err) {
+        console.error('Failed to fetch portfolios:', err);
+        setError('Failed to fetch portfolios: ' + err.message);
       }
     };
 
@@ -150,23 +192,105 @@ function Heatmap({ authState }) {
       setIsTransitioning(true);
 
       try {
-        const response = await api.get(`/api/portfolios/${selectedPortfolioId}/holdings`);
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No token found');
+
+        const response = await api.get(
+          `/portfolios/${selectedPortfolioId}?timeframe=${timeframe}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+
         setPortfolioData(response.data);
-        setHoldings(response.data);
+
+        let holdingsData = response.data.openPositions || [];
+
+        const fullHoldingsData = await Promise.all(
+          holdingsData.map(async (holding) => {
+            if (typeof holding === 'number' || !holding.stock || !holding.shares) {
+              try {
+                const holdingId = typeof holding === 'number' ? holding : holding.id;
+                const holdingResponse = await api.get(
+                  `/portfolios/holdings/${holdingId}`,
+                  { headers: { 'Authorization': `Bearer ${token}` } }
+                );
+                return {
+                  ...holdingResponse.data,
+                  percentChange: response.data.timeframePercentageChanges[holdingId] || 0,
+                };
+              } catch (err) {
+                console.warn('Failed to fetch holding details:', err);
+                return null;
+              }
+            }
+            return {
+              ...holding,
+              percentChange: response.data.timeframePercentageChanges[holding.id] || 0,
+            };
+          })
+        );
+
+        const validHoldings = fullHoldingsData.filter((h) => h !== null);
+        if (validHoldings.length === 0) {
+          setError('Click ADD STOCK to add stocks to your portfolio!');
+          setHoldings([]);
+          return;
+        }
+
+        const tickers = validHoldings.map((h) => h.stock.ticker);
+        const batchResponse = await api.get('/stocks/batch-prices', {
+          params: { symbols: tickers },
+          headers: { 'Authorization': `Bearer ${token}` },
+          paramsSerializer: (params) => `symbols=${params.symbols.join(',')}`,
+        });
+        const currentPrices = batchResponse.data.reduce((acc, stockPrice) => {
+          acc[stockPrice.symbol] = stockPrice.price;
+          return acc;
+        }, {});
+
+        const totalValue = validHoldings.reduce((sum, h) => {
+          const price = currentPrices[h.stock.ticker] || h.purchasePrice;
+          return sum + h.shares * price;
+        }, 0);
+
+        const holdingsWithAllocation = validHoldings.map((holding) => {
+          const currentPrice = currentPrices[holding.stock.ticker] || holding.purchasePrice;
+          const currentValue = holding.shares * currentPrice;
+          const allocation = currentValue / totalValue;
+          const percentChange = holding.percentChange;
+
+          let dollarChange;
+          if (timeframe === 'total') {
+            dollarChange = (currentValue * percentChange) / 100;
+          } else {
+            dollarChange = (currentPrice * percentChange) / 100;
+          }
+
+          return {
+            ...holding,
+            currentPrice,
+            currentValue,
+            allocation,
+            percentChange,
+            dollarChange,
+          };
+        });
+
+        holdingsWithAllocation.sort((a, b) => b.allocation - a.allocation);
+        setHoldings(holdingsWithAllocation);
         
         // Keep showing previous state briefly before transitioning
         await new Promise(resolve => setTimeout(resolve, 50));
         setIsTransitioning(false);
 
-      } catch (error) {
-        console.error('Error fetching holdings:', error);
-        setError('Failed to fetch holdings: ' + error.message);
+      } catch (err) {
+        console.error('Error fetching holdings:', err);
+        setError('Failed to fetch holdings: ' + err.message);
         setIsTransitioning(false);
       }
     };
 
     fetchHoldings();
-  }, [selectedPortfolioId, refreshTrigger]);
+  }, [selectedPortfolioId, timeframe, refreshTrigger]);
 
   // Handle rename portfolio
   const handleRenamePortfolio = async (portfolioId, newName) => {
@@ -175,9 +299,20 @@ function Heatmap({ authState }) {
       return;
     }
     try {
-      const response = await api.put(`/api/portfolios/${portfolioId}/rename`, null, {
-        params: { name: newName },
-      });
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You are not authenticated. Please log in.');
+        return;
+      }
+
+      const response = await api.patch(
+        `/portfolios/${portfolioId}/rename`,
+        null,
+        {
+          params: { name: newName },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       setPortfolios(
         portfolios.map((p) =>
@@ -196,7 +331,15 @@ function Heatmap({ authState }) {
   const handleDeletePortfolio = async (portfolioId) => {
     if (!window.confirm('Are you sure you want to delete this portfolio?')) return;
     try {
-      await api.delete(`/api/portfolios/${portfolioId}`);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You are not authenticated. Please log in.');
+        return;
+      }
+
+      await api.delete(`/portfolios/${portfolioId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       const updatedPortfolios = portfolios.filter((p) => p.id !== portfolioId);
       setPortfolios(updatedPortfolios);
@@ -303,7 +446,11 @@ function Heatmap({ authState }) {
       chartData = chartCache[holding.stock.ticker];
     } else {
       try {
-        const response = await api.get(`/api/stocks/${holding.stock.ticker}/chart`);
+        const token = localStorage.getItem('token');
+        const response = await axios.get(
+          `https://financialmodelingprep.com/api/v3/historical-chart/5min/${holding.stock.ticker}?apikey=${process.env.REACT_APP_FMP_API_KEY}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
 
         if (!response.data || response.data.length === 0) {
           chartError = 'No intraday data available';
@@ -384,6 +531,7 @@ function Heatmap({ authState }) {
   const handlePortfolioSelect = (portfolioId) => {
     const numericId = parseInt(portfolioId, 10);
     setSelectedPortfolioId(numericId || null);
+    localStorage.setItem('currentPortfolioId', numericId || '');
 
     const selectedPortfolio = portfolios.find((p) => p.id === numericId);
     setRenamePortfolioId(null);
@@ -414,18 +562,20 @@ function Heatmap({ authState }) {
   };
 
   // Get the current portfolio name
-  const selectedPortfolio = portfolios.find((p) => p.id === selectedPortfolioId);
+  const selectedPortfolio = Array.isArray(portfolios) ? portfolios.find((p) => p.id === selectedPortfolioId) : null;
   const portfolioName = selectedPortfolio ? selectedPortfolio.name : 'No Portfolio Selected';
 
   // Add debug logs for authState
   useEffect(() => {
     console.log('Heatmap authState:', authState);
-  }, [authState]);
+    console.log('Current portfolios:', portfolios);
+    console.log('Is portfolios an array?', Array.isArray(portfolios));
+  }, [authState, portfolios]);
 
   return (
     <div className="heatmap-container">
       <Sidebar
-        portfolios={portfolios}
+        portfolios={Array.isArray(portfolios) ? portfolios : []}
         selectedPortfolioId={selectedPortfolioId}
         onPortfolioSelect={handlePortfolioSelect}
         holdings={holdings}
@@ -453,7 +603,7 @@ function Heatmap({ authState }) {
               <button
                 onClick={() => {
                   setRenamePortfolioId(null);
-                  setRenameValue(portfolios.find((p) => p.id === selectedPortfolioId)?.name || '');
+                  setRenameValue(Array.isArray(portfolios) ? (portfolios.find((p) => p.id === selectedPortfolioId)?.name || '') : '');
                 }}
                 className="action-button cancel"
               >
@@ -463,10 +613,12 @@ function Heatmap({ authState }) {
           ) : (
             <div className="portfolio-title">
               <h2>
-                {selectedPortfolioId ? (portfolios.find((p) => p.id === selectedPortfolioId)?.name || 'Loading...') : 'No Portfolio Selected'}
+                {selectedPortfolioId && Array.isArray(portfolios) ? 
+                  (portfolios.find((p) => p.id === selectedPortfolioId)?.name || 'Loading...') : 
+                  'No Portfolio Selected'}
               </h2>
 
-              {selectedPortfolioId && (
+              {selectedPortfolioId && Array.isArray(portfolios) && (
                 <div className="portfolio-actions">
                   <button
                     onClick={() => {

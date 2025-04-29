@@ -117,7 +117,7 @@ public class SecurityConfig {
         // Create a new CORS configuration object to define rules
         CorsConfiguration config = new CorsConfiguration();
         // Specify allowed origins (React frontend running on localhost:3000)
-        config.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        config.setAllowedOrigins(Arrays.asList("https://theportfolioheatmap.com"));
         // Define allowed HTTP methods for frontend requests
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         // Allow all headers in requests (e.g., Authorization, Content-Type)

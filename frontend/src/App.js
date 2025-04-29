@@ -17,12 +17,29 @@ import Register from './components/Register';
 import GuestLogin from './components/GuestLogin';
 import api from './api/axios.js';
 
+
+
 /**
  * App component serves as the root of the React frontend.
  * Configures routing for all app pages in the Portfolio Heatmap flow.
  * 
  * @returns {JSX.Element} The rendered App UI with routing
  */
+
+// Component to track page views
+const AnalyticsTracker = () => {
+    const location = location();
+
+    useEffect(() => {
+        // Send page view to Google Analytics
+        window.gtag('config', 'G-9Z6BSRFZMK', {
+            page_path: location.pathname + location.search,
+        });
+    }, [location]); // Run this effect whenever the location changes
+
+    return null;
+};
+
 function App() {
   const [authState, setAuthState] = useState({
     isAuthenticated: false,

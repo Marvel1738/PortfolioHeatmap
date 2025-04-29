@@ -3,7 +3,7 @@
 // Import React and useState hook for managing component state
 import React, { useState } from 'react';
 // Import axios for HTTP requests
-import api from '../api/axios.js';
+import axios from 'axios';
 // Import useNavigate for redirecting after login
 import { useNavigate } from 'react-router-dom';
 // Import Link for navigation to register page
@@ -12,6 +12,8 @@ import { Link } from 'react-router-dom';
 import './Login.css';
 // Import GuestLogin component
 import GuestLogin from './GuestLogin';
+// Import api for axios instance
+import api from '../api/axios.js';
 
 /**
  * Login component handles user authentication for the Portfolio Heatmap app.
@@ -33,7 +35,7 @@ function Login({ updateAuthState }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const loginResponse = await api.post('/auth/login', {
+      const loginResponse = await axios.post('/auth/login', {
         email: email,
         password: password,
       }, {

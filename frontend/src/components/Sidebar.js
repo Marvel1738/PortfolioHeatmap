@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
-import api from '../api/axios.js';
+import axios from 'axios';
 import debounce from 'lodash.debounce';
 // Import icons from react-icons
 import { FaPencilAlt, FaTrash, FaStar, FaChevronRight } from 'react-icons/fa';
+import api from '../api/axios.js';
 
 function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings, setPortfolios, onHoldingsChange, authState }) {
   const [isVisible, setIsVisible] = useState(window.innerWidth >= 800);
@@ -355,7 +356,7 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         return;
       }
 
-      const response = await api.put(
+      const response = await api.patch(
         `/portfolios/${portfolioId}/rename`,
         null,
         {
