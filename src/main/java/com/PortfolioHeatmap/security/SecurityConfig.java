@@ -67,8 +67,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Explicitly apply CORS config
                 .csrf(csrf -> csrf.disable()) // Disable CSRF as we're using JWT (stateless)
                 .authorizeHttpRequests(auth -> auth // Configure request authorization
-                        .requestMatchers("/auth/**", "/stocks/search").permitAll() // Allow unauthenticated access to /auth/** (e.g.,
-                                                                 // /auth/login)
+                        .requestMatchers("/auth/**", "/stocks/search").permitAll() // Allow unauthenticated access to
+                                                                                   // /auth/** (e.g.,
+                        // /auth/login)
                         .anyRequest().authenticated()) // Require authentication for all other requests
                 .sessionManagement(session -> session // Configure session management
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)); // Use stateless sessions (JWT-based)
@@ -116,8 +117,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         // Create a new CORS configuration object to define rules
         CorsConfiguration config = new CorsConfiguration();
-        // Specify allowed origins (React frontend running on localhost:3000)
-        config.setAllowedOrigins(Arrays.asList("https://theportfolioheatmap.com"));
+        // Specify allowed origins (React frontend running on localhost:3000 and
+        // production domain)
+        config.setAllowedOrigins(Arrays.asList(
+                "http://localhost:3000",
+                "https://theportfolioheatmap.com"));
         // Define allowed HTTP methods for frontend requests
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         // Allow all headers in requests (e.g., Authorization, Content-Type)

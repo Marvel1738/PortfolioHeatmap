@@ -411,47 +411,26 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
     setIsPortfolioListOpen(!isPortfolioListOpen);
   };
 
-  // Update visibility when window is resized
+  // Update resize handler
   useEffect(() => {
     const handleResize = () => {
-      const windowWidth = window.innerWidth;
-      const newIsVisible = windowWidth >= 800;
-      setIsVisible(newIsVisible);
-      
-      // Update heatmap-main class based on sidebar visibility
-      const heatmapMain = document.querySelector('.heatmap-main');
-      if (heatmapMain) {
-        if (!newIsVisible) {
-          heatmapMain.classList.add('sidebar-hidden');
-        } else {
-          heatmapMain.classList.remove('sidebar-hidden');
-        }
+      if (window.innerWidth >= 800) {
+        setIsVisible(true);
+      } else {
+        setIsVisible(false);
       }
     };
 
     window.addEventListener('resize', handleResize);
-    
-    // Call once to set initial state
-    handleResize();
-    
-    return () => window.removeEventListener('resize', handleResize);
+    handleResize(); // Initial check
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   const toggleSidebar = () => {
-    const newIsVisible = !isVisible;
-    setIsVisible(newIsVisible);
-    
-    // Toggle class on heatmap-main before the sidebar animation starts
-    const heatmapMain = document.querySelector('.heatmap-main');
-    if (heatmapMain) {
-      if (!newIsVisible) {
-        // When hiding sidebar, add class immediately
-        heatmapMain.classList.add('sidebar-hidden');
-      } else {
-        // When showing sidebar, remove class immediately
-        heatmapMain.classList.remove('sidebar-hidden');
-      }
-    }
+    setIsVisible(!isVisible);
   };
 
   const handleAddCash = async (e) => {
@@ -584,12 +563,10 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
           </div>
         </div>
         
-        <button 
-          className="sidebar-toggle" 
-          onClick={toggleSidebar}
-          aria-label="Toggle sidebar"
-        >
-          <FaChevronRight className={`arrow ${isVisible ? 'left' : 'right'}`} />
+        <button className="sidebar-toggle" onClick={toggleSidebar}>
+          <span className={`arrow ${isVisible ? 'up' : 'down'}`}>
+            <FaChevronRight />
+          </span>
         </button>
       </div>
       

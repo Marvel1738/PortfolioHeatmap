@@ -22,6 +22,60 @@
   transition: transform 0.3s ease-in-out;
 }
 
+/* Mobile styles */
+@media (max-width: 800px) {
+  .sidebar {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    max-height: 50vh;
+    padding-top: 10px;
+    padding-bottom: env(safe-area-inset-bottom, 10px);
+    transform: translateY(100%);
+    border-top: 1px solid var(--border-color);
+  }
+
+  .sidebar.visible {
+    transform: translateY(0);
+  }
+
+  .sidebar-toggle {
+    top: auto;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 4px 4px 0 0;
+    width: 40px;
+    height: 24px;
+  }
+
+  .sidebar-toggle .arrow {
+    transform: rotate(90deg);
+  }
+
+  .sidebar-toggle .arrow.up {
+    transform: rotate(-90deg);
+  }
+
+  .portfolio-selector {
+    margin-bottom: 10px;
+  }
+
+  .portfolio-list {
+    max-width: 100%;
+  }
+
+  .portfolio-item {
+    width: 100%;
+  }
+
+  .holdings-list {
+    max-height: 30vh;
+  }
+}
+
 /* Hide sidebar when not visible */
 .sidebar:not(.visible) {
   transform: translateX(-100%);
