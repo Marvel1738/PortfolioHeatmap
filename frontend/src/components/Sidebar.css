@@ -1,5 +1,6 @@
 .sidebar-container {
   position: relative;
+  transition: transform 0.3s ease;
 }
 
 .sidebar {
@@ -19,18 +20,19 @@
   border-right: none !important;
   border-left: none !important;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  transition: left 0.3s ease;
   transition: transform 0.3s ease-in-out;
 }
 
 /* Mobile styles */
-@media (max-width: 800px) {
+@media (max-width: 800px) and (hover: none) and (pointer: coarse) {
   .sidebar {
     top: auto;
     bottom: 0;
     left: 0;
-    width: 100%;
+    width: 100% !important;
     height: auto;
-    max-height: 50vh;
+    max-height: calc(50vh - 50px);
     padding-top: 10px;
     padding-bottom: env(safe-area-inset-bottom, 10px);
     transform: translateY(100%);
@@ -47,32 +49,139 @@
     left: 50%;
     transform: translateX(-50%);
     border-radius: 4px 4px 0 0;
-    width: 40px;
+    width: 0px;
     height: 24px;
   }
 
   .sidebar-toggle .arrow {
-    transform: rotate(90deg);
+    transform: rotate(0deg) !important;
   }
 
-  .sidebar-toggle .arrow.up {
-    transform: rotate(-90deg);
+  .sidebar-toggle .arrow.left {
+    transform: rotate(180deg) !important;
   }
 
-  .portfolio-selector {
+  /* Mobile-optimized sidebar layout */
+  .mobile-optimized {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 0px 0px;
+  }
+
+  /* Portfolio selector at the top */
+  .portfolio-selector.mobile {
+    width: 100%;
+    margin-bottom: 12px;
+    margin-top: 5px;
+    height: 35px !important;
+  }
+
+  /* Side-by-side buttons */
+  .button-row {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    margin-bottom: 10px;
+    justify-content: space-between;
+  }
+
+  .new-portfolio-button.mobile,
+  .add-button.mobile {
+    flex: 1;
+    font-size: 12px;
+    margin: 0;
+  }
+
+  /* Center the search input */
+  .search-container.mobile {
+    justify-content: center;
     margin-bottom: 10px;
   }
 
-  .portfolio-list {
-    max-width: 100%;
+  /* Holdings list with better spacing */
+  .holdings-list.mobile {
+    width: 100% !important;
+    max-height: 25vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  .portfolio-item {
+  .holding-item.mobile {
+    width: 90% !important;
+    display: flex;
+    justify-content: space-between;
+    padding: 0px 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .holding-item.mobile .holding-info {
+    flex: 1;
+    text-align: left;
+  }
+
+  .holding-item.mobile .holding-actions {
+    display: flex;
+    gap: 0px;
+    margin-left: auto;
+  }
+
+  .portfolio-dropdown {
+    width: 90%;
+  }
+}
+
+/* Desktop styles for narrow screens */
+@media (max-width: 800px) and (hover: hover) and (pointer: fine) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.visible {
+    transform: translateX(0);
+  }
+
+  .sidebar-toggle {
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+  }
+
+  /* Maintain correct arrow direction even on narrow screens */
+  .sidebar-toggle .arrow.right {
+    transform: rotate(0deg);
+  }
+
+  .sidebar-toggle .arrow.left {
+    transform: rotate(180deg);
+  }
+
+  /* Hide mobile-specific layout on desktop narrow screens */
+  .sidebar-content.mobile-optimized {
+    display: block;
+  }
+
+  .button-row {
+    display: block;
+  }
+
+  .new-portfolio-button.mobile,
+  .add-button.mobile {
     width: 100%;
+    margin: 8px 0;
   }
 
-  .holdings-list {
-    max-height: 30vh;
+  .portfolio-selector.mobile {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .search-container.mobile {
+    width: 100%;
   }
 }
 
@@ -103,10 +212,30 @@
   border-radius: 0 4px 4px 0;
   cursor: pointer;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  transition: left 0.3s ease-in-out;
+  transition: left 0.3s ease-in-out, bottom 0.3s ease-in-out, top 0.3s ease-in-out;
   height: 40px;
   width: 24px;
   display: block;
+}
+
+/* Additional mobile styles for toggle button */
+@media (max-width: 800px) and (hover: none) and (pointer: coarse) {
+  .sidebar-toggle {
+    bottom: 0;
+    top: auto;
+    right: 20px;
+    left: auto;
+    padding: 4px 10px;
+    width: 40px;
+    height: 24px;
+    border-radius: 4px 4px 0 0;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Ensure toggle button stays visible when sidebar is shown */
+  .sidebar.visible + .sidebar-toggle {
+    left: auto;
+  }
 }
 
 .sidebar-toggle:hover {
@@ -116,6 +245,9 @@
 .sidebar-toggle .arrow {
   transition: transform 0.3s ease;
   font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidebar-toggle .arrow.right {
@@ -284,6 +416,25 @@
 
 .holding-item:last-child {
   border-bottom: none;
+}
+
+/* Mobile-specific holding styles */
+.holding-item.mobile {
+  width: 100%;
+  margin-left: 0 !important;
+  justify-content: space-between;
+  padding: 8px 10px !important;
+}
+
+.holding-item.mobile .ticker {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.holding-item.mobile .holding-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
 }
 
 .holding-info {
@@ -510,6 +661,24 @@
   font-size: 12px;
   text-transform: uppercase;
   border: 1px solid rgb(77, 84, 89) !important;
+}
+
+/* Mobile search input */
+.search-container.mobile .search-input {
+  max-width: 140px !important;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Adjust mobile layout for touchscreens */
+@media (max-width: 800px) and (hover: none) and (pointer: coarse) {
+  .holdings-list.mobile {
+    padding-bottom: 20px;
+  }
+  
+  .holdings-list.mobile::-webkit-scrollbar {
+    width: 3px;
+  }
 }
 
 .search-input::placeholder {

@@ -572,18 +572,38 @@ function Heatmap({ authState }) {
     console.log('Is portfolios an array?', Array.isArray(portfolios));
   }, [authState, portfolios]);
 
+  const [isSidebarVisible, setIsSidebarVisible] = useState(window.innerWidth >= 800);
+  
+  // Listen for sidebar visibility changes
+  useEffect(() => {
+    const handleSidebarVisibilityChange = (event) => {
+      setIsSidebarVisible(event.detail.isVisible);
+    };
+    
+    document.addEventListener('sidebarVisibilityChange', handleSidebarVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('sidebarVisibilityChange', handleSidebarVisibilityChange);
+    };
+  }, []);
+  
+  const handleSidebarVisibilityChange = (isVisible) => {
+    setIsSidebarVisible(isVisible);
+  };
+  
   return (
-    <div className="heatmap-container">
-      <Sidebar
-        portfolios={Array.isArray(portfolios) ? portfolios : []}
-        selectedPortfolioId={selectedPortfolioId}
-        onPortfolioSelect={handlePortfolioSelect}
-        holdings={holdings}
-        setPortfolios={setPortfolios}
-        onHoldingsChange={refreshHoldings}
-        authState={authState}
-      />
-      <div className="heatmap-main">
+      <div className="heatmap-container">
+        <Sidebar
+          portfolios={Array.isArray(portfolios) ? portfolios : []}
+          selectedPortfolioId={selectedPortfolioId}
+          onPortfolioSelect={handlePortfolioSelect}
+          holdings={holdings}
+          setPortfolios={setPortfolios}
+          onHoldingsChange={refreshHoldings}
+          authState={authState}
+          onSidebarVisibilityChange={handleSidebarVisibilityChange}
+        />
+        <div className={`heatmap-main ${isSidebarVisible ? '' : 'sidebar-hidden'}`}>
         <div className="portfolio-header">
           {renamePortfolioId === selectedPortfolioId ? (
             <div className="rename-container">

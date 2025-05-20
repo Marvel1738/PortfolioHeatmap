@@ -3,10 +3,10 @@ import './Sidebar.css';
 import axios from 'axios';
 import debounce from 'lodash.debounce';
 // Import icons from react-icons
-import { FaPencilAlt, FaTrash, FaStar, FaChevronRight } from 'react-icons/fa';
+import { FaPencilAlt, FaTrash, FaStar, FaChevronRight, FaChevronUp, FaChevronDown } from 'react-icons/fa';
 import api from '../api/axios.js';
 
-function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings, setPortfolios, onHoldingsChange, authState }) {
+function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings, setPortfolios, onHoldingsChange, authState, onSidebarVisibilityChange }) {
   const [isVisible, setIsVisible] = useState(window.innerWidth >= 800);
   const [editingHolding, setEditingHolding] = useState(null);
   const [shares, setShares] = useState('');
@@ -411,13 +411,27 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
     setIsPortfolioListOpen(!isPortfolioListOpen);
   };
 
+  // Track whether we're on mobile
+  const [isMobile, setIsMobile] = useState(
+    window.innerWidth < 800 &&
+    (('ontouchstart' in window) || navigator.maxTouchPoints > 0)
+  );
+
   // Update resize handler
   useEffect(() => {
     const handleResize = () => {
+      // Check if device is mobile
+      const isMobileDevice =
+        window.innerWidth < 800 &&
+        (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+
       if (window.innerWidth >= 800) {
         setIsVisible(true);
+        setIsMobile(false);
       } else {
-        setIsVisible(false);
+        // On mobile, set sidebar to visible by default
+        setIsVisible(true);
+        setIsMobile(isMobileDevice);
       }
     };
 
@@ -429,8 +443,34 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
     };
   }, []);
 
+  // Notify parent when visibility changes
+  useEffect(() => {
+    // Dispatch a custom event that the Heatmap component can listen for
+    const event = new CustomEvent('sidebarVisibilityChange', {
+      detail: { isVisible }
+    });
+    document.dispatchEvent(event);
+
+    // Also call the callback function if provided
+    if (onSidebarVisibilityChange) {
+      onSidebarVisibilityChange(isVisible);
+    }
+  }, [isVisible, onSidebarVisibilityChange]);
+
   const toggleSidebar = () => {
-    setIsVisible(!isVisible);
+    const newVisibility = !isVisible;
+    setIsVisible(newVisibility);
+
+    // Dispatch custom event for better communication
+    const event = new CustomEvent('sidebarVisibilityChange', {
+      detail: { isVisible: newVisibility }
+    });
+    document.dispatchEvent(event);
+
+    // Also call the callback if provided
+    if (onSidebarVisibilityChange) {
+      onSidebarVisibilityChange(newVisibility);
+    }
   };
 
   const handleAddCash = async (e) => {
@@ -494,78 +534,161 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
     <>
       <div className="sidebar-container">
         <div className={`sidebar ${isVisible ? 'visible' : ''}`}>
-          <button
-            className="new-portfolio-button"
-            onClick={() => setShowNewPortfolioModal(true)}
-          >
-            NEW PORTFOLIO
-          </button>
-          
-          <div className="portfolio-selector">
-            <select
-              className="portfolio-dropdown"
-              value={selectedPortfolioId || ''}
-              onChange={(e) => onPortfolioSelect(e.target.value)}
-            >
-              <option value="" disabled>
-                Select Portfolio
-              </option>
-              {portfolios.map((portfolio) => (
-                <option key={portfolio.id} value={portfolio.id}>
-                  {portfolio.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button className="add-button" onClick={() => setShowAddModal(true)}>
-            ADD STOCK
-          </button>
-
-          <div className="search-container">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search Ticker"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="holdings-list">
-            {filteredHoldings.map((holding) => (
-              <div key={holding.id} className="holding-item">
-                <div className="holding-info">
-                  <span className="ticker">{holding.stock.ticker}</span>
-                </div>
-                <div className="holding-actions">
-                  <button
-                    className="action-button add"
-                    onClick={() => handleAddShares(holding)}
-                    style={{ width: '25px', height: '25px' }}
-                  >
-                    <span className="plus-icon" style={{ fontSize: '15px' }}>
-                      +
-                    </span>
-                  </button>
-                  <button
-                    className="action-button remove"
-                    onClick={() => handleRemoveShares(holding)}
-                    style={{ width: '25px', height: '25px', marginLeft: '1px' }}
-                  >
-                    <span className="minus-icon" style={{ fontSize: '15px' }}>
-                      -
-                    </span>
-                  </button>
-                </div>
+          {/* Mobile users will see this optimized layout */}
+          {isMobile ? (
+            // Mobile-optimized layout
+            <div className="sidebar-content mobile-optimized">
+              <div className="portfolio-selector mobile">
+                <select
+                  className="portfolio-dropdown"
+                  value={selectedPortfolioId || ''}
+                  onChange={(e) => onPortfolioSelect(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Select Portfolio
+                  </option>
+                  {portfolios.map((portfolio) => (
+                    <option key={portfolio.id} value={portfolio.id}>
+                      {portfolio.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ))}
-          </div>
+
+              <div className="button-row">
+                <button
+                  className="new-portfolio-button mobile"
+                  onClick={() => setShowNewPortfolioModal(true)}
+                >
+                  NEW PORTFOLIO
+                </button>
+
+                <button className="add-button mobile" onClick={() => setShowAddModal(true)}>
+                  ADD STOCK
+                </button>
+              </div>
+
+              <div className="search-container mobile">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search Ticker"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="holdings-list mobile">
+                {filteredHoldings.map((holding) => (
+                  <div key={holding.id} className="holding-item mobile">
+                    <div className="holding-info">
+                      <span className="ticker">{holding.stock.ticker}</span>
+                    </div>
+                    <div className="holding-actions">
+                      <button
+                        className="action-button add"
+                        onClick={() => handleAddShares(holding)}
+                        style={{ width: '25px', height: '25px' }}
+                      >
+                        <span className="plus-icon" style={{ fontSize: '15px' }}>
+                          +
+                        </span>
+                      </button>
+                      <button
+                        className="action-button remove"
+                        onClick={() => handleRemoveShares(holding)}
+                        style={{ width: '25px', height: '25px', marginLeft: '1px' }}
+                      >
+                        <span className="minus-icon" style={{ fontSize: '15px' }}>
+                          -
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            // Desktop layout
+            <>
+              <button
+                className="new-portfolio-button"
+                onClick={() => setShowNewPortfolioModal(true)}
+              >
+                NEW PORTFOLIO
+              </button>
+
+              <div className="portfolio-selector">
+                <select
+                  className="portfolio-dropdown"
+                  value={selectedPortfolioId || ''}
+                  onChange={(e) => onPortfolioSelect(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Select Portfolio
+                  </option>
+                  {portfolios.map((portfolio) => (
+                    <option key={portfolio.id} value={portfolio.id}>
+                      {portfolio.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button className="add-button" onClick={() => setShowAddModal(true)}>
+                ADD STOCK
+              </button>
+
+              <div className="search-container">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search Ticker"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="holdings-list">
+                {filteredHoldings.map((holding) => (
+                  <div key={holding.id} className="holding-item">
+                    <div className="holding-info">
+                      <span className="ticker">{holding.stock.ticker}</span>
+                    </div>
+                    <div className="holding-actions">
+                      <button
+                        className="action-button add"
+                        onClick={() => handleAddShares(holding)}
+                        style={{ width: '25px', height: '25px' }}
+                      >
+                        <span className="plus-icon" style={{ fontSize: '15px' }}>
+                          +
+                        </span>
+                      </button>
+                      <button
+                        className="action-button remove"
+                        onClick={() => handleRemoveShares(holding)}
+                        style={{ width: '25px', height: '25px', marginLeft: '1px' }}
+                      >
+                        <span className="minus-icon" style={{ fontSize: '15px' }}>
+                          -
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
-        
+
         <button className="sidebar-toggle" onClick={toggleSidebar}>
-          <span className={`arrow ${isVisible ? 'up' : 'down'}`}>
-            <FaChevronRight />
+          <span className={`arrow ${isVisible ? 'left' : 'right'}`}>
+            {isMobile ? (
+              isVisible ? <FaChevronDown /> : <FaChevronUp />
+            ) : (
+              <FaChevronRight />
+            )}
           </span>
         </button>
       </div>

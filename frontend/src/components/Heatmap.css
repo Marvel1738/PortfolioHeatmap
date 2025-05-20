@@ -25,14 +25,35 @@
   width: calc(100% - 240px);
   max-width: 1200px;
   box-sizing: border-box;
+  transition: margin-left 0.3s ease, width 0.3s ease;
 }
 
-/* When sidebar is hidden (either manually or at small screens), remove the margin */
+/* When sidebar is hidden (either manually or at small screens), expand the heatmap */
 .sidebar:not(.visible) ~ .heatmap-main,
 .heatmap-main.sidebar-hidden {
   margin-left: 20px;
   width: calc(100% - 80px);
+  transition: margin-left 0.3s ease, width 0.3s ease;
 }
+
+  /* Mobile-specific heatmap styles */
+  @media (max-width: 800px) and (hover: none) and (pointer: coarse) {
+  .heatmap-main {
+    margin-left: 20px !important;
+    margin-right: 20px !important;
+    width: calc(100% - 40px) !important;
+    padding-bottom: 160px; /* Add space for the mobile sidebar */
+    transition: padding-bottom 0.3s ease;
+  }
+
+  /* Make sure the heatmap doesn't resize when sidebar is toggled */
+  .sidebar:not(.visible) ~ .heatmap-main,
+  .heatmap-main.sidebar-hidden {
+    margin-left: 20px !important;
+    width: calc(100% - 40px) !important;
+    padding-bottom: 40px; /* Reduce padding when sidebar is hidden */
+  }
+  }
 
 @media (max-width: 800px) {
   .heatmap-main {
@@ -121,7 +142,7 @@
   margin-left: 0px !important;
   justify-self: center !important;
   will-change: transform, opacity, width, height, left, top, background-color;
-  transition: 
+  transition:
     transform 0.3s ease-out,
     opacity 0.3s ease-out,
     width 0.3s ease-out,
