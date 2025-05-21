@@ -1,7 +1,67 @@
 .heatmap {
-  padding: 20px;
   width: 100%;
   margin: 0 auto;
+}
+
+.cash-toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: right;
+  margin-bottom: 10px;
+  margin-top: -40px !important;
+  margin-right: 0px !important;
+}
+
+.cash-toggle-container label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  user-select: none;
+  cursor: pointer;
+}
+
+.cash-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+  margin-left: 20px;
+}
+
+.cash-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.cash-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .cash-toggle-slider {
+  background-color: #2196F3;
+}
+
+input:focus + .cash-toggle-slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .cash-toggle-slider:before {
+  transform: translateX(24px);
 }
 
 .heatmap-container {
@@ -353,7 +413,7 @@ label {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
-  margin-top: -30px !important;
+  margin-top: -20px !important;
 }
 
 /* Title text and buttons row */

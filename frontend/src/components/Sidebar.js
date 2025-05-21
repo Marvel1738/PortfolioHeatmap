@@ -3,7 +3,7 @@ import './Sidebar.css';
 import axios from 'axios';
 import debounce from 'lodash.debounce';
 // Import icons from react-icons
-import { FaPencilAlt, FaTrash, FaStar, FaChevronRight, FaChevronUp, FaChevronDown } from 'react-icons/fa';
+import { FaPencilAlt, FaTrash, FaStar, FaChevronRight, FaChevronLeft, FaChevronUp, FaChevronDown } from 'react-icons/fa';
 import api from '../api/axios.js';
 
 function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings, setPortfolios, onHoldingsChange, authState, onSidebarVisibilityChange }) {
@@ -685,9 +685,9 @@ function Sidebar({ portfolios, selectedPortfolioId, onPortfolioSelect, holdings,
         <button className="sidebar-toggle" onClick={toggleSidebar}>
           <span className={`arrow ${isVisible ? 'left' : 'right'}`}>
             {isMobile ? (
-              isVisible ? <FaChevronDown /> : <FaChevronUp />
+              isVisible ? <FaChevronUp /> : <FaChevronDown />
             ) : (
-              <FaChevronRight />
+              isVisible ? <FaChevronLeft /> : <FaChevronRight />
             )}
           </span>
         </button>

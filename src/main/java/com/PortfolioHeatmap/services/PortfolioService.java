@@ -17,38 +17,50 @@ public class PortfolioService {
     private final PortfolioHoldingService portfolioHoldingService;
     private static final Logger log = LoggerFactory.getLogger(PortfolioService.class);
 
-    // Default Warren Buffett portfolio holdings
+    // Berkshire Hathaway portfolio holdings
     private static final String[][] DEFAULT_HOLDINGS = {
             { "AAPL", "300000000" },
             { "AXP", "151610700" },
-            { "BAC", "680233587" },
             { "KO", "400000000" },
+            { "BAC", "631573531" },
             { "CVX", "118610534" },
             { "MCO", "24669778" },
             { "OXY", "264941431" },
             { "KHC", "325634818" },
-            { "DVA", "35142479" },
-            { "VRSN", "13271457" },
-            { "V", "8297460" },
-            { "MA", "3986648" },
-            { "STZ", "5624324" },
-            { "DPZ", "2382000" },
-            { "CHTR", "1991759" },
-            { "TMUS", "4350000" },
-            { "C", "14639502" },
-            { "COF", "7450000" },
+            { "CB", "27033784" },
+            { "8058:TYO", "389043900" },
+            { "8001:TYO", "135246800" },
+            { "8031:TYO", "285401400" },
+            { "DVA", "33996541" },
+            { "VRSN", "13289880" },
             { "KR", "50000000" },
-            { "CHUBB", "27033784" },
+            { "BYDDF", "54200142" },
+            { "V", "8297460" },
+            { "8002:TYO", "154474700" },
+            { "8053:TYO", "112459500" },
+            { "SIRI", "119776692" },
+            { "MA", "3986648" },
+            { "STZ", "12009000" },
+            { "AMZN", "10000000" },
             { "AON", "4100000" },
-            { "HEI", "1049687" },
-            { "POOL", "598689" },
+            { "COF", "7150000" },
+            { "DPZ", "2620613" },
+            { "ALLY", "29000000" },
+            { "TMUS", "3883145" },
+            { "LLYVK", "10917661" },
+            { "CHTR", "1984259" },
+            { "LPX", "5664793" },
+            { "POOL", "1464000" },
+            { "LLYVA", "4986588" },
+            { "FWONK", "3512000" },
+            { "HEI.A", "1162088" },
             { "NVR", "11112" },
             { "DEO", "227750" },
-            { "AMZN", "10000000" },
-            { "ALLY", "29000000" },
+            { "JEF", "433558" },
             { "LEN.B", "152572" },
-            { "TMO", "1000000" },
-            { "MDT", "2000000" }
+            { "LILA", "2630792" },
+            { "BATRK", "223645" },
+            { "LILAK", "1284020" }
     };
 
     public PortfolioService(PortfolioRepository portfolioRepository, PortfolioHoldingService portfolioHoldingService) {
@@ -98,23 +110,23 @@ public class PortfolioService {
     }
 
     public void createDefaultPortfolio(Long userId) {
-        log.info("Creating default Warren Buffett portfolio for user: {}", userId);
+        log.info("Creating default Berkshire Hathaway portfolio for user: {}", userId);
 
         try {
             // Create the portfolio
             Portfolio portfolio = new Portfolio();
             portfolio.setUserId(userId);
-            portfolio.setName("Warren Buffett's Portfolio");
+            portfolio.setName("Berkshire Hathaway's Portfolio");
             portfolio = portfolioRepository.save(portfolio);
             log.info("Created default portfolio with ID: {}", portfolio.getId());
 
             // Add the cash holding first
             try {
-                log.info("Adding cash holding: 334 billion dollars");
+                log.info("Adding cash holding: 347.7 billion dollars");
                 portfolioHoldingService.addHolding(
                         portfolio,
                         "Cash",
-                        334000000000.0,
+                        347700000000.0,
                         null, // Set purchase price to null for cash
                         LocalDate.now(),
                         null,

@@ -57,6 +57,7 @@ function Heatmap({ authState }) {
   const [chartCache, setChartCache] = useState({});
   const [renamePortfolioId, setRenamePortfolioId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
+  const [showCashHolding, setShowCashHolding] = useState(true);
 
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 800;
@@ -253,16 +254,21 @@ function Heatmap({ authState }) {
         }, 0);
 
         const holdingsWithAllocation = validHoldings.map((holding) => {
-          const currentPrice = currentPrices[holding.stock.ticker] || holding.purchasePrice;
-          const currentValue = holding.shares * currentPrice;
+          const isCash = holding.stock.ticker === 'Cash';
+          const currentPrice = isCash ? 1 : (currentPrices[holding.stock.ticker] || holding.purchasePrice);
+          
+          // For cash, currentValue is the same as shares (direct dollar amount)
+          // For stocks, calculate normally
+          const currentValue = isCash ? holding.shares : holding.shares * currentPrice;
+          
           const allocation = currentValue / totalValue;
           const percentChange = holding.percentChange;
-
+        
           let dollarChange;
           if (timeframe === 'total') {
-            dollarChange = (currentValue * percentChange) / 100;
+            dollarChange = isCash ? 0 : (currentValue * percentChange) / 100;
           } else {
-            dollarChange = (currentPrice * percentChange) / 100;
+            dollarChange = isCash ? 0 : (currentPrice * percentChange) / 100;
           }
 
           return {
@@ -385,9 +391,46 @@ function Heatmap({ authState }) {
   const createTreemap = (holdingsData) => {
     if (!holdingsData.length) return [];
 
+    // Filter out cash holdings if showCashHolding is false
+    const filteredHoldings = showCashHolding 
+      ? holdingsData 
+      : holdingsData.filter(h => h.stock.ticker !== 'Cash');
+  
+    if (filteredHoldings.length === 0) return [];
+  
+    // Get cash holding value (if exists and showing)
+    let cashValue = 0;
+    if (showCashHolding) {
+      const cashHolding = holdingsData.find(h => h.stock.ticker === 'Cash');
+      if (cashHolding) {
+        cashValue = cashHolding.shares; // Cash value is directly the shares amount
+      }
+    }
+  
+    // Recalculate allocation percentages with or without cash
+    let totalValue = 0;
+    
+    // Calculate total value including correct cash handling
+    totalValue = filteredHoldings.reduce((sum, h) => {
+      if (h.stock.ticker === 'Cash') {
+        return sum + h.shares; // Add cash value directly
+      } else {
+        return sum + h.currentValue; // Normal stock calculation
+      }
+    }, 0);
+    
+    // Update allocations
+    filteredHoldings.forEach(h => {
+      if (h.stock.ticker === 'Cash') {
+        h.allocation = h.shares / totalValue; // Cash allocation
+      } else {
+        h.allocation = h.currentValue / totalValue; // Stock allocation
+      }
+    });
+  
     const hierarchyData = {
       name: 'portfolio',
-      children: holdingsData.map((h) => ({
+      children: filteredHoldings.map((h) => ({
         name: h.stock.ticker,
         value: h.allocation,
         holding: h,
@@ -719,6 +762,9 @@ function Heatmap({ authState }) {
                   const percentChange = holding.stock.ticker === 'Cash' ? 0 : holding.percentChange;
                   const isCash = holding.stock.ticker === 'Cash';
 
+                  // For cash, we should display the cash value
+                  const currentValue = isCash ? holding.shares : holding.currentValue;
+                  
                   let dollarChange;
                   if (timeframe === 'total') {
                     dollarChange = isCash ? 0 : (holding.currentValue * percentChange) / 100;
@@ -812,13 +858,40 @@ function Heatmap({ authState }) {
               </div>
             )}
           </div>
+          {/* Cash holding toggle switch */}
+          {portfolioData && holdings.length > 0 && (
+            <div className="cash-toggle-container" style={{ padding: '8px', backgroundColor: 'rgba(30, 40, 50, 0.6)', borderRadius: '6px' }}>
+              <label>
+                <span style={{ color: '#ffffff', fontFamily: 'Arial, sans-serif' }}>Show Cash Holding</span>
+                <div className="cash-toggle-switch">
+                  <input 
+                    type="checkbox"
+                    checked={showCashHolding}
+                    onChange={(e) => setShowCashHolding(e.target.checked)}
+                  />
+                  <span className="cash-toggle-slider"></span>
+                </div>
+              </label>
+            </div>
+          )}
           {portfolioData && holdings.length > 0 && (
             <div className="portfolio-summary" style={{ textAlign: 'left', fontFamily: 'Arial, sans-serif', width: '100%' }}>
               <h3>Portfolio Summary</h3>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 <li><strong>Total % Return:</strong> {portfolioData.totalPercentageReturn ? portfolioData.totalPercentageReturn.toFixed(2) + '%' : 'N/A'}</li>
                 <li><strong>Total $ Return:</strong> {portfolioData.totalDollarReturn ? '$' + portfolioData.totalDollarReturn.toFixed(2) : 'N/A'}</li>
-                <li><strong>Current Value:</strong> ${portfolioData.totalPortfolioValue ? portfolioData.totalPortfolioValue.toFixed(2) : '0.00'}</li>
+                <li><strong>Current Value:</strong> ${(() => {
+                  // Calculate total value including cash holdings
+                  const totalValue = holdings.reduce((sum, h) => {
+                    if (h.stock.ticker === 'Cash') {
+                      return sum + h.shares; // Add cash value directly
+                    } else {
+                      return sum + h.currentValue; // Add stock value
+                    }
+                  }, 0);
+                  
+                  return totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                })() || '0.00'}</li>
               </ul>
             </div>
           )}
@@ -847,11 +920,11 @@ function Heatmap({ authState }) {
             <div style={{marginBottom: '8px'}}><strong>{tooltip.data.stock.ticker}</strong></div>
             <div>Company: {tooltip.data.stock.companyName || 'N/A'}</div>
             <div>Allocation: {(tooltip.data.allocation * 100).toFixed(2)}%</div>
-            <div>Current Value: ${tooltip.data.currentValue.toFixed(2)}</div>
+            <div>Current Value: ${(tooltip.data.stock.ticker === 'Cash' ? tooltip.data.shares : tooltip.data.currentValue).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             {tooltip.data.stock.ticker !== 'Cash' && (
               <>
                 <div>Performance Rank: {getPerformanceRank(tooltip.data)} of {holdings.length}</div>
-                <div>Current Price: ${tooltip.data.currentPrice}</div>
+                <div>Current Price: ${tooltip.data.currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                 {tooltip.chartError ? (
                   <div style={{ fontSize: '12px', color: '#ff6666', marginTop: '8px' }}>
                     {tooltip.chartError}

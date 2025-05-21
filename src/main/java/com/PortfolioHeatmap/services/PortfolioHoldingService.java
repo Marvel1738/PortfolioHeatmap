@@ -155,7 +155,10 @@ public class PortfolioHoldingService {
     // Calculates the current value of a holding (based on selling price for closed,
     // current price for open)
     public Double calculateCurrentValue(PortfolioHolding holding) {
-        if (holding.getSellingDate() != null) {
+        if (holding.getStock().getTicker().equalsIgnoreCase("Cash")) {
+            // For cash holdings, return the exact share amount as the value
+            return holding.getShares();
+        } else if (holding.getSellingDate() != null) {
             // Closed position: Value at sale
             return holding.getSellingPrice() * holding.getShares();
         } else {
