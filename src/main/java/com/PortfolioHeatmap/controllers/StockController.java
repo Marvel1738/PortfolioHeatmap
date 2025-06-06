@@ -82,9 +82,22 @@ public class StockController {
 
     // Handles POST /stocks to add a new stock
     // Takes a Stock object in the request body and saves it using StockService
-    @PostMapping
-    public Stock addStock(@RequestBody Stock stock) {
-        return stockService.saveStock(stock);
+    @PostMapping("/add")
+    public ResponseEntity<String> addStock(@RequestBody Stock stock) {
+        log.info("Received request to add stock: {}", stock);
+        try {
+            if (stock == null || stock.getTicker() == null || stock.getCompanyName() == null) {
+                log.warn("Invalid stock data provided: {}", stock);
+                return ResponseEntity.badRequest().body("Stock ticker and company name are required");
+            }
+
+            Stock savedStock = stockService.saveStock(stock);
+            log.info("Successfully added stock: {}", savedStock);
+            return ResponseEntity.status(201).body("Stock added successfully: " + savedStock.getTicker());
+        } catch (Exception e) {
+            log.error("Error adding stock: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body("Error adding stock: " + e.getMessage());
+        }
     }
 
     // Handles DELETE /stocks/{id} to delete a stock by its ID

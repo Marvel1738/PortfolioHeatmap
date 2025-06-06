@@ -49,36 +49,20 @@ public class SecurityConfig {
         this.jwtUtil = jwtUtil; // Assign injected JwtUtil to field
     }
 
-    /**
-     * Configures the security filter chain for HTTP requests.
-     * Disables CSRF, permits public access to /auth/** endpoints,
-     * requires authentication for all other requests, sets stateless session
-     * management,
-     * applies CORS configuration, and adds JwtRequestFilter before
-     * UsernamePasswordAuthenticationFilter.
-     * 
-     * @param http The HttpSecurity object to configure
-     * @return SecurityFilterChain The configured filter chain
-     * @throws Exception If configuration fails
-     */
-    @Bean // Registers this method as a Spring bean
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Explicitly apply CORS config
-                .csrf(csrf -> csrf.disable()) // Disable CSRF as we're using JWT (stateless)
-                .authorizeHttpRequests(auth -> auth // Configure request authorization
-                        .requestMatchers("/auth/**", "/stocks/search").permitAll() // Allow unauthenticated access to
-                                                                                   // /auth/** (e.g.,
-                        // /auth/login)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Apply CORS configuration
+                .csrf(csrf -> csrf.disable()) // Disable CSRF for JWT-based authentication
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**", "/stocks/search").permitAll() // Allow public access to auth and
+                                                                                   // stock search
                         .anyRequest().authenticated()) // Require authentication for all other requests
-                .sessionManagement(session -> session // Configure session management
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)); // Use stateless sessions (JWT-based)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Use stateless sessions
+                .addFilterBefore(jwtRequestFilter(), UsernamePasswordAuthenticationFilter.class); // Add JWT filter
 
-        // Add JwtRequestFilter before UsernamePasswordAuthenticationFilter to validate
-        // tokens
-        http.addFilterBefore(jwtRequestFilter(), UsernamePasswordAuthenticationFilter.class);
-
-        return http.build(); // Build and return the configured filter chain
+        return http.build();
     }
 
     /**
